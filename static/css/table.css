@@ -1,0 +1,1231 @@
+/*
+  The table, phone portrait first. One screen, no page scroll:
+
+    [ bar: back · table & contract / whose turn · (admin) · scores · menu ]
+    [ felt: partner top, opponents left/right, you bottom-left, trick between ]
+    [ tray: bid stepper / kitty / hint -- only when there is something to press ]
+    [ hand ]
+
+  Everything that moves gets its numbers from JS as custom properties
+  (--x, --y, --r on hand cards; --tilt on trick cards). The stylesheet decides
+  what those numbers mean, which keeps style="" out of the markup -- the
+  Content-Security-Policy forbids it.
+*/
+
+.screen-table {
+  /* The size the layout picks for this screen; the player's zoom (zoom.js,
+     --table-zoom / --hand-zoom) multiplies it. */
+  --hand-base: clamp(54px, min(17vw, 12.5dvh), 112px);
+  --trick-base: clamp(52px, min(15.5vw, 11dvh), 100px);
+  /* Your hand may grow, but never past a quarter of the screen's height. */
+  --hand-card-w: min(calc(var(--hand-base) * var(--hand-zoom, 1)), 26dvh);
+
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  /* One column that can never be wider than the screen. Left to "auto" it
+     grows to its widest child's min-content (the bar, on a 320px phone), and
+     everything inside quietly lays out wider than what is visible. */
+  grid-template-columns: minmax(0, 1fr);
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg);
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Pinned rows: the reconnecting banner is usually [hidden], and a hidden
+   element is no grid item, so without these the felt would slide into the
+   banner's auto-sized row and collapse to nothing. */
+.table-bar         { grid-row: 1; }
+.connection-banner { grid-row: 2; }
+.felt              { grid-row: 3; }
+.all-hands         { grid-row: 4; }
+.tray              { grid-row: 5; }
+.hand              { grid-row: 6; }
+
+/* ---------------------------------------------------------------- bar */
+
+.table-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: calc(4px + var(--safe-top)) calc(4px + var(--safe-right)) 4px calc(4px + var(--safe-left));
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.table-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+
+.table-headline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.table-name {
+  flex: 0 1 auto;
+  min-width: 0;
+  font-weight: 750;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.table-contract {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+.table-contract:empty { display: none; }
+
+/* On a phone, once there is a contract it matters more than the table's
+   name: the name gives up its room. */
+@media (max-width: 30rem) {
+  .screen-table.has-contract .table-name { display: none; }
+}
+
+/* What is happening right now: whose turn, and the trick count. */
+.table-status {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.82rem;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.status-title { flex: 0 0 auto; font-weight: 700; color: var(--fg); }
+.status-hint { overflow: hidden; text-overflow: ellipsis; }
+.status-hint::before { content: "— "; }
+.status-progress { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.status-progress::before { content: "·"; margin-right: 8px; }
+.status-short { display: none; }
+
+.table-status.is-your-turn .status-title { color: var(--accent-strong); }
+.table-status.is-your-turn .status-title::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 6px;
+  vertical-align: 1px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: turn-dot 1.4s ease-in-out infinite;
+}
+
+@keyframes turn-dot {
+  50% { opacity: 0.35; }
+}
+
+@media (max-width: 40rem) {
+  .status-hint { display: none; }
+  .status-long { display: none; }
+  .status-short { display: inline; }
+}
+
+.contract-trump {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 7px;
+  font-weight: 750;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+.trump-red    { color: #c22a33; }
+.trump-black  { color: var(--fg); }
+.trump-yellow { color: #a97400; }
+.trump-green  { color: #0d8455; }
+:root[data-theme="dark"] .trump-red    { color: #ff8a8f; }
+:root[data-theme="dark"] .trump-yellow { color: #f5c04a; }
+:root[data-theme="dark"] .trump-green  { color: #55d39c; }
+
+.scoreboard { display: flex; flex: 0 0 auto; gap: 4px; }
+
+.score {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 48px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  line-height: 1.1;
+}
+
+.score-us   { background: var(--us-soft); color: var(--us); }
+.score-them { background: var(--them-soft); color: var(--them); }
+.score-label { font-size: 0.66rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.04em; }
+.score-value { font-family: var(--font-number); font-weight: 700; font-size: 1.15rem; }
+
+.connection-banner {
+  padding: 4px 12px;
+  font-size: 0.82rem;
+  font-weight: 650;
+  text-align: center;
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+}
+
+/* --------------------------------------------------------------- felt */
+
+.felt {
+  position: relative;
+  overflow: hidden;
+  /* The felt is a size container so the trick can be capped to what fits
+     between the seats, however far someone turns the zoom up. A trick is
+     about 2.9 cards wide; across, the side seats need --trick-gap-x. Down,
+     it sits in the room between your partner's seat (--trick-gap-top) and
+     your own (--trick-gap-bottom), centred there; a big trick
+     squeezes into that room, its top and bottom cards overlapping the side
+     ones like a real pile -- down to 2.24 cards tall, never less. */
+  container-type: size;
+  --trick-gap-top: 64px;
+  --trick-gap-bottom: 60px;
+  --trick-gap-x: 100px;
+  --trick-fit: min(calc((100cqh - var(--trick-gap-top) - var(--trick-gap-bottom)) / 2.24), calc((100cqw - var(--trick-gap-x)) / 2.9));
+  --trick-card-w: max(40px, min(calc(var(--trick-base) * var(--table-zoom, 1)), var(--trick-fit)));
+  color: var(--table-fg);
+  background-color: var(--table);
+  background-image:
+    radial-gradient(ellipse 70% 60% at 50% 45%, var(--table-glow), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 104px, var(--table-seam) 104px 106px),
+    repeating-linear-gradient(91deg, var(--table-grain) 0 3px, transparent 3px 9px, var(--table-grain) 9px 10px, transparent 10px 23px);
+  box-shadow: inset 0 8px 18px -12px rgba(0, 0, 0, 0.35), inset 0 -8px 18px -12px rgba(0, 0, 0, 0.35);
+}
+
+/* ------------------------------------------------------------- seats */
+
+.seat {
+  position: absolute;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  max-width: 31%;
+  --team: var(--us);
+}
+
+.seat.team-them { --team: var(--them); }
+
+.seat.pos-top    { top: 8px; left: 50%; transform: translateX(-50%); }
+/* On a phone the side seats sit high, beside the top of the pile rather
+   than its middle, so the pile can use more of the width. */
+.seat.pos-left   { left: calc(6px + var(--safe-left)); top: 22%; }
+.seat.pos-right  { right: calc(6px + var(--safe-right)); top: 22%; }
+/* You sit at the bottom in the middle, a little up from the edge so your
+   badge stays clear of the cards in your hand. */
+.seat.pos-bottom { bottom: 12px; left: 50%; transform: translateX(-50%); flex-direction: row; gap: 8px; max-width: 70%; }
+
+/* Your partner sits in a row -- avatar, name, cards -- so the seat stays
+   short and clear of the top card of the trick. */
+.seat.pos-top { flex-direction: row; gap: 6px; max-width: 76%; }
+.seat.pos-top .seat-label { align-items: flex-start; }
+
+.seat-avatar {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  border-radius: 50%;
+  background: hsl(var(--hue, 200) 48% 42%);
+  box-shadow: 0 0 0 3px var(--team), 0 3px 8px rgba(0, 0, 0, 0.25);
+}
+
+.seat.pos-bottom .seat-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
+.seat.kind-bot .seat-avatar { background: var(--card-bg); font-size: 1.2rem; }
+
+.seat.kind-empty .seat-avatar {
+  background: transparent;
+  border: 2px dashed rgba(124, 78, 28, 0.45);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] .seat.kind-empty .seat-avatar { border-color: rgba(255, 255, 255, 0.3); }
+
+.seat.is-away .seat-avatar { filter: grayscale(0.85); opacity: 0.7; }
+.seat.is-pending .seat-avatar { opacity: 0.6; }
+
+/* Whose turn it is: a ring that breathes, in place of the old pulsing GIF. */
+.seat.is-turn .seat-avatar::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 3px solid var(--team);
+  animation: turn-ring 1.4s ease-in-out infinite;
+}
+
+@keyframes turn-ring {
+  0%, 100% { transform: scale(0.92); opacity: 0.95; }
+  50% { transform: scale(1.12); opacity: 0.35; }
+}
+
+.seat-label {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: var(--table-panel);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+  line-height: 1.15;
+}
+
+.seat.pos-bottom .seat-label { align-items: flex-start; }
+
+.seat-name {
+  max-width: 100%;
+  font-size: 0.8rem;
+  font-weight: 750;
+  color: var(--fg);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.seat-note { font-size: 0.68rem; font-weight: 650; color: var(--fg-muted); }
+.seat-note:empty { display: none; }
+.seat.is-turn .seat-label { box-shadow: 0 0 0 2px var(--team); }
+
+/* Bid and contract bubbles. */
+.seat-bubble {
+  position: absolute;
+  top: -6px;
+  right: -14px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 1px 8px;
+  font-family: var(--font-number);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--fg);
+  background: var(--card-bg);
+  border-radius: 999px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  animation: pop-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+
+.seat.pos-right .seat-bubble { right: auto; left: -14px; }
+.seat.pos-bottom .seat-bubble { position: static; }
+.seat-bubble.bubble-pass { font-family: var(--font-ui); font-size: 0.75rem; color: var(--fg-muted); }
+.seat-bubble.bubble-high { color: #ffffff; background: var(--team); }
+.seat-bubble.bubble-contract { color: #ffffff; background: var(--team); }
+.seat-bubble .glyph { width: 0.85em; height: 0.85em; }
+.seat-bubble .glyph path, .seat-bubble .glyph rect, .seat-bubble .glyph circle { stroke: #ffffff; stroke-width: 2.5px; }
+
+@keyframes pop-in {
+  from { transform: scale(0.4); opacity: 0; }
+}
+
+/* A small fan of backs showing how many cards a player holds. */
+.seat-hand {
+  position: relative;
+  height: 30px;
+  width: 54px;
+}
+
+.seat.pos-bottom .seat-hand { display: none; }
+.seat-hand:empty { display: none; }
+
+.seat-hand .seat-back {
+  position: absolute;
+  top: 0;
+  left: calc(10px + var(--i) * 7px);
+  --card-w: 20px;
+  --card-drop: 0 1px 1px rgba(0, 0, 0, 0.3);
+  transform: rotate(calc(-12deg + var(--i) * 8deg));
+  transform-origin: 50% 100%;
+}
+
+.seat-count {
+  position: absolute;
+  right: -2px;
+  bottom: 0;
+  min-width: 20px;
+  padding: 0 5px;
+  font-family: var(--font-number);
+  font-weight: 700;
+  font-size: 0.78rem;
+  text-align: center;
+  color: var(--fg);
+  background: var(--card-bg);
+  border-radius: 999px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+
+.seat-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.seat-actions:empty { display: none; }
+.seat.pos-bottom .seat-actions { flex-direction: row; }
+.seat-actions button { min-height: 32px; padding: 0.2rem 0.6rem; font-size: 0.78rem; }
+
+/* -------------------------------------------------------------- trick */
+
+.trick {
+  --trick-room: calc(100cqh - var(--trick-gap-top) - var(--trick-gap-bottom));
+  --trick-h: min(calc(var(--trick-card-w) * 1.4 * 2.05), var(--trick-room));
+  position: absolute;
+  left: 50%;
+  top: calc(var(--trick-gap-top) + (var(--trick-room) - var(--trick-h)) / 2);
+  z-index: 2;
+  width: calc(var(--trick-card-w) * 2.55);
+  height: var(--trick-h);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.trick-card {
+  position: absolute;
+  --card-w: var(--trick-card-w);
+  rotate: var(--tilt, 0deg);
+  transition: filter 0.2s ease;
+}
+
+/* Positions use left/top only, never transform: the fly-in and sweep
+   animations animate `translate`, which must start from zero. */
+.trick-card.slot-bottom { left: calc(50% - var(--trick-card-w) / 2); bottom: 0; }
+.trick-card.slot-top    { left: calc(50% - var(--trick-card-w) / 2); top: 0; }
+.trick-card.slot-left   { left: 0; top: calc(50% - var(--trick-card-w) * 0.7); }
+.trick-card.slot-right  { right: 0; top: calc(50% - var(--trick-card-w) * 0.7); }
+
+/* Where your card will land, shown while you drag one. */
+.trick::before {
+  content: "";
+  position: absolute;
+  left: calc(50% - var(--trick-card-w) / 2);
+  bottom: 0;
+  width: var(--trick-card-w);
+  aspect-ratio: 5 / 7;
+  border: 2px dashed var(--table-fg);
+  border-radius: 7%;
+  opacity: 0;
+  scale: 0.96;
+  transition: opacity 0.18s ease, scale 0.18s ease, background-color 0.18s ease;
+}
+
+.felt.is-card-drag .trick::before { opacity: 0.35; }
+.felt.is-drop-ready .trick::before { opacity: 0.85; scale: 1.04; background-color: rgba(255, 255, 255, 0.12); }
+
+.trick-card.is-winner {
+  z-index: 5;
+  --card-drop: 0 0 0 transparent;
+  filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 2px var(--accent));
+}
+
+/* ------------------------------------------------------- waiting room */
+
+.waiting-room {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  /* Fits between the left and right seats on a phone. */
+  width: min(calc(100% - 184px), 22rem);
+  min-width: 11rem;
+  padding: 14px 14px 12px;
+  text-align: center;
+  color: var(--fg);
+  background: var(--table-panel);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  transform: translate(-50%, -50%);
+}
+
+.waiting-title { margin: 0; font-size: 1.05rem; overflow-wrap: anywhere; }
+.waiting-room .chip-row { justify-content: center; }
+.waiting-status { margin: 0; font-size: 0.88rem; color: var(--fg-muted); }
+.waiting-actions { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+
+.felt.is-waiting .trick { opacity: 0.25; }
+
+/* Before the first deal there is no hand and nothing for the tray to say,
+   so the table gets the whole screen. */
+.screen-table.is-seating .tray,
+.screen-table.is-seating .hand { display: none; }
+
+/* --------------------------------------------------------------- tray */
+
+/* Only there when there is something to press (bidding, the kitty, a
+   hint, the hand's results); otherwise it takes no room at all. */
+.tray {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px calc(10px + var(--safe-right)) 4px calc(10px + var(--safe-left));
+  background: var(--bg);
+}
+
+.tray:empty { display: none; }
+
+.tray-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  max-width: 34rem;
+  text-align: center;
+}
+
+.tray-title { margin: 0; font-weight: 700; font-size: 0.95rem; }
+.tray-detail { margin: 0; font-size: 0.82rem; color: var(--fg-muted); }
+
+.bid-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.bid-stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+}
+
+.bid-stepper .stepper {
+  width: 42px;
+  min-width: 42px;
+  padding: 0;
+  font-size: 1.3rem;
+  border: 0;
+}
+
+.bid-amount {
+  min-width: 52px;
+  font-family: var(--font-number);
+  font-weight: 700;
+  font-size: 1.5rem;
+  text-align: center;
+}
+
+.bid-button { flex: 1 1 auto; }
+.pass-button { flex: 0 0 auto; }
+
+.trump-picker {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+  width: 100%;
+}
+
+.trump-swatch {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-height: 52px;
+  padding: 4px;
+  font-size: 0.78rem;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+}
+
+.trump-swatch .glyph { width: 20px; height: 20px; }
+.trump-swatch[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.kitty-done { width: 100%; }
+
+/* --------------------------------------------------------------- hand */
+
+.hand {
+  position: relative;
+  height: calc(var(--hand-card-w) * 1.4 + 44px + var(--safe-bottom));
+  margin: 0 var(--safe-right) 0 var(--safe-left);
+  touch-action: none;
+}
+
+.hand.two-rows { height: calc(var(--hand-card-w) * 1.4 * 1.52 + 44px + var(--safe-bottom)); }
+
+.hand .playing-card {
+  position: absolute;
+  left: 0;
+  bottom: calc(18px + var(--safe-bottom));
+  z-index: var(--z, 1);
+  --card-w: var(--hand-card-w);
+  --lift: 0px;
+  transform: translate(var(--x, 0px), calc(var(--y, 0px) + var(--lift))) rotate(var(--r, 0deg));
+  transform-origin: 50% 120%;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.25, 1), filter 0.2s ease;
+  cursor: pointer;
+}
+
+.hand .playing-card.is-playable { --lift: -6px; }
+.hand .playing-card.is-selected { --lift: -22px; }
+.hand .playing-card.is-buried   { --lift: -20px; }
+
+.hand .playing-card.is-blocked {
+  filter: grayscale(0.55) brightness(0.88) drop-shadow(0 1px 2px rgba(40, 25, 5, 0.2));
+}
+
+.hand .playing-card.is-selected,
+.hand .playing-card.is-buried {
+  --card-drop: 0 6px 10px rgba(40, 25, 5, 0.35);
+}
+
+/* A check on each card picked for the kitty, and a dot on the five that came
+   out of it. */
+.hand .playing-card.is-buried::after,
+.hand .playing-card.is-picked-up::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  margin-left: -9px;
+  border-radius: 50%;
+}
+
+.hand .playing-card.is-buried::after {
+  top: -10px;
+  background: var(--accent) center / 12px no-repeat url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.5l2.5 2.5L10 3.5' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+
+.hand .playing-card.is-picked-up::before {
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  background: var(--accent);
+}
+
+/* cards.css resets transform on :active for buttons; in the hand that would
+   throw a pressed card out of the fan to the hand's corner. Keep it put. */
+.hand button.playing-card:active:not(:disabled) {
+  transform: translate(var(--x, 0px), calc(var(--y, 0px) + var(--lift))) rotate(var(--r, 0deg));
+}
+
+/* Touched, about to be picked up. */
+.hand .playing-card.is-pressed {
+  --lift: -16px;
+  --card-drop: 0 8px 12px rgba(40, 25, 5, 0.32);
+  transition-duration: 0.12s;
+}
+
+/* Picked up: the card itself is in your fingers (.held-card); its place
+   in the fan stays as a faint outline to come back to. */
+.hand .playing-card.is-held-out {
+  opacity: 0.28;
+  filter: grayscale(0.6);
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.25, 1), opacity 0.15s ease;
+}
+
+/* On its way to the pile: the thrown card is the one you see. */
+.hand .playing-card.is-launched { visibility: hidden; pointer-events: none; }
+
+/* The card in your fingers, and in the air. fling.js moves it every frame. */
+.held-card {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 300;
+  --card-w: var(--fw, 72px);
+  transform-origin: var(--fox, 50%) var(--foy, 50%);
+  transform: translate(var(--fx, 0px), var(--fy, 0px)) rotate(var(--fr, 0deg)) scale(var(--fs, 1));
+  pointer-events: none;
+  will-change: transform;
+  --card-drop: 0 10px 14px rgba(40, 25, 5, 0.3);
+}
+
+.held-card.is-held {
+  cursor: grabbing;
+  --card-drop: 0 22px 26px rgba(40, 25, 5, 0.36);
+}
+
+.held-card.is-flying { --card-drop: 0 16px 20px rgba(40, 25, 5, 0.32); }
+
+/* Landed while the last trick is still being swept away: it hovers just
+   above the pile until the table is clear. */
+.held-card.is-hovering { --card-drop: 0 14px 18px rgba(40, 25, 5, 0.34); }
+
+/* trick.js measures a slot with one of these; it is never seen. */
+.trick-card.is-probe { visibility: hidden; }
+
+.hand .playing-card.is-dealt {
+  animation: deal-in 0.36s cubic-bezier(0.2, 0.8, 0.25, 1) backwards;
+  animation-delay: calc(var(--deal, 0) * 32ms);
+}
+
+@keyframes deal-in {
+  from { opacity: 0; translate: 0 -60px; scale: 0.6; }
+}
+
+/* ------------------------------------------------------------ sheets */
+
+.summary-art { display: flex; justify-content: center; }
+.summary-art .bird-art { width: 120px; height: 120px; }
+.summary-subtitle { margin: 0; color: var(--fg-muted); font-size: 0.9rem; }
+
+.summary-teams {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.summary-team {
+  padding: 10px 12px;
+  border-radius: 12px;
+}
+
+.summary-team.team-us   { background: var(--us-soft); }
+.summary-team.team-them { background: var(--them-soft); }
+.summary-team.team-us h3   { color: var(--us); }
+.summary-team.team-them h3 { color: var(--them); }
+
+.summary-team dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 2px 8px;
+  margin: 0;
+  font-size: 0.88rem;
+}
+
+.summary-team dt { color: var(--fg-muted); }
+.summary-team dd { margin: 0; font-family: var(--font-number); font-weight: 700; text-align: right; }
+.summary-waiting { margin: 0; text-align: center; }
+
+.score-table td { vertical-align: middle; }
+.score-table .score-delta { display: block; font-family: var(--font-number); font-weight: 700; }
+.score-table .score-total { display: block; font-size: 0.78rem; color: var(--fg-muted); }
+.score-table .is-set .score-delta { color: var(--danger); }
+.inline-glyph { margin-left: 6px; }
+
+.chat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-height: 8rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.chat-line {
+  align-self: flex-start;
+  max-width: 85%;
+  padding: 6px 10px;
+  border-radius: 14px 14px 14px 4px;
+  background: var(--surface-2);
+  overflow-wrap: anywhere;
+}
+
+.chat-line.is-mine {
+  align-self: flex-end;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--accent-soft);
+}
+
+.chat-name { display: block; font-size: 0.72rem; font-weight: 750; color: var(--fg-muted); }
+.chat-empty { color: var(--fg-muted); font-size: 0.9rem; text-align: center; padding: 1rem; }
+
+.chat-form { flex-direction: row; margin: 0; }
+.chat-form input { flex: 1 1 auto; }
+.chat-form button { flex: 0 0 auto; }
+
+.rules-body p { font-size: 0.92rem; }
+
+/* ------------------------------------------------------ wider screens */
+
+@media (min-width: 48rem) {
+  .screen-table {
+    --hand-base: clamp(70px, min(9vw, 13dvh), 120px);
+    /* Desktop has room to spare: the trick starts big enough to read
+       across the table, and the fit cap above keeps it off the seats. */
+    --trick-base: clamp(84px, min(10vw, 15dvh), 150px);
+  }
+
+  .felt { --trick-gap-top: 76px; --trick-gap-bottom: 64px; --trick-gap-x: 280px; }
+
+  .seat.pos-left  { left: calc(16px + var(--safe-left)); top: 38%; }
+  .seat.pos-right { right: calc(16px + var(--safe-right)); top: 38%; }
+  .seat-avatar { width: 54px; height: 54px; font-size: 1.05rem; }
+  .seat-name { font-size: 0.9rem; }
+  .seat-hand { height: 40px; width: 70px; }
+  .seat-hand .seat-back { --card-w: 26px; left: calc(12px + var(--i) * 9px); }
+  .trick { width: calc(var(--trick-card-w) * 2.9); }
+}
+
+/* A phone on its side: little height, so shrink what eats it. */
+@media (max-height: 30rem) and (orientation: landscape) {
+  .screen-table {
+    --hand-base: clamp(46px, 15dvh, 80px);
+    --trick-base: clamp(44px, 14dvh, 76px);
+  }
+
+  /* The trick is always flattened here (see below); the seats sit beside
+     it, not above and below. */
+  .felt { --trick-gap-top: 10px; --trick-gap-bottom: 46px; }
+
+  .tray { padding-top: 2px; }
+
+  /* Width to spare, height scarce: your partner moves to the top-left
+     corner, the seats lose their card fans, and the trick flattens so its
+     top and bottom cards overlap like a real pile. */
+  .seat.pos-top { top: 6px; left: calc(12px + var(--safe-left)); transform: none; }
+  .seat.pos-left { top: 46%; }
+  .seat.pos-right { top: 18%; }
+  .seat-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
+  .seat-hand { display: none; }
+  .trick { --trick-h: min(calc(var(--trick-card-w) * 1.4 * 1.6), var(--trick-room)); }
+  .waiting-room { top: 50%; padding: 8px 12px; gap: 0.3rem; }
+}
+
+/* ----------------------------------------------- admin controls (bar) */
+
+.admin-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
+.admin-controls[hidden] { display: none; }
+.bar-icon { width: 36px; min-width: 36px; min-height: 36px; }
+.bar-icon svg { width: 20px; height: 20px; }
+.bar-icon:disabled { opacity: 0.35; }
+.bar-resume { color: var(--accent-fg); background: var(--accent); border-radius: 50%; }
+.bar-resume[hidden] { display: none; }
+.admin-position { margin-right: 4px; font-size: 0.75rem; color: var(--fg-muted); white-space: nowrap; }
+
+/* Held by an admin: the whole bar says so. */
+.screen-table.is-held .table-bar { background: var(--warn-bg); }
+.screen-table.is-held .admin-position { color: var(--warn-fg); font-weight: 700; }
+
+@media (max-width: 48rem) {
+  .admin-position { display: none; }
+}
+
+@media (max-width: 30rem) {
+  .score { min-width: 36px; padding: 2px 4px; }
+  .score-label { font-size: 0.58rem; }
+  .table-bar > .icon-button { width: 36px; min-width: 36px; }
+  .bar-icon { width: 32px; min-width: 32px; }
+}
+
+.watchers-chip {
+  padding: 0 7px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: var(--surface-2);
+}
+
+/* --------------------------------------------------- watching a table */
+
+.observe-panel { gap: 4px; }
+
+.observe-seats {
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.observe-seats button {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.82rem;
+}
+
+.observe-all { width: 100%; max-width: 20rem; }
+
+/* Every other hand, face up, for a watcher allowed to see them. */
+.all-hands {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px calc(8px + var(--safe-right)) 4px calc(8px + var(--safe-left));
+  background: var(--surface-2);
+  border-top: 1px solid var(--border);
+}
+
+.hand-row {
+  display: grid;
+  grid-template-columns: auto minmax(3rem, 5rem) minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+}
+
+.hand-row-name { font-size: 0.75rem; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row-cards { display: flex; min-width: 0; }
+
+.playing-card.row-card {
+  --card-w: clamp(22px, 6.6vw, 40px);
+  --card-drop: 0 1px 1px rgba(0, 0, 0, 0.25);
+  flex: 0 0 auto;
+}
+
+.playing-card.row-card + .playing-card.row-card { margin-left: calc(var(--card-w) * -0.42); }
+
+/* ----------------------------------------------------------- hints */
+
+.hint-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  max-width: 34rem;
+  margin-top: 4px;
+}
+
+.hint-button { flex: 0 0 auto; }
+.hint-message { font-size: 0.86rem; font-weight: 650; color: var(--accent); text-align: left; }
+
+.hand .playing-card.is-hinted {
+  --lift: -24px;
+  --card-drop: 0 0 0 transparent;
+  filter: drop-shadow(0 0 5px #f5b301) drop-shadow(0 0 2px #f5b301);
+}
+
+/* --------------------------------------------------- sheets: share, history */
+
+.share-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.share-block h3 { margin: 0; }
+.share-block p { margin: 0; }
+
+.share-link {
+  display: block;
+  padding: 0.5rem;
+  font-size: 0.8rem;
+  background: var(--surface-2);
+  border-radius: 8px;
+  word-break: break-all;
+  user-select: all;
+  -webkit-user-select: all;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  flex: 1 1 auto;
+  min-height: 10rem;
+}
+
+.history-hand {
+  position: sticky;
+  top: 0;
+  padding: 6px 4px 2px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--fg-muted);
+  background: var(--card-bg);
+}
+
+.history-move {
+  width: 100%;
+  min-height: 36px;
+  padding: 0.3rem 0.7rem;
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.88rem;
+  color: var(--fg);
+  background: transparent;
+  border-radius: 8px;
+}
+
+.history-move.history-key { font-weight: 700; }
+.history-move.is-future { color: var(--fg-muted); font-style: italic; }
+.history-move[aria-current="step"] { color: var(--accent-fg); background: var(--accent); }
+
+.menu-switch { padding: 6px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+
+/* ------------------------------------------- history: hands and tricks */
+
+.history-hand-section { display: flex; flex-direction: column; }
+
+.history-hand {
+  z-index: 2;
+  margin-top: 6px;
+  padding: 8px 8px 6px;
+  font-size: 0.8rem;
+  color: var(--fg);
+  border-bottom: 2px solid var(--border);
+}
+
+.history-hand-moves,
+.history-group-moves { margin: 0; padding: 0; list-style: none; }
+
+.history-group {
+  margin: 6px 0 2px;
+  padding: 2px 0 2px 8px;
+  border-left: 3px solid var(--border);
+}
+
+.history-group-trick { border-left-color: var(--accent-soft); }
+
+.history-group-head {
+  padding: 2px 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.history-group-head.is-done { color: var(--accent-strong); }
+
+/* --------------------------------------------- game log: the game record */
+
+.log-list { gap: 10px; }
+
+.record-item { list-style: none; }
+
+.record-hand {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+}
+
+.record-hand-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  list-style: none;
+  background: var(--surface-2);
+  border-radius: 12px;
+}
+
+.record-hand[open] > .record-hand-head { border-radius: 12px 12px 0 0; border-bottom: 1px solid var(--border); }
+.record-hand-head::-webkit-details-marker { display: none; }
+
+.record-hand-head::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--fg-muted);
+  border-bottom: 2px solid var(--fg-muted);
+  rotate: -45deg;
+  transition: rotate 0.15s ease;
+}
+
+.record-hand[open] > .record-hand-head::before { rotate: 45deg; }
+
+.record-hand-number { font-weight: 800; font-size: 0.95rem; }
+.record-hand.is-current .record-hand-number { color: var(--accent-strong); }
+
+.record-contract {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+}
+
+.record-result {
+  margin-left: auto;
+  padding: 2px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 999px;
+}
+
+.record-result.team-us   { color: var(--us); background: var(--us-soft); }
+.record-result.team-them { color: var(--them); background: var(--them-soft); }
+
+.record-hand-body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+
+.record-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+
+.record-label,
+.record-trick-number {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+
+.record-bids { display: flex; flex-wrap: wrap; gap: 4px; }
+
+.record-bid {
+  display: inline-flex;
+  gap: 4px;
+  padding: 1px 8px;
+  font-size: 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.record-bid-amount { font-weight: 700; font-family: var(--font-number); }
+.record-bid.is-pass { color: var(--fg-muted); }
+.record-bid.is-pass .record-bid-amount { font-family: inherit; font-weight: 500; font-style: italic; }
+.record-bid.is-winning { border-color: var(--accent); background: var(--accent-soft); }
+
+.record-trump,
+.record-note,
+.record-totals {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.record-note { color: var(--fg-muted); font-style: italic; }
+.record-totals { font-weight: 700; padding-top: 6px; border-top: 1px dashed var(--border); }
+
+.record-trick {
+  padding: 6px 8px 8px;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 10px;
+}
+
+.record-trick.team-us   { border-left-color: var(--us); }
+.record-trick.team-them { border-left-color: var(--them); }
+.record-trick.is-live   { border-style: dashed; border-left-style: solid; border-left-color: var(--accent); }
+
+.record-trick-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.record-trick-status { font-size: 0.8rem; font-weight: 600; }
+.record-trick.is-live .record-trick-status { color: var(--accent-strong); font-style: italic; }
+
+.record-cards { display: flex; gap: 6px; }
+
+.record-play {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+  margin: 0;
+  font-size: 0.7rem;
+  color: var(--fg-muted);
+}
+
+.record-play figcaption { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.playing-card.record-card { --card-w: clamp(38px, 11vw, 54px); --card-drop: 0 1px 2px rgba(40, 25, 5, 0.25); }
+.record-play.is-winner .playing-card { outline: 2px solid var(--accent); outline-offset: 2px; }
+.record-play.is-winner figcaption { color: var(--accent-strong); font-weight: 700; }
+
+/* ------------------------------------------- taking over a bot's seat */
+
+/* Below your partner's seat on a phone; tucked into the top-left corner,
+   clear of every seat, where there is room. */
+.takeover-requests {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(calc(100% - 24px), 24rem);
+  transform: translateX(-50%);
+}
+
+@media (min-width: 48rem) {
+  .takeover-requests { top: 12px; left: calc(16px + var(--safe-left)); width: 20rem; transform: none; }
+}
+
+.takeover-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 10px 12px;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 2px solid var(--accent);
+  border-radius: 14px;
+  box-shadow: var(--shadow);
+  animation: takeover-in 0.28s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.takeover-text { margin: 0; font-size: 0.88rem; font-weight: 600; }
+.takeover-actions { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: flex-end; }
+
+@keyframes takeover-in {
+  from { opacity: 0; translate: 0 -10px; }
+}
+
+.seat-asked { font-size: 0.75rem; font-style: italic; }
+.takeover-waiting { color: var(--accent-strong); font-weight: 600; }
+
+/* ---------------------------------------------------------- card size */
+
+.zoom-controls { display: flex; flex-direction: column; gap: 10px; }
+
+.zoom-row {
+  display: grid;
+  grid-template-columns: minmax(7rem, auto) 1fr 3.2rem;
+  align-items: center;
+  gap: 10px;
+}
+
+.zoom-row input[type="range"] { width: 100%; min-height: 32px; accent-color: var(--accent); }
+.zoom-label { font-size: 0.9rem; font-weight: 600; }
+.zoom-value { font-variant-numeric: tabular-nums; text-align: right; font-weight: 700; }
+.zoom-reset { align-self: flex-start; }
+
+.menu-zoom {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface-2);
+}
+
+.menu-zoom > summary { min-height: 36px; display: flex; align-items: center; font-weight: 600; cursor: pointer; }
+.menu-zoom[open] > summary { margin-bottom: 8px; }
+
+@media (max-width: 26rem) {
+  .zoom-row { grid-template-columns: 1fr 3.2rem; }
+  .zoom-row input[type="range"] { grid-column: 1 / -1; grid-row: 2; }
+}

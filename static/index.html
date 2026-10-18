@@ -1,0 +1,711 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <meta name="theme-color" content="#f4eee3" />
+  <title data-i18n="app.title">&nbsp;</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <!-- Before the stylesheets on purpose: applies a saved dark choice before
+       first paint, so the page never flashes the wrong theme. -->
+  <script src="/js/theme.js"></script>
+  <script src="/js/zoom.js"></script>
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/cards.css" />
+  <link rel="stylesheet" href="/css/lobby.css" />
+  <link rel="stylesheet" href="/css/table.css" />
+</head>
+<body>
+  <!--
+    No text is hardcoded here. Every visible string carries a data-i18n key
+    that server/language resolves from language.yaml at runtime. All artwork
+    (cards, the bird, the wordmark) is drawn as SVG by js/art.js and
+    js/cards.js -- there are no image files.
+
+    Four screens, one visible at a time, switched by the hash router in
+    js/app.js: signed-out, lobby (#/), a table (#/t/<id>), settings
+    (#/settings).
+  -->
+
+  <!-- ===================================================== signed out -->
+  <section id="screen-signed-out" class="screen screen-splash" hidden>
+    <div class="splash">
+      <div class="splash-art" data-art="splash"></div>
+      <p class="splash-tagline" data-i18n="app.tagline"></p>
+      <div class="card splash-card">
+        <h2 data-i18n="signed_out.heading"></h2>
+        <p data-i18n="signed_out.body"></p>
+        <p id="invalid-link" class="notice notice-warn" data-i18n="signed_out.invalid_link" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============================================== join a table link -->
+  <section id="screen-join" class="screen screen-splash" hidden>
+    <div class="splash">
+      <div class="gate-bird" data-art="bird"></div>
+      <div class="card gate-card">
+        <p class="gate-kicker" data-i18n="join.kicker"></p>
+        <h2 id="join-table-name"></h2>
+        <p id="join-status" class="muted"></p>
+        <form id="join-signup-form" autocomplete="off" hidden>
+          <div class="field">
+            <label for="join-name" data-i18n="join.name_label"></label>
+            <input id="join-name" maxlength="80" required autocomplete="nickname"
+                   data-i18n-attr="placeholder:join.name_placeholder" />
+          </div>
+          <button type="submit" data-i18n="join.submit"></button>
+        </form>
+        <p id="join-closed" class="notice notice-warn" data-i18n="join.closed" hidden></p>
+        <p id="join-working" class="muted" data-i18n="join.working" hidden></p>
+        <p id="join-error" class="notice notice-error" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================= multi-use sign-up link -->
+  <section id="screen-signup" class="screen screen-splash" hidden>
+    <div class="splash">
+      <div class="splash-art gate-wordmark" data-art="wordmark"></div>
+      <div class="card gate-card">
+        <p class="gate-kicker" data-i18n="signup.kicker"></p>
+        <h2 id="signup-label"></h2>
+        <p id="signup-signed-in" class="notice notice-warn" hidden></p>
+        <form id="signup-name-form" autocomplete="off">
+          <div class="field">
+            <label for="signup-name" data-i18n="signup.name_label"></label>
+            <input id="signup-name" maxlength="80" required autocomplete="nickname"
+                   data-i18n-attr="placeholder:signup.name_placeholder" />
+          </div>
+          <button type="submit" data-i18n="signup.continue"></button>
+        </form>
+        <div id="signup-matches" hidden>
+          <p id="signup-question" class="gate-question"></p>
+          <div id="signup-match-list" class="match-list"></div>
+          <button id="signup-new" type="button" class="secondary"></button>
+          <button id="signup-back" type="button" class="ghost" data-i18n="signup.back"></button>
+        </div>
+        <form id="signup-pin-form" autocomplete="off" hidden>
+          <p id="signup-pin-for"></p>
+          <div class="field">
+            <label for="signup-pin" data-i18n="signup.pin_label"></label>
+            <input id="signup-pin" inputmode="numeric" pattern="[0-9]*" maxlength="8" required autocomplete="one-time-code" />
+          </div>
+          <button type="submit" data-i18n="signup.pin_submit"></button>
+          <button id="signup-pin-back" type="button" class="ghost" data-i18n="signup.back"></button>
+        </form>
+        <p id="signup-error" class="notice notice-error" hidden></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========================================================== lobby -->
+  <section id="screen-lobby" class="screen screen-lobby" hidden>
+    <header class="lobby-header">
+      <div class="lobby-brand">
+        <div class="lobby-bird" data-art="bird"></div>
+        <div class="lobby-wordmark" data-art="wordmark"></div>
+      </div>
+      <button id="open-settings" type="button" class="avatar-button" data-i18n-attr="aria-label:nav.settings,title:nav.settings"></button>
+    </header>
+
+    <main class="lobby-main">
+      <section id="my-tables-section" class="lobby-section" hidden>
+        <h2 data-i18n="lobby.your_tables"></h2>
+        <div id="my-tables" class="table-list"></div>
+      </section>
+
+      <section id="open-tables-section" class="lobby-section">
+        <h2 data-i18n="lobby.open_tables"></h2>
+        <div id="open-tables" class="table-list"></div>
+        <div id="lobby-empty" class="empty-state" hidden>
+          <div class="empty-art" data-art="bird"></div>
+          <p data-i18n="lobby.empty"></p>
+        </div>
+      </section>
+    </main>
+
+    <div class="fab-bar">
+      <button id="new-table-button" type="button" class="fab" data-i18n="lobby.new_table"></button>
+    </div>
+  </section>
+
+  <!-- ========================================================== table -->
+  <section id="screen-table" class="screen screen-table" hidden>
+    <header class="table-bar">
+      <button id="table-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <!-- One bar for everything above the table: where you are, what is
+           happening, the score, and (for admins) stepping through moves. -->
+      <div class="table-title">
+        <div class="table-headline">
+          <span id="table-name" class="table-name"></span>
+          <span id="table-contract" class="table-contract"></span>
+        </div>
+        <div id="table-status" class="table-status"></div>
+      </div>
+      <div id="admin-controls" class="admin-controls" hidden>
+        <span id="admin-position" class="admin-position"></span>
+        <button id="admin-undo" type="button" class="icon-button bar-icon" data-i18n-attr="aria-label:admin_game.undo_label,title:admin_game.undo_label">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14L4 9l5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="admin-redo" type="button" class="icon-button bar-icon" data-i18n-attr="aria-label:admin_game.redo_label,title:admin_game.redo_label">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 14l5-5-5-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M20 9H9.5a5.5 5.5 0 0 0 0 11H13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+        <button id="admin-resume" type="button" class="icon-button bar-icon bar-resume" data-i18n-attr="aria-label:admin_game.resume_label,title:admin_game.resume_label" hidden>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
+        </button>
+      </div>
+      <div id="table-scores" class="scoreboard"></div>
+      <button id="table-menu" type="button" class="icon-button" data-i18n-attr="aria-label:table.menu,title:table.menu">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="19" cy="12" r="2.2" fill="currentColor"/></svg>
+        <span id="chat-unread" class="badge-dot" hidden></span>
+      </button>
+    </header>
+
+    <div id="connection-banner" class="connection-banner" hidden>
+      <span data-i18n="table.reconnecting"></span>
+    </div>
+
+    <div id="felt" class="felt">
+      <div id="trick" class="trick" aria-hidden="true"></div>
+      <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
+      <div id="waiting-room" class="waiting-room" hidden>
+        <h2 id="waiting-title" class="waiting-title"></h2>
+        <ul id="waiting-rules" class="chip-row"></ul>
+        <p id="waiting-status" class="waiting-status"></p>
+        <div class="waiting-actions">
+          <button id="deal-button" type="button" data-i18n="waiting.deal" hidden></button>
+          <button id="waiting-leave" type="button" class="secondary" data-i18n="table.leave"></button>
+        </div>
+      </div>
+    </div>
+
+    <div id="all-hands" class="all-hands" hidden></div>
+    <div id="tray" class="tray"></div>
+    <div id="hand" class="hand" role="group" data-i18n-attr="aria-label:hand.label"></div>
+    <p id="game-live" class="visually-hidden" aria-live="polite"></p>
+  </section>
+
+  <!-- ======================================================= settings -->
+  <section id="screen-settings" class="screen screen-settings" hidden>
+    <header class="page-header">
+      <button id="settings-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1 data-i18n="settings.heading"></h1>
+    </header>
+
+    <main class="settings-main">
+      <div class="card">
+        <h2 data-i18n="account.heading"></h2>
+        <p id="who-am-i" class="muted"></p>
+        <form id="rename-form" autocomplete="off">
+          <div class="field">
+            <label for="display-name" data-i18n="account.display_name_label"></label>
+            <input id="display-name" name="display_name" maxlength="80" required
+                   data-i18n-attr="placeholder:account.display_name_placeholder" />
+          </div>
+          <button type="submit" data-i18n="account.save_button"></button>
+        </form>
+        <p id="rename-saved" class="notice notice-ok" data-i18n="account.saved_notice" hidden></p>
+        <button id="logout-button" type="button" class="secondary" data-i18n="account.logout_button"></button>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="profile.heading"></h2>
+        <div class="avatar-preview-row">
+          <span id="avatar-preview" class="avatar avatar-large" aria-hidden="true"></span>
+          <p class="muted" data-i18n="profile.description"></p>
+        </div>
+        <h3 data-i18n="profile.icon"></h3>
+        <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
+        <h3 data-i18n="profile.color"></h3>
+        <div id="color-grid" class="color-grid" role="radiogroup" data-i18n-attr="aria-label:profile.color"></div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="pin.heading"></h2>
+        <p class="muted" data-i18n="pin.description"></p>
+        <p id="pin-state" class="pin-state"></p>
+        <form id="pin-form" autocomplete="off">
+          <div class="field">
+            <label for="pin-input" data-i18n="pin.label"></label>
+            <input id="pin-input" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="new-password" />
+          </div>
+          <button type="submit" data-i18n="pin.save"></button>
+        </form>
+        <button id="pin-remove" type="button" class="secondary" data-i18n="pin.remove" hidden></button>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="appearance.heading"></h2>
+        <p class="muted" data-i18n="appearance.description"></p>
+        <div class="segmented" role="radiogroup" data-i18n-attr="aria-label:appearance.heading">
+          <button id="theme-light" type="button" role="radio" data-theme-choice="light" data-i18n="appearance.light"></button>
+          <button id="theme-dark" type="button" role="radio" data-theme-choice="dark" data-i18n="appearance.dark"></button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="zoom.heading"></h2>
+        <p class="muted" data-i18n="zoom.description"></p>
+        <div id="settings-zoom" class="zoom-controls" data-zoom-controls></div>
+      </div>
+
+      <!-- API keys: the non-browser way in, kept from the template. -->
+      <div class="card" id="api-keys-panel" hidden>
+        <h2 data-i18n="api_keys.heading"></h2>
+        <p class="muted" data-i18n="api_keys.description"></p>
+
+        <form id="create-key-form" autocomplete="off">
+          <div class="field">
+            <label for="key-name" data-i18n="api_keys.name_label"></label>
+            <input id="key-name" name="name" maxlength="80" required
+                   data-i18n-attr="placeholder:api_keys.name_placeholder" />
+          </div>
+          <div class="field" id="key-role-field" hidden>
+            <label for="key-role" data-i18n="api_keys.role_label"></label>
+            <select id="key-role" name="role">
+              <option value="user" data-i18n="api_keys.role_user"></option>
+              <option value="admin" data-i18n="api_keys.role_admin"></option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="key-days" data-i18n="api_keys.days_label"></label>
+            <input id="key-days" name="expires_in_days" type="number" min="0" max="3650" inputmode="numeric"
+                   data-i18n-attr="placeholder:api_keys.days_placeholder" />
+          </div>
+          <button type="submit" data-i18n="api_keys.create_button"></button>
+        </form>
+
+        <div id="key-secret-box" class="notice notice-link" hidden>
+          <p data-i18n="api_keys.secret_notice"></p>
+          <code id="key-secret-value"></code>
+          <button id="copy-key-button" type="button" class="secondary" data-i18n="api_keys.copy_button"></button>
+          <span id="key-copied-notice" class="muted" data-i18n="api_keys.copied_notice" hidden></span>
+        </div>
+
+        <div class="table-scroll">
+          <table id="keys-table">
+            <thead>
+              <tr>
+                <th data-i18n="api_keys.table_name"></th>
+                <th data-i18n="api_keys.table_role"></th>
+                <th data-i18n="api_keys.table_status"></th>
+                <th data-i18n="api_keys.table_last_used"></th>
+                <th data-i18n="api_keys.table_expires"></th>
+                <th data-i18n="api_keys.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="admin-panel" hidden>
+        <h2 data-i18n="admin.heading"></h2>
+        <p class="muted" data-i18n="admin.description"></p>
+
+        <form id="create-user-form" autocomplete="off">
+          <div class="field">
+            <label for="new-name" data-i18n="admin.new_name_label"></label>
+            <input id="new-name" name="display_name" maxlength="80" required
+                   data-i18n-attr="placeholder:admin.new_name_placeholder" />
+          </div>
+          <div class="field">
+            <label for="new-role" data-i18n="admin.new_role_label"></label>
+            <select id="new-role" name="role">
+              <option value="user" data-i18n="admin.role_user"></option>
+              <option value="admin" data-i18n="admin.role_admin"></option>
+            </select>
+          </div>
+          <button type="submit" data-i18n="admin.create_button"></button>
+        </form>
+
+        <div id="login-link-box" class="notice notice-link" hidden>
+          <p data-i18n="admin.link_notice"></p>
+          <code id="login-link-value"></code>
+          <button id="copy-link-button" type="button" class="secondary" data-i18n="admin.copy_button"></button>
+          <span id="copied-notice" class="muted" data-i18n="admin.copied_notice" hidden></span>
+        </div>
+
+        <div class="table-scroll">
+          <table id="users-table">
+            <thead>
+              <tr>
+                <th data-i18n="admin.table_name"></th>
+                <th data-i18n="admin.table_role"></th>
+                <th data-i18n="admin.table_status"></th>
+                <th data-i18n="admin.table_can_invite"></th>
+                <th data-i18n="admin.table_can_hint"></th>
+                <th data-i18n="admin.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="game-settings-panel" hidden>
+        <h2 data-i18n="game_settings.heading"></h2>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="game_settings.join_signup"></span>
+            <span class="switch-help" data-i18n="game_settings.join_signup_help"></span>
+          </span>
+          <input id="setting-join-signup" type="checkbox" role="switch" />
+        </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="game_settings.observers_all"></span>
+            <span class="switch-help" data-i18n="game_settings.observers_all_help"></span>
+          </span>
+          <input id="setting-observers-all" type="checkbox" role="switch" />
+        </label>
+      </div>
+
+      <div class="card" id="signup-links-panel" hidden>
+        <h2 data-i18n="signup_links.heading"></h2>
+        <p class="muted" data-i18n="signup_links.description"></p>
+        <form id="signup-link-form" autocomplete="off">
+          <div class="field">
+            <label for="signup-link-label" data-i18n="signup_links.label"></label>
+            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
+          </div>
+          <div class="field">
+            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
+            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
+          </div>
+          <div class="field">
+            <label for="signup-link-days" data-i18n="signup_links.days"></label>
+            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
+          </div>
+          <button type="submit" data-i18n="signup_links.create"></button>
+        </form>
+        <div id="signup-link-box" class="notice notice-link" hidden>
+          <p data-i18n="signup_links.link_notice"></p>
+          <code id="signup-link-value"></code>
+          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
+          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
+        </div>
+        <div class="table-scroll">
+          <table id="signup-links-table">
+            <thead>
+              <tr>
+                <th data-i18n="signup_links.table_label"></th>
+                <th data-i18n="signup_links.table_used"></th>
+                <th data-i18n="signup_links.table_status"></th>
+                <th data-i18n="signup_links.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="admin-keys-panel" hidden>
+        <h2 data-i18n="admin_keys.heading"></h2>
+        <p class="muted" data-i18n="admin_keys.description"></p>
+        <div class="table-scroll">
+          <table id="admin-keys-table">
+            <thead>
+              <tr>
+                <th data-i18n="admin_keys.table_owner"></th>
+                <th data-i18n="api_keys.table_name"></th>
+                <th data-i18n="api_keys.table_role"></th>
+                <th data-i18n="api_keys.table_status"></th>
+                <th data-i18n="api_keys.table_last_used"></th>
+                <th data-i18n="api_keys.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ========================================================= sheets -->
+  <div id="sheet-layer" class="sheet-layer" hidden>
+
+    <form id="sheet-new-table" class="sheet" autocomplete="off" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="create.heading"></h2>
+      <div class="field">
+        <label for="new-table-name" data-i18n="create.name_label"></label>
+        <input id="new-table-name" maxlength="40" required data-i18n-attr="placeholder:create.name_placeholder" />
+      </div>
+      <fieldset class="option">
+        <legend data-i18n="options.rook_rank"></legend>
+        <div class="segmented" data-option="rook_rank">
+          <button type="button" data-value="high" data-i18n="options.rook_high"></button>
+          <button type="button" data-value="ten_half" data-i18n="options.rook_ten_half"></button>
+          <button type="button" data-value="low" data-i18n="options.rook_low"></button>
+        </div>
+      </fieldset>
+      <fieldset class="option">
+        <legend data-i18n="options.play_to"></legend>
+        <div class="segmented" data-option="play_to">
+          <button type="button" data-value="0" data-i18n="options.play_to_single"></button>
+          <button type="button" data-value="100" data-i18n="options.play_to_100"></button>
+          <button type="button" data-value="300" data-i18n="options.play_to_300"></button>
+          <button type="button" data-value="500" data-i18n="options.play_to_500"></button>
+        </div>
+      </fieldset>
+      <label class="switch-row">
+        <span>
+          <span class="switch-title" data-i18n="options.rook_anytime"></span>
+          <span class="switch-help" data-i18n="options.rook_anytime_help"></span>
+        </span>
+        <input type="checkbox" role="switch" data-option="rook_anytime" />
+      </label>
+      <label class="switch-row">
+        <span>
+          <span class="switch-title" data-i18n="options.rook_first_trick"></span>
+          <span class="switch-help" data-i18n="options.rook_first_trick_help"></span>
+        </span>
+        <input type="checkbox" role="switch" data-option="rook_first_trick" />
+      </label>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button type="submit" data-i18n="create.submit"></button>
+      </div>
+    </form>
+
+    <form id="sheet-invite" class="sheet" autocomplete="off" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="invite.heading"></h2>
+      <p class="muted" data-i18n="invite.description"></p>
+      <div id="invite-form-fields">
+        <div class="field">
+          <label for="invite-name" data-i18n="invite.name_label"></label>
+          <input id="invite-name" maxlength="80" required data-i18n-attr="placeholder:invite.name_placeholder" />
+        </div>
+        <div class="sheet-actions">
+          <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+          <button type="submit" data-i18n="invite.submit"></button>
+        </div>
+      </div>
+      <div id="invite-result" class="notice notice-link" hidden>
+        <p data-i18n="invite.link_notice"></p>
+        <code id="invite-link"></code>
+        <div class="sheet-actions">
+          <button id="invite-copy" type="button" class="secondary" data-i18n="invite.copy"></button>
+          <button id="invite-share" type="button" data-i18n="invite.share" hidden></button>
+        </div>
+        <span id="invite-copied" class="muted" data-i18n="invite.copied" hidden></span>
+        <button type="button" class="ghost" data-sheet-close data-i18n="common.done"></button>
+      </div>
+    </form>
+
+    <div id="sheet-menu" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 id="menu-title"></h2>
+      <nav class="menu-list">
+        <button type="button" data-menu="chat"><span data-i18n="menu.chat"></span><span id="menu-chat-unread" class="badge-dot" hidden></span></button>
+        <button type="button" data-menu="last-trick" data-i18n="menu.last_trick"></button>
+        <button type="button" data-menu="scores" data-i18n="menu.scores"></button>
+        <button type="button" data-menu="rules" data-i18n="menu.rules"></button>
+        <button type="button" data-menu="share" data-i18n="menu.share"></button>
+        <button type="button" data-menu="history" data-i18n="admin_game.history"></button>
+        <label class="switch-row menu-switch" id="menu-observers-row">
+          <span>
+            <span class="switch-title" data-i18n="admin_game.observers_all"></span>
+            <span class="switch-help" data-i18n="admin_game.observers_all_help"></span>
+          </span>
+          <input id="menu-observers" type="checkbox" role="switch" />
+        </label>
+        <details class="menu-zoom">
+          <summary data-i18n="zoom.heading"></summary>
+          <div id="menu-zoom" class="zoom-controls" data-zoom-controls></div>
+        </details>
+        <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
+        <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>
+        <button type="button" data-menu="leave" class="danger" data-i18n="table.leave"></button>
+      </nav>
+    </div>
+
+    <div id="sheet-chat" class="sheet sheet-tall" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="segmented" role="tablist">
+        <button type="button" role="tab" data-chat-tab="chat" data-i18n="chat.tab_chat"></button>
+        <button type="button" role="tab" data-chat-tab="log" data-i18n="chat.tab_log"></button>
+      </div>
+      <ol id="chat-list" class="chat-list"></ol>
+      <ol id="log-list" class="chat-list log-list" hidden></ol>
+      <form id="chat-form" class="chat-form" autocomplete="off">
+        <input id="chat-input" maxlength="280" data-i18n-attr="placeholder:chat.placeholder,aria-label:chat.placeholder" />
+        <button type="submit" data-i18n="chat.send"></button>
+      </form>
+    </div>
+
+    <div id="sheet-last-trick" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="menu.last_trick"></h2>
+      <p id="last-trick-caption" class="muted"></p>
+      <div id="last-trick-cards" class="mini-cards"></div>
+      <p id="last-trick-empty" class="muted" data-i18n="last_trick.none" hidden></p>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-scores" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="menu.scores"></h2>
+      <div class="table-scroll">
+        <table class="score-table">
+          <thead>
+            <tr>
+              <th data-i18n="scores.hand"></th>
+              <th data-i18n="scores.bid"></th>
+              <th id="scores-us-heading"></th>
+              <th id="scores-them-heading"></th>
+            </tr>
+          </thead>
+          <tbody id="scores-body"></tbody>
+        </table>
+      </div>
+      <p id="scores-empty" class="muted" data-i18n="scores.none" hidden></p>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-rules" class="sheet sheet-tall" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="rules.heading"></h2>
+      <ul id="rules-table-options" class="chip-row"></ul>
+      <div class="rules-body">
+        <p data-i18n="rules.deck"></p>
+        <p data-i18n="rules.counters"></p>
+        <p data-i18n="rules.bidding"></p>
+        <p data-i18n="rules.kitty"></p>
+        <p data-i18n="rules.play"></p>
+        <p data-i18n="rules.scoring"></p>
+      </div>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-summary" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div id="summary-art" class="summary-art" hidden></div>
+      <h2 id="summary-title"></h2>
+      <p id="summary-subtitle" class="summary-subtitle"></p>
+      <div class="summary-teams">
+        <div class="summary-team team-us">
+          <h3 id="summary-us-name"></h3>
+          <dl>
+            <dt data-i18n="summary.taken"></dt><dd id="summary-us-taken"></dd>
+            <dt data-i18n="summary.scored"></dt><dd id="summary-us-scored"></dd>
+            <dt data-i18n="summary.total"></dt><dd id="summary-us-total"></dd>
+          </dl>
+        </div>
+        <div class="summary-team team-them">
+          <h3 id="summary-them-name"></h3>
+          <dl>
+            <dt data-i18n="summary.taken"></dt><dd id="summary-them-taken"></dd>
+            <dt data-i18n="summary.scored"></dt><dd id="summary-them-scored"></dd>
+            <dt data-i18n="summary.total"></dt><dd id="summary-them-total"></dd>
+          </dl>
+        </div>
+      </div>
+      <p id="summary-kitty-caption" class="muted"></p>
+      <div id="summary-kitty" class="mini-cards"></div>
+      <p id="summary-waiting" class="muted summary-waiting"></p>
+      <div class="sheet-actions">
+        <button id="summary-lobby" type="button" class="secondary" data-i18n="summary.back_to_lobby" hidden></button>
+        <button id="summary-continue" type="button" data-i18n="summary.next_hand"></button>
+      </div>
+    </div>
+
+    <div id="sheet-share" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="share.heading"></h2>
+      <div class="share-block">
+        <h3 data-i18n="share.join_heading"></h3>
+        <p class="muted" data-i18n="share.join_help"></p>
+        <code id="share-join-link" class="share-link"></code>
+        <div class="sheet-actions">
+          <button type="button" class="secondary" data-share-copy="share-join-link" data-i18n="share.copy"></button>
+          <button type="button" data-share-send="share-join-link" data-i18n="share.send" hidden></button>
+        </div>
+      </div>
+      <div class="share-block">
+        <h3 data-i18n="share.watch_heading"></h3>
+        <p class="muted" data-i18n="share.watch_help"></p>
+        <code id="share-watch-link" class="share-link"></code>
+        <div class="sheet-actions">
+          <button type="button" class="secondary" data-share-copy="share-watch-link" data-i18n="share.copy"></button>
+          <button type="button" data-share-send="share-watch-link" data-i18n="share.send" hidden></button>
+        </div>
+      </div>
+      <span id="share-copied" class="muted" data-i18n="share.copied" hidden></span>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-history" class="sheet sheet-tall" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="admin_game.history"></h2>
+      <p class="muted" data-i18n="admin_game.history_help"></p>
+      <ol id="history-list" class="history-list"></ol>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-confirm-manage" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 id="manage-heading"></h2>
+      <p id="manage-body"></p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button id="manage-confirm" type="button" class="danger"></button>
+      </div>
+    </div>
+
+    <div id="sheet-confirm-leave" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="leave.heading"></h2>
+      <p id="leave-body"></p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button id="leave-confirm" type="button" class="danger" data-i18n="leave.confirm"></button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+
+  <!--
+    Plain scripts in dependency order. No bundler, no modules that need a
+    build step: each file adds one global and the browser runs them as-is.
+  -->
+  <script src="/js/dom.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/ui.js"></script>
+  <script src="/js/stream.js"></script>
+  <script src="/js/art-paths.js"></script>
+  <script src="/js/art.js"></script>
+  <script src="/js/cards.js"></script>
+  <script src="/js/keys.js"></script>
+  <script src="/js/settings.js"></script>
+  <script src="/js/profile.js"></script>
+  <script src="/js/links.js"></script>
+  <script src="/js/join.js"></script>
+  <script src="/js/signup.js"></script>
+  <script src="/js/lobby.js"></script>
+  <script src="/js/seats.js"></script>
+  <script src="/js/fling.js"></script>
+  <script src="/js/hand.js"></script>
+  <script src="/js/trick.js"></script>
+  <script src="/js/bidding.js"></script>
+  <script src="/js/kitty.js"></script>
+  <script src="/js/summary.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/hint.js"></script>
+  <script src="/js/history.js"></script>
+  <script src="/js/record.js"></script>
+  <script src="/js/observe.js"></script>
+  <script src="/js/table.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

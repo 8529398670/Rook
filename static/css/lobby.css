@@ -1,0 +1,152 @@
+/* The lobby: a list of tables and a thumb-height "New table" button. */
+
+.screen-lobby {
+  min-height: 100dvh;
+  padding-bottom: calc(96px + var(--safe-bottom));
+}
+
+.lobby-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: calc(8px + var(--safe-top)) 16px 8px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.lobby-brand { display: flex; align-items: center; gap: 4px; }
+.lobby-bird .bird-art { width: 46px; height: 46px; display: block; }
+.lobby-wordmark .wordmark-art { width: 116px; height: auto; display: block; }
+
+.lobby-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 1rem 16px;
+}
+
+.lobby-section h2 {
+  margin-bottom: 0.6rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+
+.table-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.table-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  min-height: 0;
+  padding: 12px;
+  text-align: left;
+  font-weight: 400;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 1px 2px rgba(60, 40, 10, 0.06);
+}
+
+.table-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.table-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.table-card-name { font-weight: 750; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.table-card-status { font-size: 0.88rem; color: var(--fg-muted); }
+.table-card-names { font-size: 0.82rem; color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.status-chip {
+  flex: 0 0 auto;
+  padding: 1px 9px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  color: var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.status-chip.status-paused { color: var(--warn-fg); background: var(--warn-bg); }
+.status-chip.status-over { color: var(--fg-muted); background: var(--surface-2); }
+.status-chip.status-playing { color: var(--ok-fg); background: var(--ok-bg); }
+
+/* The four seats as a tiny compass: south is seat 0, play runs clockwise. */
+.seat-compass {
+  position: relative;
+  flex: 0 0 auto;
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: var(--table);
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.06);
+}
+
+.compass-seat {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  font-size: 0.62rem;
+  font-weight: 800;
+  color: #ffffff;
+  border-radius: 50%;
+  background: hsl(var(--hue, 190) 50% 42%);
+  box-shadow: 0 0 0 2px var(--card-bg);
+}
+
+.compass-seat.kind-empty { background: transparent; box-shadow: inset 0 0 0 2px var(--table-seam), 0 0 0 2px var(--card-bg); border: 2px dashed rgba(124, 78, 28, 0.35); }
+.compass-seat.kind-bot { background: var(--surface-2); font-size: 0.75rem; }
+.compass-seat.is-you { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--accent); }
+.compass-s { left: 19px; bottom: -4px; }
+.compass-n { left: 19px; top: -4px; }
+.compass-w { left: -4px; top: 19px; }
+.compass-e { right: -4px; top: 19px; }
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--fg-muted);
+}
+
+.empty-art .bird-art { width: 120px; height: 120px; opacity: 0.85; }
+
+.fab-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: 12px 16px calc(12px + var(--safe-bottom));
+  background: linear-gradient(to top, var(--bg) 60%, transparent);
+  pointer-events: none;
+}
+
+.fab {
+  width: 100%;
+  max-width: 26rem;
+  min-height: 52px;
+  font-size: 1.05rem;
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+}

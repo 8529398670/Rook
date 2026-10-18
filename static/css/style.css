@@ -1,0 +1,709 @@
+/*
+  Mobile-first: the base rules describe a narrow screen, and the min-width
+  blocks add what a wider one can afford.
+
+  Light is the default and stays the default. Dark is opt-in via
+  <html data-theme="dark">, set by the toggle in Settings (see js/theme.js) --
+  never by prefers-color-scheme, so the app looks the same for everyone until
+  someone chooses otherwise.
+
+  This file holds the theme tokens and the pieces every screen shares:
+  buttons, forms, sheets, toasts. Each screen has its own stylesheet.
+*/
+
+@font-face {
+  font-family: "Luckiest Guy";
+  src: url("/vendor/luckiest-guy-latin-400-normal.woff2") format("woff2");
+  font-weight: 400;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Zilla Slab";
+  src: url("/vendor/zilla-slab-latin-700-normal.woff2") format("woff2");
+  font-weight: 700;
+  font-display: swap;
+}
+
+:root {
+  color-scheme: light;
+
+  --fg: #1f1d1a;
+  --fg-muted: #6e665a;
+  --bg: #f4eee3;
+  --card-bg: #fffdf8;
+  --surface-2: #f8f2e7;
+  --border: #e4d9c6;
+  --accent: #157f92;
+  --accent-strong: #0f6676;
+  --accent-fg: #ffffff;
+  --accent-soft: #dcf0f3;
+  --danger: #c0392b;
+  --danger-fg: #ffffff;
+
+  /* Your team and the other team, everywhere a team is shown. */
+  --us: #157f92;
+  --us-soft: #dcf0f3;
+  --them: #c8582c;
+  --them-soft: #fbe6dc;
+
+  --ok-bg: #e7f6ec;
+  --ok-fg: #14562c;
+  --warn-bg: #fdf3e2;
+  --warn-fg: #7a4b06;
+  --error-bg: #fdecec;
+  --error-fg: #8a1c1c;
+
+  /* The table: light maple, after the original game's wooden table. */
+  --table: #ead3aa;
+  --table-seam: rgba(124, 78, 28, 0.13);
+  --table-grain: rgba(124, 78, 28, 0.05);
+  --table-glow: rgba(255, 252, 240, 0.55);
+  --table-fg: #3a2a16;
+  --table-panel: rgba(255, 252, 244, 0.92);
+
+  --shadow: 0 1px 2px rgba(60, 40, 10, 0.10), 0 8px 24px rgba(60, 40, 10, 0.10);
+  --card-shadow: 0 1px 1px rgba(40, 25, 5, 0.18), 0 3px 8px rgba(40, 25, 5, 0.16);
+  --radius: 14px;
+  --gap: 1rem;
+
+  --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-number: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
+  --font-display: "Luckiest Guy", "Arial Black", Impact, sans-serif;
+
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --fg: #ecebe6;
+  --fg-muted: #a8a397;
+  --bg: #111416;
+  --card-bg: #1a1e22;
+  --surface-2: #20252a;
+  --border: #2e353c;
+  --accent: #4cc3d6;
+  --accent-strong: #79d6e4;
+  --accent-fg: #062a31;
+  --accent-soft: #123940;
+  --danger: #ef6b5c;
+  --danger-fg: #2a0905;
+
+  --us: #4cc3d6;
+  --us-soft: #123940;
+  --them: #f19166;
+  --them-soft: #40221a;
+
+  --ok-bg: #12301d;
+  --ok-fg: #94d9ab;
+  --warn-bg: #33270f;
+  --warn-fg: #e8c37a;
+  --error-bg: #351717;
+  --error-fg: #f0a3a3;
+
+  /* At night the wood gives way to green baize. */
+  --table: #1f4a3b;
+  --table-seam: rgba(0, 0, 0, 0.0);
+  --table-grain: rgba(255, 255, 255, 0.025);
+  --table-glow: rgba(140, 220, 180, 0.12);
+  --table-fg: #e6f1ea;
+  --table-panel: rgba(20, 34, 29, 0.92);
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.35);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* Screens set display: grid/flex; without this a [hidden] one would show. */
+[hidden] { display: none !important; }
+
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: var(--font-ui);
+  font-size: 16px; /* 16px avoids iOS Safari zooming in on focused inputs */
+  line-height: 1.45;
+  color: var(--fg);
+  background: var(--bg);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body.sheet-open { overflow: hidden; }
+
+h1 { font-size: 1.35rem; margin: 0; }
+h2 { font-size: 1.1rem; margin: 0 0 0.75rem; }
+h3 { font-size: 1rem; margin: 0 0 0.5rem; }
+p  { margin: 0 0 0.75rem; }
+
+.muted { color: var(--fg-muted); font-size: 0.9rem; }
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.sprite { position: absolute; width: 0; height: 0; overflow: hidden; }
+
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+}
+
+/* ------------------------------------------------------------ buttons */
+
+button {
+  /* 44px is the usual floor for a reliable touch target. */
+  min-height: 44px;
+  padding: 0.6rem 1.1rem;
+  font: inherit;
+  font-weight: 650;
+  color: var(--accent-fg);
+  background: var(--accent);
+  border: 1px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background-color 0.15s ease, transform 0.08s ease, opacity 0.15s ease;
+}
+
+button:active:not(:disabled) { transform: scale(0.97); }
+button:disabled { opacity: 0.45; cursor: default; }
+
+button.secondary {
+  color: var(--fg);
+  background: var(--card-bg);
+  border-color: var(--border);
+}
+
+button.ghost {
+  color: var(--accent);
+  background: transparent;
+}
+
+button.danger {
+  color: var(--danger-fg);
+  background: var(--danger);
+}
+
+button.small {
+  min-height: 36px;
+  padding: 0.3rem 0.75rem;
+  font-size: 0.85rem;
+  border-radius: 10px;
+}
+
+.icon-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 44px;
+  min-width: 44px;
+  padding: 0;
+  color: var(--fg);
+  background: transparent;
+}
+
+.icon-button svg { width: 24px; height: 24px; }
+
+.badge-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--them);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+
+.avatar-button {
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: hsl(var(--hue, 190) 52% 42%);
+}
+
+/* -------------------------------------------------------------- forms */
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+label, legend {
+  font-size: 0.85rem;
+  font-weight: 650;
+  color: var(--fg-muted);
+}
+
+input, select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.6rem 0.75rem;
+  font: inherit;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+input:focus-visible, select:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+fieldset.option {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+fieldset.option legend { margin-bottom: 0.35rem; }
+
+/* A row of mutually exclusive choices. */
+.segmented {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.segmented button {
+  flex: 1 1 0;
+  min-height: 38px;
+  padding: 0.3rem 0.4rem;
+  font-size: 0.9rem;
+  color: var(--fg-muted);
+  background: transparent;
+  border-radius: 9px;
+}
+
+.segmented button[aria-pressed="true"],
+.segmented button[aria-checked="true"],
+.segmented button[aria-selected="true"] {
+  color: var(--fg);
+  background: var(--card-bg);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* An on/off switch, from a plain checkbox with role="switch". */
+input[type="checkbox"][role="switch"] {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 50px;
+  min-height: 30px;
+  height: 30px;
+  padding: 0;
+  border-radius: 15px;
+  background: var(--border);
+  border: 0;
+  position: relative;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+input[type="checkbox"][role="switch"]::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease;
+}
+
+input[type="checkbox"][role="switch"]:checked { background: var(--accent); }
+input[type="checkbox"][role="switch"]:checked::after { transform: translateX(20px); }
+input[type="checkbox"][role="switch"]:disabled { opacity: 0.55; cursor: default; }
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.25rem 0;
+  font-size: 1rem;
+  color: var(--fg);
+}
+
+.switch-title { display: block; font-weight: 650; }
+.switch-help { display: block; font-weight: 400; font-size: 0.85rem; color: var(--fg-muted); }
+
+/* -------------------------------------------------------------- chips */
+
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.chip {
+  padding: 2px 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--fg-muted);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.glyph { width: 1em; height: 1em; display: inline-block; vertical-align: -0.12em; flex: 0 0 auto; }
+
+/* ------------------------------------------------------------ notices */
+
+.notice {
+  padding: 0.6rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+}
+
+.notice-ok    { background: var(--ok-bg);    color: var(--ok-fg); }
+.notice-warn  { background: var(--warn-bg);  color: var(--warn-fg); }
+.notice-error { background: var(--error-bg); color: var(--error-fg); }
+
+.notice-link {
+  background: var(--surface-2);
+  border: 1px dashed var(--accent);
+  padding: 0.75rem;
+}
+
+.notice-link code {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font-size: 0.8rem;
+  /* A login link is long and unbreakable; without this it forces the whole
+     page to scroll sideways on a phone. */
+  word-break: break-all;
+}
+
+/* ------------------------------------------------------------- tables */
+
+/* Tables do not reflow. Rather than fight that, let each one scroll inside
+   its own box so it never widens the page itself. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+
+th, td {
+  text-align: left;
+  padding: 0.5rem 0.6rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+
+th { color: var(--fg-muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.03em; }
+
+td .row-actions { display: flex; gap: 0.4rem; }
+
+/* ------------------------------------------------------------- sheets */
+
+.sheet-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  background: rgba(20, 14, 6, 0.42);
+  animation: fade-in 0.18s ease;
+}
+
+.sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  max-width: 34rem;
+  max-height: 88dvh;
+  margin: 0;
+  padding: 0.5rem 1rem calc(1rem + var(--safe-bottom));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--card-bg);
+  border-radius: 22px 22px 0 0;
+  box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2);
+  animation: sheet-up 0.24s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+
+.sheet h2 { margin: 0.25rem 0 0; font-size: 1.2rem; }
+
+.sheet-tall { min-height: 70dvh; }
+
+.sheet-grip {
+  align-self: center;
+  width: 40px;
+  height: 5px;
+  margin: 2px 0 4px;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.sheet-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.25rem;
+}
+
+.sheet-actions > button { flex: 1 1 0; }
+
+.menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-list button {
+  position: relative;
+  text-align: left;
+  color: var(--fg);
+  background: var(--surface-2);
+  border-color: var(--border);
+}
+
+.menu-list button.danger { color: var(--danger); background: transparent; }
+.menu-list .badge-dot { top: 50%; right: 16px; margin-top: -5px; }
+
+@keyframes sheet-up {
+  from { transform: translateY(40px); opacity: 0; }
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+}
+
+/* -------------------------------------------------------------- toast */
+
+.toast {
+  position: fixed;
+  top: calc(10px + var(--safe-top));
+  left: 50%;
+  z-index: 80;
+  max-width: calc(100% - 32px);
+  padding: 0.6rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--card-bg);
+  background: var(--fg);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.toast-error { color: #ffffff; background: var(--danger); }
+.toast-in { animation: toast-in 0.22s cubic-bezier(0.2, 0.8, 0.25, 1); }
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, -12px); }
+}
+
+/* ----------------------------------------------------- splash screen */
+
+.screen-splash {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: calc(24px + var(--safe-top)) 16px calc(24px + var(--safe-bottom));
+}
+
+.splash {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 26rem;
+  text-align: center;
+}
+
+.splash-art { display: flex; flex-direction: column; align-items: center; }
+.splash-art .wordmark-art { width: min(78vw, 320px); height: auto; }
+.splash-art .bird-art { width: min(52vw, 210px); height: auto; margin-top: -12px; }
+.splash-tagline { color: var(--fg-muted); font-weight: 600; }
+.splash-card { text-align: left; width: 100%; }
+
+/* -------------------------------------------------------- settings */
+
+.page-header {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: calc(6px + var(--safe-top)) 12px 6px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--gap) 16px calc(var(--gap) + var(--safe-bottom));
+}
+
+.settings-main .segmented { max-width: 20rem; }
+
+@media (min-width: 40rem) {
+  h1 { font-size: 1.5rem; }
+
+  /* Enough room now to put a short form on one line. */
+  .settings-main form {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: end;
+  }
+
+  /* Only now that the form is a row does a horizontal flex basis mean
+     anything -- on the column layout it would stretch each field to 12rem
+     tall instead of wide. */
+  .settings-main .field { flex: 1 1 12rem; }
+  .settings-main form > button { flex: 0 0 auto; }
+
+  td, th { white-space: normal; }
+
+  .sheet-layer { align-items: center; padding: 16px; }
+  .sheet { border-radius: 22px; max-height: 84dvh; }
+  .sheet-tall { min-height: 0; height: 70dvh; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+/* ------------------------------------------------------------ avatars */
+
+/* A person's chosen icon (or initials) on their chosen color. The hue comes
+   from js/art.js through --hue. */
+.avatar {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  color: #ffffff;
+  border-radius: 50%;
+  background: hsl(var(--hue, 200) 48% 42%);
+}
+
+.avatar.has-icon, .seat-avatar.has-icon, .avatar-button.has-icon, .compass-seat.has-icon {
+  font-size: 1.25em;
+  background: hsl(var(--hue, 200) 60% 88%);
+}
+
+:root[data-theme="dark"] .has-icon { background: hsl(var(--hue, 200) 35% 30%) !important; }
+
+.avatar-large { width: 64px; height: 64px; font-size: 1.4rem; }
+.avatar-small { width: 24px; height: 24px; font-size: 0.65rem; }
+
+.avatar-preview-row { display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem; }
+.avatar-preview-row p { margin: 0; }
+
+.icon-grid, .color-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+  gap: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.icon-choice {
+  min-height: 44px;
+  padding: 0;
+  font-size: 1.35rem;
+  color: var(--fg);
+  background: var(--surface-2);
+  border: 2px solid transparent;
+}
+
+.icon-choice.is-initials { font-size: 0.9rem; font-weight: 800; }
+
+.color-choice {
+  min-height: 44px;
+  padding: 0;
+  border-radius: 50%;
+  background: hsl(var(--hue, 200) 48% 42%);
+  border: 3px solid var(--card-bg);
+  box-shadow: 0 0 0 1px var(--border);
+}
+
+.color-choice.is-auto { background: conic-gradient(from 0deg, #d8373f, #e8a60e, #16a36d, #1e95aa, #8e44ad, #d8373f); }
+.icon-choice[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+.color-choice[aria-checked="true"] { box-shadow: 0 0 0 3px var(--accent); }
+
+.pin-state { font-weight: 650; }
+
+/* ------------------------------------------------- join / sign-up pages */
+
+.gate-card { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; text-align: left; }
+.gate-card h2 { margin: 0; font-size: 1.3rem; overflow-wrap: anywhere; }
+.gate-card p { margin: 0; }
+.gate-card form { margin: 0; }
+.gate-kicker { font-size: 0.8rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent); }
+.gate-bird .bird-art { width: 140px; height: 140px; }
+.gate-wordmark .wordmark-art { width: min(60vw, 240px); }
+.gate-question { font-weight: 700; }
+
+.match-list { display: flex; flex-direction: column; gap: 6px; margin-bottom: 0.5rem; }
+
+.match-button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+}
+
+.match-name { flex: 1 1 auto; font-weight: 750; overflow-wrap: anywhere; }
+.match-note { flex: 0 0 auto; font-size: 0.8rem; font-weight: 600; color: var(--accent); }

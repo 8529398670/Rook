@@ -1,0 +1,582 @@
+# Every piece of text the UI can show lives here, and nowhere else.
+#
+# Two rules make this useful rather than just indirection:
+#
+#   1. Translating or rewording the app is an edit to this file plus a
+#      restart. No HTML or JS changes, no rebuild.
+#   2. A key that is missing or empty ("") hides its element entirely. That
+#      is how you turn a label, a button, or a whole section off without
+#      touching the markup -- set it to "" and it disappears rather than
+#      rendering blank or showing a raw key name.
+#
+# Words in {braces} are filled in by the page: {name} is a player, {bid} or
+# {amount} a number, and so on. Keep them when rewording.
+#
+# This file is served to any visitor at /api/language, signed in or not, since
+# the signed-out page needs text too. Never put anything secret in it.
+
+app:
+  title: "Rook"
+  tagline: "The classic partnership card game, for four."
+
+nav:
+  back: "Back"
+  settings: "Settings"
+
+signed_out:
+  heading: "Welcome to the table"
+  body: "There is no sign-up here. Ask whoever runs this game for an invite link — it signs you in on this device."
+  invalid_link: "That link is invalid, expired, or has already been used. Ask for a new one."
+
+common:
+  cancel: "Cancel"
+  close: "Close"
+  done: "Done"
+
+lobby:
+  your_tables: "Your tables"
+  open_tables: "Tables"
+  empty: "No tables yet. Start one and pull up a chair."
+  new_table: "New table"
+  open_table: "Open table {name}"
+  status_waiting: "{seated} of 4 seats taken"
+  status_paused: "Paused — a seat is empty"
+  status_over: "Game over"
+  status_held: "On hold — an admin is reviewing"
+  status_playing: "Hand {hand} · {a} – {b}"
+
+status:
+  waiting: "Seating"
+  playing: "Playing"
+  paused: "Paused"
+  over: "Finished"
+  held: "On hold"
+
+create:
+  heading: "New table"
+  name_label: "Table name"
+  name_placeholder: "Friday night"
+  default_name: "{name}'s table"
+  submit: "Create table"
+
+options:
+  rook_rank: "The Rook ranks"
+  rook_high: "Highest"
+  rook_ten_half: "10½"
+  rook_low: "Lowest"
+  play_to: "Play to"
+  play_to_single: "1 hand"
+  play_to_100: "100"
+  play_to_300: "300"
+  play_to_500: "500"
+  rook_anytime: "Rook can be played anytime"
+  rook_anytime_help: "Official rule: even when you could follow the color led."
+  rook_first_trick: "Rook allowed on the first trick"
+  rook_first_trick_help: "Turn off to keep the bird out of the hand's opening trick."
+  chip_single: "Single hand"
+  chip_play_to: "To {points}"
+  chip_rook_high: "Rook high"
+  chip_rook_ten_half: "Rook 10½"
+  chip_rook_low: "Rook low"
+  chip_anytime: "Rook anytime"
+  chip_no_first_trick: "No Rook on trick 1"
+
+team:
+  us: "Us"
+  them: "Them"
+  number: "Team {number}"
+
+seats:
+  empty: "Open seat"
+  you: "{name} (you)"
+  invited: "invited"
+  away: "away"
+  host: "host"
+  ready: "ready"
+  sit: "Sit here"
+  add_bot: "Add bot"
+  remove_bot: "Remove"
+  invite: "Invite"
+
+bots:
+  # Computer players. Each seat's bot gets its own name.
+  badge: "🤖"
+  name: "Bot"
+  name_1: "Corvin"
+  name_2: "Edgar"
+  name_3: "Poe"
+  name_4: "Hugin"
+
+waiting:
+  deal: "Deal"
+  pick_seat: "Pick an open seat to join."
+  seated: "{seated} of 4 seats taken. Add bots or invite friends to fill the rest."
+  ready_host: "Everyone's here. Deal when you're ready."
+  ready_guest: "Waiting for {name} to deal."
+
+table:
+  menu: "Table menu"
+  leave: "Leave table"
+  reconnecting: "Reconnecting…"
+  gone: "That table has closed."
+  paused: "Game paused"
+  paused_detail: "A seat is empty. Sit there, add a bot, or invite someone to carry on."
+  contract: "{name} · {bid}"
+  hand_number: "Hand {hand} · bidding"
+  hand_over: "Hand over"
+  game_over: "Game over"
+  show_results: "Results"
+  held: "On hold"
+  held_detail: "An admin is stepping through the game. Play carries on when they resume."
+
+hand:
+  label: "Your hand"
+  must_follow: "You have to follow the color led."
+  rook_first_trick: "The Rook can't be played on the first trick."
+
+bidding:
+  bid_button: "Bid {amount}"
+  pass: "Pass"
+  minus: "−"
+  plus: "+"
+  lower: "Lower the bid"
+  higher: "Raise the bid"
+  waiting: "{name} is bidding…"
+  current: "{name} holds the bid at {bid}."
+  opening: "No bids yet — opens at {bid}."
+
+kitty:
+  choose: "Pick 5 cards to bury ({count} of 5), then name trump."
+  only_five: "Five cards exactly. Tap one to put it back."
+  trump_label: "Trump color"
+  done: "Bury and start"
+  waiting: "{name} is choosing trump…"
+
+play:
+  your_turn: "Your turn"
+  your_turn_hint: "drag a card to the table, or tap it twice"
+  your_bid: "Your bid"
+  your_kitty: "Your kitty — bury five, name trump"
+  waiting: "{name} to play…"
+  progress: "Trick {trick} of 13 · points taken {us} – {them}"
+  progress_short: "Trick {trick}/13 · {us}–{them}"
+
+colors:
+  red: "Red"
+  black: "Black"
+  yellow: "Yellow"
+  green: "Green"
+  rook: "Rook"
+
+cards:
+  name: "{color} {number}"
+  rook: "the Rook"
+
+menu:
+  chat: "Chat & game log"
+  last_trick: "Last trick"
+  scores: "Score sheet"
+  rules: "Rules"
+  share: "Share this table"
+
+last_trick:
+  caption: "{name} took it, {points} points."
+  none: "No tricks played yet this hand."
+
+scores:
+  hand: "Hand"
+  bid: "Bid"
+  bid_by: "{bid} · {name}"
+  none: "No hands finished yet."
+
+chat:
+  tab_chat: "Chat"
+  tab_log: "Game log"
+  placeholder: "Say something to the table"
+  send: "Send"
+  empty: "Nothing said yet."
+  log_empty: "Nothing has happened yet."
+
+record:
+  loading: "Loading the game so far…"
+  hand: "Hand {hand}"
+  contract: "{name} bid {bid}"
+  bidding_open: "Bidding…"
+  bidding: "Bidding"
+  pass: "pass"
+  trump: "{name} buried five and named {color} trump."
+  trick: "Trick {number}"
+  took: "{name} took it · {points} pts"
+  in_play: "in play"
+  made: "Made"
+  set: "Set"
+  result: "{us} {us_scored} · {them} {them_scored}"
+  totals: "Score after this hand: {us} {us_total} · {them} {them_total}"
+  partial: "Played before this table kept a full history."
+
+events:
+  deal: "Hand {hand}. {name} opens the bidding."
+  bid: "{name} bids {amount}."
+  pass: "{name} passes."
+  won_bid: "{name} takes the bid at {amount} and picks up the kitty."
+  trump: "{name} buries five. {color} is trump."
+  play: "{name} plays the {card}."
+  trick: "{name} takes the trick with the {card} ({points} points)."
+  made: "{name}'s team made the bid."
+  set: "{name}'s team went set."
+  game_over_us: "Game over — your team wins!"
+  game_over_them: "Game over — the other team wins."
+  game_over_team: "Game over — {team} wins."
+
+summary:
+  made: "{name} made {bid}!"
+  set: "{name} went set on {bid}."
+  subtitle: "Hand {hand} · {name} bid {bid} · {trump} trump"
+  taken: "Points taken"
+  scored: "This hand"
+  total: "Total"
+  kitty: "The kitty held {points} points and went to {team}."
+  next_hand: "Next hand"
+  waiting_for: "Waiting for {names}…"
+  game_won_us: "You win the game!"
+  game_won_them: "The other team wins this one."
+  game_won_team: "{team} wins the game."
+  rematch: "Play again"
+  rematch_host: "The host can start another game."
+  back_to_lobby: "Back to tables"
+
+invite:
+  heading: "Invite someone"
+  description: "They get a one-time link that signs them in and sits them right here."
+  name_label: "Their name"
+  name_placeholder: "Sam"
+  submit: "Create invite link"
+  link_notice: "Send this link. It works once and is shown only now."
+  copy: "Copy link"
+  copied: "Copied."
+  share: "Share…"
+  share_text: "{name}, come play Rook at {table}!"
+
+manage:
+  restart: "Restart game"
+  delete: "Delete table"
+  restart_heading: "Start the game over?"
+  restart_body: "Scores go back to zero and the cards are dealt again, with everyone in the same seats. The game so far can't be brought back."
+  restart_confirm: "Restart"
+  delete_heading: "Delete this table?"
+  delete_body: "The table and its game are removed for everyone, right away. This can't be undone."
+  delete_confirm: "Delete"
+  restarted: "The game has started over."
+  deleted: "Table deleted."
+
+leave:
+  heading: "Leave this table?"
+  body_game: "The game pauses until someone takes your seat — a friend or a bot. Your cards stay with the seat."
+  body_waiting: "Your seat opens up for someone else."
+  confirm: "Leave"
+
+rules:
+  heading: "How to play"
+  deck: "57 cards: red, black, yellow and green numbered 1–14, plus the Rook. The 1 is the highest card of each color. Partners sit across from each other."
+  counters: "Only some cards score: each 5 is worth 5, each 10 and 14 are 10, each 1 is 15, and the Rook is 20 — 180 in all."
+  bidding: "Everyone gets 13 cards and five go to the kitty. Bid in fives, starting above 65, for the right to name trump. A pass is final; the last bidder standing takes it, and bidding 180 wins outright."
+  kitty: "The winner adds the kitty to their hand, buries any five cards, names trump, and leads."
+  play: "Follow the color led if you can; otherwise play anything. The Rook is the top trump (unless this table says otherwise). Highest trump wins the trick, or else the highest card of the color led."
+  scoring: "Count the points in your tricks; the kitty goes to whoever takes the last trick. Make your bid and you score what you took; fall short and you lose the bid. The other team always scores what it took."
+
+settings:
+  heading: "Settings"
+
+account:
+  heading: "Account"
+  signed_in_as: "Signed in as {name} · {role}"
+  role_admin: "admin"
+  role_user: "player"
+  display_name_label: "Display name"
+  display_name_placeholder: "Your name"
+  save_button: "Save"
+  saved_notice: "Saved."
+  logout_button: "Log out"
+
+appearance:
+  heading: "Appearance"
+  description: "Light is the default. Your choice is remembered on this device."
+  light: "Light"
+  dark: "Dark"
+
+zoom:
+  heading: "Card size"
+  description: "Make the cards bigger or smaller. Remembered on this device, so your phone and computer can differ. The table cards never grow past what fits between the seats."
+  table: "Cards on the table"
+  hand: "Your hand"
+  reset: "Reset to 100%"
+
+admin:
+  heading: "Players"
+  description: "Create an account by minting a login link, and send it to the person. It works once. Switch on Can invite to let a player bring in new people themselves."
+  new_name_label: "Name"
+  new_name_placeholder: "Their name"
+  new_role_label: "Role"
+  role_user: "player"
+  role_admin: "admin"
+  create_button: "Create login link"
+  link_notice: "Send this one-time link. It is shown once and cannot be recovered."
+  copy_button: "Copy"
+  copied_notice: "Copied."
+  table_name: "Name"
+  table_role: "Role"
+  table_status: "Status"
+  table_can_invite: "Can invite"
+  table_actions: "Actions"
+  can_invite_label: "{name} can invite new players"
+  table_can_hint: "Hints"
+  can_hint_label: "Show {name} the hint button"
+  status_active: "active"
+  status_disabled: "disabled"
+  reissue_button: "New link"
+  disable_button: "Disable"
+  enable_button: "Enable"
+
+api_keys:
+  heading: "API keys"
+  description: "For scripts and other services. A key does exactly what your account can do — send it as an Authorization: Bearer header. It is shown once."
+  name_label: "What is it for"
+  name_placeholder: "score bot"
+  role_label: "Permission"
+  role_user: "player"
+  role_admin: "admin (can manage accounts)"
+  days_label: "Expires in (days)"
+  days_placeholder: "leave blank for the default, 0 for never"
+  create_button: "Create key"
+  secret_notice: "Copy this now. It is shown once and cannot be recovered — if you lose it, revoke the key and create another."
+  copy_button: "Copy"
+  copied_notice: "Copied."
+  table_name: "Name"
+  table_role: "Permission"
+  table_status: "Status"
+  table_last_used: "Last used"
+  table_expires: "Expires"
+  table_actions: "Actions"
+  status_active: "active"
+  status_revoked: "revoked"
+  status_expired: "expired"
+  never: "never"
+  revoke_button: "Revoke"
+  # Empty this string to stop asking for confirmation before revoking.
+  revoke_confirm: "Revoke this key? Anything using it stops working immediately."
+
+admin_keys:
+  heading: "All API keys"
+  description: "Every key in this app and who owns it. Revoke one to cut off whatever is using it, right away."
+  table_owner: "Owner"
+
+# Refusals from the server arrive as codes; the page shows the sentence here.
+errors:
+  generic: "Something went wrong. Please try again."
+  no_such_request: "That request isn't there any more."
+  too_many_requests: "Lots of people are already asking — try again in a bit."
+  seat_changed: "That seat has changed hands already."
+  network: "Could not reach the server."
+  rate_limited: "Too many requests at once — give it a few seconds."
+  signed_out: "You've been signed out. Ask for a new login link."
+  forbidden: "That isn't allowed."
+  game_held: "The game is on hold while an admin reviews it."
+  not_held: "The game isn't on hold."
+  nothing_to_undo: "Nothing to undo."
+  nothing_to_redo: "Nothing to redo."
+  bad_history_point: "That point in the game doesn't exist."
+  bad_action: "That move isn't recognised."
+  bad_deck: "That deal isn't a valid deck."
+  no_such_link: "That link doesn't lead to an open table any more."
+  seats_full: "Every seat is taken."
+  hints_off: "Hints aren't switched on for you."
+  bad_avatar: "Pick an icon and color from the list."
+  bad_pin: "A PIN is 4 to 8 digits."
+  bad_name: "Names are 1 to 80 characters."
+  bad_signup_link: "Give the link a name, 1–1000 sign-ups, and 1–365 days."
+  signup_link_invalid: "That sign-up link is invalid, expired, or has been switched off."
+  signup_link_full: "That sign-up link has no places left. Ask whoever sent it for another."
+  signup_closed: "Signing up through join links is switched off."
+  no_such_account: "That account can't be used from this link."
+  pin_needed: "Enter that account's PIN."
+  pin_wrong: "That PIN isn't right."
+  pin_locked: "Too many wrong PINs. Try again in 15 minutes."
+  wrong_phase: "That can't be done right now."
+  not_your_turn: "It's not your turn."
+  bid_too_low: "Bid higher than the current bid."
+  bid_too_high: "The most you can bid is 180."
+  bid_not_multiple_of_five: "Bids go up in fives."
+  bad_card: "That isn't a card."
+  card_not_in_hand: "That card isn't in your hand."
+  must_follow_suit: "You have to follow the color led."
+  rook_not_on_first_trick: "The Rook can't be played on the first trick."
+  must_bury_five: "Bury exactly five cards."
+  duplicate_card: "Pick five different cards."
+  bad_trump: "Pick a trump color."
+  bad_options: "Those table options aren't valid."
+  already_ready: "Already done — waiting for the others."
+  no_such_table: "That table isn't open any more."
+  bad_seat: "That seat doesn't exist."
+  seat_taken: "Someone just took that seat."
+  already_seated: "You already have a seat here."
+  not_seated: "Take a seat first."
+  not_host: "Only the host can do that."
+  seats_not_full: "All four seats need someone first."
+  game_in_progress: "A game is already going."
+  game_paused: "The game is paused until the empty seat is filled."
+  no_game: "Nobody has dealt yet."
+  too_many_tables: "There are too many tables open right now."
+  bad_table_name: "Give the table a name (up to 40 characters)."
+  bad_chat_message: "Messages can be up to 280 characters."
+  cannot_invite: "An admin needs to let you invite people."
+  not_a_bot: "That seat isn't a bot."
+
+join:
+  kicker: "You're invited to a table"
+  open_seats: "{count} seat(s) open."
+  no_seats: "Every seat is taken — you can still watch once you're in."
+  bot_seats: "Every seat is taken, but a bot is playing — you can ask the host to let you take its place."
+  name_label: "Your name"
+  name_placeholder: "What should the table call you?"
+  submit: "Join the game"
+  closed: "To join you need an account. Ask whoever sent this link for a login link."
+  working: "Taking your seat…"
+
+signup:
+  kicker: "Sign in to Rook"
+  name_label: "Your name"
+  name_placeholder: "The name you play under"
+  continue: "Continue"
+  did_you_mean: "Did you mean one of these?"
+  no_match: "Nobody called {name} has joined through this link yet."
+  this_is_me: "That's me"
+  has_pin: "That's me (PIN)"
+  create_new: "No — I'm new, call me {name}"
+  create_first: "Create my account as {name}"
+  back: "Back"
+  pin_for: "Enter the PIN for {name}."
+  pin_label: "PIN"
+  pin_submit: "Sign in"
+  signed_in_as: "You're signed in as {name}. Continuing signs this device in as someone else."
+
+observe:
+  watching: "Watching from {name}'s seat"
+  choose_seat: "Whose seat to watch from"
+  all_hands: "Show every hand"
+  watchers: "👁 {count}"
+  anonymous: "You're watching without an account, so you can't play or chat."
+  hands_hidden: "Players' cards stay hidden while you could still take a seat — so nobody joins knowing the hands."
+
+takeover:
+  ask: "Take over"
+  asked: "Asked…"
+  cancel: "Cancel"
+  how: "Want to play? Tap Take over on a bot's seat and the host can let you in."
+  waiting: "Waiting for the host to let you take {name}'s seat…"
+  sent: "Asked the host to let you take a bot's seat."
+  prompt: "{name} wants to take over {seat}'s seat."
+  allow: "Allow"
+  decline: "Decline"
+  incoming: "{name} wants to join — take a look."
+  welcome: "You've taken over {name}'s seat. Your cards are below."
+  not_now: "The host didn't let you in this time."
+
+share:
+  heading: "Share this table"
+  join_heading: "Join link"
+  join_help: "Signed-in people who open it take a free seat."
+  watch_heading: "Watch link"
+  watch_help: "Anyone who opens it can watch — no account needed. They can't play."
+  copy: "Copy"
+  send: "Share…"
+  copied: "Copied."
+
+hint:
+  button: "💡 Hint"
+  show: "Show me"
+  do: "Do it"
+  bid: "Bid {amount}."
+  pass: "Pass this time."
+  bury: "Bury {cards}, and make {trump} trump."
+  play: "Play the {card}."
+
+admin_game:
+  undo: "↶ Undo"
+  redo: "↷ Redo"
+  undo_label: "Undo the last move"
+  resume_label: "Resume — let play carry on from here"
+  redo_label: "Redo the next move"
+  history: "History"
+  resume: "Resume"
+  position: "Move {at} of {of}"
+  position_held: "On hold · move {at} of {of}"
+  history_help: "Tap a move to put the game back to just after it. The table holds until you press Resume; Redo goes forward again."
+  observers_all: "Watchers see every hand"
+  observers_all_help: "Only for people watching, never for players. Admins always can."
+
+history:
+  base: "Where history begins"
+  before_deal: "Before the deal"
+  hand: "Hand {hand}"
+  start: "Deal — {name} opens the bidding"
+  continue: "{name} is ready for the next hand"
+  bidding: "Bidding"
+  kitty: "Kitty & trump"
+  trick: "Trick {number}"
+  trick_won: "Trick {number} · {name} took it, {points} pts"
+  wrap_up: "End of hand"
+
+profile:
+  heading: "Your icon"
+  description: "Shown on your seat at every table."
+  icon: "Icon"
+  color: "Color"
+  initials: "Your initials"
+  color_auto: "Automatic"
+  color_teal: "Teal"
+  color_coral: "Coral"
+  color_plum: "Plum"
+  color_gold: "Gold"
+  color_forest: "Forest"
+  color_sky: "Sky"
+  color_rose: "Rose"
+  color_berry: "Berry"
+
+pin:
+  heading: "Sign-in PIN"
+  description: "Optional. If you joined through a shared sign-up link, anyone with that link could pick your name. A PIN stops that: it's asked for before signing in as you on a new device."
+  label: "New PIN (4–8 digits)"
+  save: "Save PIN"
+  remove: "Remove PIN"
+  is_set: "A PIN is set."
+  not_set: "No PIN set."
+  saved: "PIN saved."
+
+game_settings:
+  heading: "Game settings"
+  join_signup: "Join links can create accounts"
+  join_signup_help: "When on, someone without an account can open a table's join link, type a name, and play. When off, join links only work for people already signed in."
+  observers_all: "Watchers see every hand, at every table"
+  observers_all_help: "Only for people watching, never for players. You can also switch this on per table from its menu."
+  saved: "Saved."
+
+signup_links:
+  heading: "Sign-up links"
+  description: "One link for a whole group. Each person types their name; new names get an account, up to the limit. Someone who already joined picks their name from \"did you mean…?\" to sign in on another device."
+  label: "What it's for"
+  label_placeholder: "Family"
+  max_uses: "New accounts allowed"
+  days: "Works for (days)"
+  create: "Create sign-up link"
+  link_notice: "Send this link. It is shown once — the server keeps only a fingerprint of it."
+  copy: "Copy"
+  copied: "Copied."
+  table_label: "Link"
+  table_used: "Accounts"
+  table_status: "Status"
+  table_actions: "Actions"
+  used_of: "{used} of {max}"
+  live: "active"
+  expired: "expired"
+  revoked: "switched off"
+  revoke: "Switch off"

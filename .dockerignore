@@ -1,0 +1,13 @@
+.git
+.gitignore
+data/
+*.db
+.secret_key
+.env
+*.md
+Dockerfile
+dockerRun.sh
+dist/
+old_php_version/
+.DS_Store
+.claude/
