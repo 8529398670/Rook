@@ -324,7 +324,7 @@ const Table = {
     const handLine = playing || ( game && game.phase === "bidding" );
     Dom.get( "screen-table" ).classList.toggle( "has-contract" , Boolean( handLine ) );
     if ( playing ) {
-      contract.appendChild( Dom.el( "span" , { text: I18n.format( "table.contract" , { name: Seats.name( view.seats[ game.bidder ] ) , bid: game.bid } ) } ) );
+      contract.appendChild( Dom.el( "span" , { class: "contract-bid" , text: I18n.format( "table.contract" , { name: Seats.name( view.seats[ game.bidder ] ) , bid: game.bid } ) } ) );
       if ( game.trump ) contract.appendChild( Dom.el( "span" , { class: "contract-trump trump-" + game.trump , children: [
         Art.glyphIcon( game.trump ) , Dom.el( "span" , { text: I18n.format( "table.trump" , { color: I18n.get( "colors." + game.trump ) } ) } ),
       ] } ) );
@@ -336,6 +336,8 @@ const Table = {
     if ( view.watchers > 0 ) {
       contract.appendChild( Dom.el( "span" , { class: "watchers-chip" , text: I18n.format( "observe.watchers" , { count: view.watchers } ) } ) );
     }
+    // The phone's copy, in its own row under the bar (see index.html).
+    Dom.get( "table-contract-row" ).replaceChildren( ...Array.from( contract.childNodes ).map( function ( node ) { return node.cloneNode( true ); } ) );
 
     this.renderStatus( view );
 

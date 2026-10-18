@@ -168,6 +168,10 @@
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="19" cy="12" r="2.2" fill="currentColor"/></svg>
         <span id="chat-unread" class="badge-dot" hidden></span>
       </button>
+      <!-- On a phone the hand's line (contract, trump, dealer) has no room
+           beside the scores, so table.js copies it here: a row of its own
+           under the bar. Only one of the two is ever displayed. -->
+      <div id="table-contract-row" class="table-contract table-contract-row"></div>
     </header>
 
     <div id="felt" class="felt">

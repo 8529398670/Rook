@@ -165,6 +165,8 @@ type Table struct {
 	mu          sync.Mutex
 	subscribers map[ *Subscriber ]struct{}
 	bot_timer   *time.Timer
+	// left is when each person's last stream closed, for online's grace.
+	left map[ uint64 ]time.Time
 }
 
 func validTableName( name string ) ( result string , ok bool ) {
@@ -302,12 +304,17 @@ func fillSeat( seat *Seat , user *models.User ) {
 	seat.Color = user.Color
 }
 
+// online is true while the person has a stream open, or closed their last
+// one less than onlineGrace ago -- a reconnect, not someone leaving.
 func ( table *Table ) online( user_id uint64 ) ( result bool ) {
 	for subscriber := range table.subscribers {
 		if subscriber.UserID == user_id {
 			result = true
 			return
 		}
+	}
+	if left , ok := table.left[ user_id ]; ok && time.Since( left ) < onlineGrace {
+		result = true
 	}
 	return
 }

@@ -1,5 +1,16 @@
 package tables
 
+import (
+	time "time"
+)
+
+// onlineGrace is how long someone still counts as at the table after their
+// last stream closed. Every stream is ended on purpose every ~20 seconds and
+// the browser reconnects about a second later; without this, each player
+// would flash "away" to everyone else three times a minute. A var so the
+// tests can shorten it.
+var onlineGrace = 10 * time.Second
+
 // Subscriber is one open live-update stream. Notify is a doorbell, not a
 // queue: it holds at most one pending ring, so a slow phone that misses three
 // changes gets one wake-up and then reads the latest snapshot. Nothing is
@@ -60,16 +71,28 @@ func ( hub *Hub ) SubscribeTable( id string , user_id uint64 , admin bool ) ( su
 	return
 }
 
+// UnsubscribeTable closes a stream. Nobody is told straight away: the person
+// counts as online for onlineGrace more (see online), which is long enough
+// for a routine reconnect. Only once that has passed are the others rung, so
+// their screens show the seat as away if it really is.
 func ( hub *Hub ) UnsubscribeTable( id string , subscriber *Subscriber ) {
 	table := hub.table( id )
 	if table == nil { return }
 	table.mu.Lock()
 	delete( table.subscribers , subscriber )
-	others := table.subscriberList()
-	table.mu.Unlock()
-	for _ , other := range others {
-		other.ring()
+	if subscriber.UserID != 0 {
+		if table.left == nil { table.left = map[ uint64 ]time.Time{} }
+		table.left[ subscriber.UserID ] = time.Now()
 	}
+	table.mu.Unlock()
+	time.AfterFunc( onlineGrace + 100*time.Millisecond , func() {
+		table.mu.Lock()
+		others := table.subscriberList()
+		table.mu.Unlock()
+		for _ , other := range others {
+			other.ring()
+		}
+	} )
 }
 
 func ( hub *Hub ) SubscribeLobby( user_id uint64 ) ( subscriber *Subscriber ) {

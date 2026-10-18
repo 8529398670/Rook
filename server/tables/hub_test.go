@@ -151,6 +151,34 @@ func TestTheHostPicksTheFirstDealer( t *testing.T ) {
 	}
 }
 
+// A stream closing and reopening -- which every stream does every ~20
+// seconds -- must not show the player as away; only staying gone does.
+func TestAReconnectIsNotLeaving( t *testing.T ) {
+	defer func( grace time.Duration ) { onlineGrace = grace }( onlineGrace )
+	onlineGrace = 150 * time.Millisecond
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id , _ := hub.Create( ana , "Cards" , game.DefaultOptions() )
+	if err := hub.Sit( id , ben , 2 ); err != nil { t.Fatal( err ) }
+	online := func() ( result bool ) {
+		view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+		result = view.Seats[ 2 ].Online
+		return
+	}
+
+	stream , _ := hub.SubscribeTable( id , ben.ID , false )
+	hub.UnsubscribeTable( id , stream )
+	if online() == false { t.Fatalf( "away the moment a stream closed" ) }
+	stream , _ = hub.SubscribeTable( id , ben.ID , false )
+	time.Sleep( 200 * time.Millisecond )
+	if online() == false { t.Fatalf( "away after reconnecting" ) }
+
+	hub.UnsubscribeTable( id , stream )
+	time.Sleep( 200 * time.Millisecond )
+	if online() { t.Fatalf( "still online long after leaving" ) }
+}
+
 func TestInvitedSeatIsHeldUntilTheyArrive( t *testing.T ) {
 	hub , store , _ := testHub( t )
 	host := testUser( t , store , "Ana" )

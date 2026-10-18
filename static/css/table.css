@@ -93,15 +93,30 @@
 }
 
 .table-contract:empty { display: none; }
+/* Who won the bid, and for how much: the line's lead, so it reads first. */
+.contract-bid { font-weight: 750; color: var(--fg); }
 
-/* On a phone, once a hand is under way its line -- who dealt, or the
-   contract -- matters more than the table's name: the name gives up its
-   room. */
+.table-contract-row { display: none; }
+
+/* On a phone, once a hand is under way its line -- who dealt, or who won
+   the bid, trump and dealer -- matters more than the table's name, and is
+   too long to sit beside the scores. The name gives up its room and the
+   line moves to a full-width row of its own under the bar. */
 @media (max-width: 30rem) {
+  .table-bar { flex-wrap: wrap; }
+  /* Shrink, never wrap: only the contract row may start a new line. */
+  .table-title { flex-basis: 0; }
   .screen-table.has-contract .table-name { display: none; }
-  /* Contract, trump and dealer wrap onto a second line rather than run
-     off the edge. */
-  .table-contract { flex: 1 1 auto; flex-wrap: wrap; row-gap: 2px; min-width: 0; }
+  .table-headline .table-contract { display: none; }
+  .table-contract-row:not(:empty) {
+    display: flex;
+    flex: 1 1 100%;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    min-width: 0;
+    padding: 0 4px 2px;
+    font-size: 0.76rem;
+  }
 }
 
 /* What is happening right now: whose turn, and the trick count. */
