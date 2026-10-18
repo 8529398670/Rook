@@ -64,6 +64,15 @@ const Api = {
   createUser( name , role )    { return this.post( "/api/admin/users" , { display_name: name , role: role } ); },
   reissueLogin( userId )       { return this.post( "/api/admin/users/" + userId + "/reissue-login" ); },
   setDisabled( userId , flag ) { return this.post( "/api/admin/users/" + userId + "/disabled" , { disabled: flag } ); },
+  adminRename( userId , name ) { return this.post( "/api/admin/users/" + userId + "/rename" , { display_name: name } ); },
+  adminSetAvatar( userId , icon , color ) {
+    return this.post( "/api/admin/users/" + userId + "/avatar" , { icon: icon , color: color } );
+  },
+  deleteUser( userId )         { return this.post( "/api/admin/users/" + userId + "/delete" ); },
+
+  // The game history: finished and abandoned games, newest first.
+  listGames( offset )          { return this.request( "/api/games?offset=" + ( offset || 0 ) ); },
+  getGame( id )                { return this.request( "/api/games/" + encodeURIComponent( id ) ); },
 
   // API keys. createKey's expiresInDays is passed through as-is including null,
   // because the server reads absent as "use the default" and 0 as "never
@@ -145,6 +154,9 @@ const Api = {
   play( id , card )            { return this.post( this.tablePath( id , "play" ) , { card: card } ); },
   continueHand( id )           { return this.post( this.tablePath( id , "continue" ) ); },
   chat( id , text )            { return this.post( this.tablePath( id , "chat" ) , { text: text } ); },
+  watchChat( code , name , text ) {
+    return this.post( "/api/watch/" + encodeURIComponent( code ) + "/chat" + this.tableQuery , { name: name , text: text } );
+  },
 
   // Taking over a bot's seat: a watcher asks, the host (or an admin) answers.
   requestSeat( id , seat )     { return this.post( this.tablePath( id , "takeover" ) , { seat: seat } ); },

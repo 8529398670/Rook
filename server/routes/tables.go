@@ -99,7 +99,7 @@ func ( handlers *Handlers ) tableError( c fiber.Ctx , action_err error ) ( err e
 	}
 	status := fiber.StatusBadRequest
 	switch code {
-	case string( tables.ErrNoSuchTable ) , string( tables.ErrNoSuchLink ):
+	case string( tables.ErrNoSuchTable ) , string( tables.ErrNoSuchLink ) , string( tables.ErrNoSuchGame ):
 		status = fiber.StatusNotFound
 	case string( tables.ErrNotHost ) , string( tables.ErrCannotInvite ):
 		status = fiber.StatusForbidden

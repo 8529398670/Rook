@@ -107,7 +107,12 @@
         <div class="lobby-bird" data-art="bird"></div>
         <div class="lobby-wordmark" data-art="wordmark"></div>
       </div>
-      <button id="open-settings" type="button" class="avatar-button" data-i18n-attr="aria-label:nav.settings,title:nav.settings"></button>
+      <div class="lobby-header-actions">
+        <button id="open-games" type="button" class="icon-button" data-i18n-attr="aria-label:games.heading,title:games.heading">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button id="open-settings" type="button" class="avatar-button" data-i18n-attr="aria-label:nav.settings,title:nav.settings"></button>
+      </div>
     </header>
 
     <main class="lobby-main">
@@ -134,6 +139,32 @@
     <div class="fab-bar">
       <button id="new-table-button" type="button" class="fab" data-i18n="lobby.new_table"></button>
     </div>
+  </section>
+
+  <!-- ==================================================== game history -->
+  <section id="screen-games" class="screen screen-games" hidden>
+    <header class="page-header">
+      <button id="games-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1 id="games-title" data-i18n="games.heading"></h1>
+    </header>
+
+    <main class="lobby-main">
+      <div id="games-list-view">
+        <p class="muted" data-i18n="games.description"></p>
+        <div id="games-list" class="table-list"></div>
+        <div id="games-empty" class="empty-state" hidden>
+          <div class="empty-art" data-art="bird"></div>
+          <p data-i18n="games.empty"></p>
+        </div>
+        <button id="games-more" type="button" class="secondary games-more" data-i18n="games.load_more" hidden></button>
+      </div>
+      <div id="games-detail-view" hidden>
+        <div id="games-detail-head" class="game-detail-head"></div>
+        <ol id="games-detail-record" class="chat-list log-list game-detail-record"></ol>
+      </div>
+    </main>
   </section>
 
   <!-- ========================================================== table -->
@@ -207,7 +238,12 @@
     <aside id="chat-dock" class="chat-dock" data-i18n-attr="aria-label:chat.tab_chat">
       <h3 class="chat-dock-title" data-i18n="chat.tab_chat"></h3>
       <ol id="chat-dock-list" class="chat-list chat-dock-list" aria-live="polite"></ol>
+      <p class="guest-chat-as" data-guest-as hidden>
+        <span data-guest-as-text></span>
+        <button type="button" class="link-button" data-guest-change data-i18n="chat.change_name"></button>
+      </p>
       <form id="chat-dock-form" class="chat-form chat-dock-form" autocomplete="off">
+        <input data-guest-name class="guest-name" maxlength="24" hidden data-i18n-attr="placeholder:chat.guest_name_placeholder,aria-label:chat.guest_name_placeholder" />
         <input id="chat-dock-input" maxlength="280" data-i18n-attr="placeholder:chat.placeholder,aria-label:chat.placeholder" />
         <button type="submit" class="small" data-i18n="chat.send"></button>
       </form>
@@ -249,7 +285,7 @@
         <h3 data-i18n="profile.icon"></h3>
         <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
         <h3 data-i18n="profile.color"></h3>
-        <div id="color-grid" class="color-grid" role="radiogroup" data-i18n-attr="aria-label:profile.color"></div>
+        <div id="color-grid" class="color-picker"></div>
       </div>
 
       <div class="card">
@@ -378,6 +414,7 @@
           <table id="users-table">
             <thead>
               <tr>
+                <th><span class="visually-hidden" data-i18n="admin.table_avatar"></span></th>
                 <th data-i18n="admin.table_name"></th>
                 <th data-i18n="admin.table_role"></th>
                 <th data-i18n="admin.table_status"></th>
@@ -623,6 +660,36 @@
       </nav>
     </div>
 
+    <div id="sheet-edit-user" class="sheet sheet-tall" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="avatar-preview-row">
+        <span id="edit-user-preview" class="avatar avatar-large" aria-hidden="true"></span>
+        <h2 id="edit-user-heading"></h2>
+      </div>
+      <form id="edit-user-form" autocomplete="off">
+        <div class="field">
+          <label for="edit-user-name" data-i18n="admin.edit_name_label"></label>
+          <input id="edit-user-name" maxlength="80" required />
+        </div>
+        <button type="submit" data-i18n="admin.edit_name_save"></button>
+      </form>
+      <h3 data-i18n="profile.icon"></h3>
+      <div id="edit-user-icons" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
+      <h3 data-i18n="profile.color"></h3>
+      <div id="edit-user-colors" class="color-picker"></div>
+      <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
+    </div>
+
+    <div id="sheet-confirm-delete-user" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="admin.delete_heading"></h2>
+      <p id="delete-user-body"></p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button id="delete-user-confirm" type="button" class="danger" data-i18n="admin.delete_button"></button>
+      </div>
+    </div>
+
     <div id="sheet-chat" class="sheet sheet-tall" hidden>
       <div class="sheet-grip" aria-hidden="true"></div>
       <div class="segmented" role="tablist">
@@ -631,7 +698,12 @@
       </div>
       <ol id="chat-list" class="chat-list"></ol>
       <ol id="log-list" class="chat-list log-list" hidden></ol>
+      <p class="guest-chat-as" data-guest-as hidden>
+        <span data-guest-as-text></span>
+        <button type="button" class="link-button" data-guest-change data-i18n="chat.change_name"></button>
+      </p>
       <form id="chat-form" class="chat-form" autocomplete="off">
+        <input data-guest-name class="guest-name" maxlength="24" hidden data-i18n-attr="placeholder:chat.guest_name_placeholder,aria-label:chat.guest_name_placeholder" />
         <input id="chat-input" maxlength="280" data-i18n-attr="placeholder:chat.placeholder,aria-label:chat.placeholder" />
         <button type="submit" data-i18n="chat.send"></button>
       </form>
@@ -801,6 +873,7 @@
   <script src="/js/record.js"></script>
   <script src="/js/observe.js"></script>
   <script src="/js/table.js"></script>
+  <script src="/js/games.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

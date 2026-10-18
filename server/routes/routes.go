@@ -64,6 +64,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	app.Get( "/api/watch/:code" , handlers.GetWatch )
 	app.Get( "/api/watch/:code/events" , handlers.WatchEvents )
 	app.Get( "/api/watch/:code/record" , handlers.GetWatchRecord )
+	app.Post( "/api/watch/:code/chat" , handlers.WatchChat )
 	app.Get( "/api/join/:code" , handlers.GetJoin )
 	app.Post( "/api/join/:code/signup" , handlers.JoinSignup )
 	app.Post( "/api/signup/info" , handlers.SignupInfo )
@@ -107,6 +108,9 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/disabled" , handlers.SetUserDisabled )
 	admin.Post( "/users/:user_id/can-invite" , handlers.SetUserCanInvite )
 	admin.Post( "/users/:user_id/can-hint" , handlers.SetUserCanHint )
+	admin.Post( "/users/:user_id/rename" , handlers.AdminRenameUser )
+	admin.Post( "/users/:user_id/avatar" , handlers.AdminSetAvatar )
+	admin.Post( "/users/:user_id/delete" , handlers.DeleteUser )
 	admin.Get( "/settings" , handlers.GetSettings )
 	admin.Post( "/settings" , handlers.SaveSettings )
 	admin.Get( "/signup-links" , handlers.ListSignupLinks )
@@ -161,6 +165,12 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/reset" , handlers.Guard.RequireAdmin , handlers.ResetTo )
 	game_tables.Post( "/:table_id/resume" , handlers.Guard.RequireAdmin , handlers.Resume )
 	game_tables.Post( "/:table_id/observers" , handlers.Guard.RequireAdmin , handlers.SetTableObservers )
+
+	// The game history: every finished or abandoned game, for anyone
+	// signed in.
+	games := app.Group( "/api/games" , handlers.Guard.RequireLogin )
+	games.Get( "" , handlers.ListGames )
+	games.Get( "/:game_id" , handlers.GetGame )
 
 	lobby := app.Group( "/api/lobby" , handlers.Guard.RequireLogin )
 	lobby.Get( "/events" , handlers.LobbyEvents )

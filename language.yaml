@@ -224,6 +224,12 @@ chat:
   send: "Send"
   empty: "Nothing said yet."
   log_empty: "Nothing has happened yet."
+  guest_name_placeholder: "Your name"
+  guest_name_needed: "Type a name to chat under first."
+  chatting_as: "Chatting as {name}"
+  change_name: "Change"
+  guest_tag: "guest"
+  watching_tag: "watching"
 
 record:
   loading: "Loading the game so far…"
@@ -396,6 +402,14 @@ admin:
   reissue_button: "New link"
   disable_button: "Disable"
   enable_button: "Enable"
+  table_avatar: "Icon"
+  edit_button: "Edit"
+  edit_name_label: "Name"
+  edit_name_save: "Save name"
+  delete_button: "Delete"
+  delete_heading: "Delete this account?"
+  delete_body: "{name} will be removed for good: their sign-in links, sessions and API keys stop working, and they leave any table they are sitting at. Games already played keep their name. Disabling is the undoable option."
+  deleted: "{name} was deleted."
 
 api_keys:
   heading: "API keys"
@@ -488,6 +502,11 @@ errors:
   too_many_tables: "There are too many tables open right now."
   bad_table_name: "Give the table a name (up to 40 characters)."
   bad_chat_message: "Messages can be up to 280 characters."
+  bad_guest_name: "Names to chat under are 1 to 24 characters."
+  chat_too_fast: "Slow down a little — one message every couple of seconds."
+  cannot_delete_self: "You cannot delete your own account."
+  last_admin: "That is the last admin. Make someone else an admin first."
+  no_such_game: "That game is not in the history."
   cannot_invite: "An admin needs to let you invite people."
   not_a_player: "Nobody is sitting there."
   no_such_user: "That person can't be seated."
@@ -527,7 +546,7 @@ observe:
   choose_seat: "Whose seat to watch from"
   all_hands: "Show every hand"
   watchers: "👁 {count}"
-  anonymous: "You're watching without an account, so you can't play or chat."
+  anonymous: "You're watching without an account: you can chat under a name, but not play."
   hands_hidden: "Players' cards stay hidden while you could still take a seat — so nobody joins knowing the hands."
 
 takeover:
@@ -604,6 +623,8 @@ profile:
   color_sky: "Sky"
   color_rose: "Rose"
   color_berry: "Berry"
+  color_custom: "Any color"
+  hue_label: "Pick any hue"
 
 pin:
   heading: "Sign-in PIN"
@@ -643,3 +664,17 @@ signup_links:
   expired: "expired"
   revoked: "switched off"
   revoke: "Switch off"
+
+games:
+  heading: "Game history"
+  description: "Every game played here, newest first: finished ones, and ones given up partway."
+  empty: "No games yet. Each one shows up here once it ends."
+  load_more: "Show older games"
+  finished: "Finished"
+  unfinished: "Unfinished"
+  won: "Won"
+  hands: "{count} hands"
+  one_hand: "1 hand"
+  ended: "{date}"
+  open_game: "Open {name}, {date}"
+  team_names: "{a} & {b}"

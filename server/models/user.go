@@ -165,3 +165,28 @@ func SetUserCanInvite( store *db.Store , user_id uint64 , can_invite bool ) ( er
 		} )
 	return
 }
+
+// CountActiveAdmins is the guard rail against deleting the last way in: with
+// no enabled admin left, nobody can mint a login link again.
+func CountActiveAdmins( store *db.Store ) ( count int , err error ) {
+	err = store.ForEach( db.BucketUsers ,
+		func() any { return &User{} } ,
+		func( key []byte , item any ) bool {
+			user := item.( *User )
+			if user.IsAdmin() && user.Disabled() == false { count++ }
+			return true
+		} )
+	return
+}
+
+// DeleteUser removes an account for good, along with everything that could
+// still sign in as it: sessions, unredeemed login links and API keys. The
+// credentials go first, so a request racing the delete cannot find a live
+// session pointing at a row that is about to vanish.
+func DeleteUser( store *db.Store , user_id uint64 ) ( err error ) {
+	if err = DestroyAllSessionsForUser( store , user_id ); err != nil { return }
+	if err = DeleteLoginTokensForUser( store , user_id ); err != nil { return }
+	if err = DeleteAPIKeysForUser( store , user_id ); err != nil { return }
+	err = store.Delete( db.BucketUsers , encryption.Uint64ToBytes( user_id ) )
+	return
+}

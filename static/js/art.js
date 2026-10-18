@@ -84,14 +84,23 @@ const Art = {
   // stored, so these can be retuned without touching anyone's account.
   avatarHues: { teal: 188 , coral: 12 , plum: 285 , gold: 40 , forest: 140 , sky: 208 , rose: 340 , berry: 318 },
 
+  // A stored color as a hue: a named color, a custom "h<0-359>" from the
+  // slider, or null for "automatic".
+  colorHue( color ) {
+    if ( Object.prototype.hasOwnProperty.call( Art.avatarHues , color ) ) return Art.avatarHues[ color ];
+    const custom = /^h(\d{1,3})$/.exec( color || "" );
+    if ( custom && Number( custom[ 1 ] ) < 360 ) return Number( custom[ 1 ] );
+    return null;
+  },
+
   // Draw a person's avatar into element: their chosen icon, or their
   // initials, on their chosen color (or one picked from their name).
   avatar( element , person ) {
     const who = person || {};
     Dom.text( element , who.icon || Art.initials( who.name || who.display_name ) );
     element.classList.toggle( "has-icon" , Boolean( who.icon ) );
-    const hue = Object.prototype.hasOwnProperty.call( Art.avatarHues , who.color ) ? Art.avatarHues[ who.color ] : Art.hue( who.name || who.display_name );
-    Dom.vars( element , { hue: hue } );
+    const chosen = Art.colorHue( who.color );
+    Dom.vars( element , { hue: chosen === null ? Art.hue( who.name || who.display_name ) : chosen } );
   },
 
   // Initials for a seat badge, e.g. "Ana Brook" -> "AB".

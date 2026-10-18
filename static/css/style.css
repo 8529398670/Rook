@@ -707,6 +707,105 @@ td .row-actions { display: flex; gap: 0.4rem; }
 .icon-choice[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
 .color-choice[aria-checked="true"] { box-shadow: 0 0 0 3px var(--accent); }
 
+/* Any hue: a slider whose track is the whole color wheel at the avatars'
+   own saturation and lightness, beside a swatch of the hue picked. */
+.color-picker { margin-bottom: 0.75rem; }
+.color-picker .color-grid { margin-bottom: 0.6rem; }
+
+.hue-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 10px 6px 6px;
+  border: 2px solid transparent;
+  border-radius: var(--radius);
+  background: var(--surface-2);
+}
+
+.hue-row.is-chosen { border-color: var(--accent); background: var(--accent-soft); }
+
+.hue-swatch {
+  display: block;
+  flex: 0 0 44px;
+  width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+
+.hue-label {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  font-weight: 650;
+}
+
+.hue-slider {
+  width: 100%;
+  min-height: 0;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.hue-slider::-webkit-slider-runnable-track {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+    hsl(0 48% 42%), hsl(60 48% 42%), hsl(120 48% 42%), hsl(180 48% 42%),
+    hsl(240 48% 42%), hsl(300 48% 42%), hsl(360 48% 42%));
+}
+
+.hue-slider::-moz-range-track {
+  height: 14px;
+  border-radius: 999px;
+  background: linear-gradient(to right,
+    hsl(0 48% 42%), hsl(60 48% 42%), hsl(120 48% 42%), hsl(180 48% 42%),
+    hsl(240 48% 42%), hsl(300 48% 42%), hsl(360 48% 42%));
+}
+
+.hue-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  margin-top: -4px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 3px solid var(--fg);
+}
+
+.hue-slider::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--card-bg);
+  border: 3px solid var(--fg);
+}
+
+.hue-slider:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+
+/* A text-only button, for "Change" beside a line of text. */
+.link-button {
+  min-height: 0;
+  padding: 0;
+  font-size: inherit;
+  font-weight: 700;
+  color: var(--accent-strong);
+  background: none;
+  border: 0;
+  text-decoration: underline;
+}
+
+.link-button:hover, .link-button:active:not(:disabled) { background: none; transform: none; }
+
+button.danger-text { color: var(--danger); }
+
 .pin-state { font-weight: 650; }
 
 /* ------------------------------------------------- join / sign-up pages */

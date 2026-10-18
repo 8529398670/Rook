@@ -4,6 +4,7 @@ import (
 	rand "math/rand/v2"
 	strings "strings"
 	time "time"
+	unicode "unicode"
 	utf8 "unicode/utf8"
 
 	game "rook/server/game"
@@ -326,19 +327,61 @@ func ( hub *Hub ) Continue( id string , user *models.User ) ( err error ) {
 }
 
 // Chat is plain text; the browser renders it with textContent, so nothing a
-// player types can become markup.
+// player types can become markup. Someone signed in but not seated is
+// watching, and chats as a watcher under their own name.
 func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err error ) {
-	text = strings.TrimSpace( text )
-	if text == "" || utf8.RuneCountInString( text ) > maxChatLength {
+	text , ok := validChat( text )
+	if ok == false {
 		err = ErrBadChat
 		return
 	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if table.seatOf( user.ID ) < 0 {
+			table.addChat( ChatLine{ Seat: -1 , Name: user.DisplayName , Text: text , Watcher: true } )
+			return
+		}
 		seat , fn_err := table.seated( user )
 		if fn_err != nil { return }
-		table.addChat( seat , table.Seats[ seat ].shownName() , text )
+		table.addChat( ChatLine{ Seat: seat , Name: table.Seats[ seat ].shownName() , Text: text } )
 		return
 	} )
+	return
+}
+
+// GuestChat is chat from someone watching through a watch link without
+// signing in, under a name they typed. Their lines are marked as a guest's,
+// so a guest cannot pass for a player of the same name.
+func ( hub *Hub ) GuestChat( id string , name string , text string ) ( err error ) {
+	name , ok := validGuestName( name )
+	if ok == false {
+		err = ErrBadGuestName
+		return
+	}
+	if text , ok = validChat( text ); ok == false {
+		err = ErrBadChat
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		table.addChat( ChatLine{ Seat: -1 , Name: name , Text: text , Watcher: true , Guest: true } )
+		return
+	} )
+	return
+}
+
+func validChat( text string ) ( result string , ok bool ) {
+	result = strings.TrimSpace( text )
+	ok = result != "" && utf8.RuneCountInString( result ) <= maxChatLength
+	return
+}
+
+func validGuestName( name string ) ( result string , ok bool ) {
+	result = strings.Join( strings.Fields( name ) , " " )
+	length := utf8.RuneCountInString( result )
+	if length < 1 || length > maxGuestNameLength { return }
+	for _ , character := range result {
+		if unicode.IsControl( character ) || unicode.Is( unicode.Cf , character ) { return }
+	}
+	ok = true
 	return
 }
 

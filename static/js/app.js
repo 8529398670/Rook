@@ -4,6 +4,7 @@
 //   #/                 the lobby
 //   #/t/<id>           a table
 //   #/settings         account, theme, API keys, admin
+//   #/games            the game history (#/games/<id> for one game)
 //   #/join/<code>      a table's join link
 //   #/watch/<code>     a table's watch link
 //   #/signup/<cred>    a multi-use sign-up link
@@ -104,6 +105,11 @@ const App = {
       argument = match( "signup" );
     } else if ( hash === "#/settings" ) {
       next = Settings;
+    } else if ( hash === "#/games" ) {
+      next = Games;
+    } else if ( match( "games" ) ) {
+      next = Games;
+      argument = match( "games" );
     }
 
     // Signed out, only the link screens are open.

@@ -1,8 +1,10 @@
-// Your avatar (an icon and a color, from the server's list) and your
-// optional PIN, on the Settings screen.
+// Your avatar (an icon and a color) and your optional PIN, on the Settings
+// screen. The icon and color picker is shared with the admin's "edit
+// player" sheet (settings.js), which picks for somebody else.
 const Profile = {
   me: null,
   options: null,
+  mine: null,
 
   init( me ) {
     this.me = me;
@@ -13,14 +15,25 @@ const Profile = {
   async enter() {
     this.renderPreview();
     this.renderPin();
-    if ( this.options ) return;
+    if ( this.mine ) return;
+    if ( !await this.loadOptions() ) return;
+    this.mine = this.picker( Dom.get( "icon-grid" ) , Dom.get( "color-grid" ) , {
+      person: function () { return Profile.me; },
+      preview: function ( person ) { Art.avatar( Dom.get( "avatar-preview" ) , person ); },
+      save: function ( icon , color ) { return Profile.save( icon , color ); },
+    } );
+  },
+
+  // The server's lists of icons and colors, fetched once.
+  async loadOptions() {
+    if ( this.options ) return true;
     try {
       this.options = await Api.profileOptions();
+      return true;
     } catch ( error ) {
       Toast.error( error );
-      return;
+      return false;
     }
-    this.renderGrids();
   },
 
   renderPreview() {
@@ -28,44 +41,83 @@ const Profile = {
     Art.avatar( Dom.get( "open-settings" ) , this.me );
   },
 
-  renderGrids() {
-    const icons = Dom.get( "icon-grid" );
+  // Fill an icon grid and a color grid for one person. handlers.person()
+  // is who is being edited ({ display_name, icon, color }), preview( person )
+  // draws a trial look while the hue slider moves, and save( icon , color )
+  // stores a choice (resolving once saved). Returns { mark } to redraw
+  // which choice is checked.
+  picker( icons , colors , handlers ) {
+    const current = function () { return handlers.person() || {}; };
+    const choose = async function ( icon , color ) {
+      await handlers.save( icon , color );
+      mark();
+    };
+
     Dom.clear( icons );
-    // The first choice is "no icon": your initials.
+    // The first choice is "no icon": the person's initials.
     [ "" ].concat( this.options.icons ).forEach( function ( icon ) {
       const button = Dom.el( "button" , {
         class: "icon-choice" + ( icon === "" ? " is-initials" : "" ),
-        text: icon || Art.initials( Profile.me.display_name ),
+        text: icon || Art.initials( current().display_name ),
         attrs: { type: "button" , role: "radio" , "aria-label": icon || I18n.get( "profile.initials" ) },
-        on: { click: function () { Profile.save( icon , Profile.me.color || "" ); } },
+        on: { click: function () { choose( icon , current().color || "" ); } },
       } );
       button.setAttribute( "data-icon" , icon );
       icons.appendChild( button );
     } );
 
-    const colors = Dom.get( "color-grid" );
     Dom.clear( colors );
+    const grid = Dom.el( "div" , { class: "color-grid" , attrs: { role: "radiogroup" , "aria-label": I18n.get( "profile.color" ) } } );
     [ "" ].concat( this.options.colors ).forEach( function ( color ) {
       const button = Dom.el( "button" , {
         class: "color-choice" + ( color === "" ? " is-auto" : "" ),
         attrs: { type: "button" , role: "radio" , "aria-label": I18n.get( "profile.color_" + ( color || "auto" ) ) },
-        on: { click: function () { Profile.save( Profile.me.icon || "" , color ); } },
+        on: { click: function () { choose( current().icon || "" , color ); } },
       } );
       button.setAttribute( "data-color" , color );
       if ( color ) Dom.vars( button , { hue: Art.avatarHues[ color ] } );
-      colors.appendChild( button );
+      grid.appendChild( button );
     } );
-    this.markChoices();
-  },
 
-  markChoices() {
-    const me = this.me;
-    Dom.all( "#icon-grid .icon-choice" ).forEach( function ( button ) {
-      button.setAttribute( "aria-checked" , String( button.getAttribute( "data-icon" ) === ( me.icon || "" ) ) );
+    // Any hue at all, on a slider. Only the hue is free: saturation and
+    // lightness stay the stylesheet's, so every avatar reads in both themes.
+    const swatch = Dom.el( "span" , { class: "color-choice hue-swatch" , attrs: { "aria-hidden": "true" } } );
+    const slider = Dom.el( "input" , { class: "hue-slider" , attrs: {
+      type: "range" , min: "0" , max: "359" , step: "1" , "aria-label": I18n.get( "profile.hue_label" ),
+    } } );
+    const custom = Dom.el( "div" , { class: "hue-row" , children: [
+      swatch,
+      Dom.el( "label" , { class: "hue-label" , children: [
+        Dom.el( "span" , { text: I18n.get( "profile.color_custom" ) } ),
+        slider,
+      ] } ),
+    ] } );
+    slider.addEventListener( "input" , function () {
+      Dom.vars( swatch , { hue: slider.value } );
+      handlers.preview( Object.assign( {} , current() , { color: "h" + slider.value } ) );
     } );
-    Dom.all( "#color-grid .color-choice" ).forEach( function ( button ) {
-      button.setAttribute( "aria-checked" , String( button.getAttribute( "data-color" ) === ( me.color || "" ) ) );
-    } );
+    slider.addEventListener( "change" , function () { choose( current().icon || "" , "h" + slider.value ); } );
+    colors.appendChild( grid );
+    colors.appendChild( custom );
+
+    const mark = function () {
+      const person = current();
+      Dom.all( ".icon-choice" , icons ).forEach( function ( button ) {
+        button.setAttribute( "aria-checked" , String( button.getAttribute( "data-icon" ) === ( person.icon || "" ) ) );
+        if ( button.classList.contains( "is-initials" ) ) Dom.text( button , Art.initials( person.display_name ) );
+      } );
+      Dom.all( ".color-choice[data-color]" , grid ).forEach( function ( button ) {
+        button.setAttribute( "aria-checked" , String( button.getAttribute( "data-color" ) === ( person.color || "" ) ) );
+      } );
+      // The slider starts from the person's color, whatever it is.
+      const hue = Art.colorHue( person.color );
+      slider.value = String( hue === null ? Art.hue( person.display_name ) : hue );
+      Dom.vars( swatch , { hue: slider.value } );
+      custom.classList.toggle( "is-chosen" , /^h\d+$/.test( person.color || "" ) );
+      handlers.preview( person );
+    };
+    mark();
+    return { mark: mark };
   },
 
   async save( icon , color ) {
@@ -74,7 +126,6 @@ const Profile = {
       this.me.icon = icon;
       this.me.color = color;
       this.renderPreview();
-      this.markChoices();
     } catch ( error ) {
       Toast.error( error );
     }

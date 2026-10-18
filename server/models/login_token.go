@@ -112,3 +112,14 @@ func PurgeExpiredLoginTokens( store *db.Store ) ( removed int , err error ) {
 		} )
 	return
 }
+
+// DeleteLoginTokensForUser drops every link minted for an account, used or
+// not, when the account itself is deleted.
+func DeleteLoginTokensForUser( store *db.Store , user_id uint64 ) ( err error ) {
+	_ , err = store.DeleteWhere( db.BucketLoginTokens ,
+		func() any { return &LoginToken{} } ,
+		func( key []byte , item any ) bool {
+			return item.( *LoginToken ).UserID == user_id
+		} )
+	return
+}

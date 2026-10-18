@@ -114,7 +114,13 @@ func ( hub *Hub ) Record( id string ) ( record GameRecord , err error ) {
 	}
 	table.mu.Lock()
 	defer table.mu.Unlock()
+	record , err = table.record()
+	return
+}
 
+// record builds the game record. Called with the table locked; the game
+// history (archive.go) keeps a copy of it when a game ends.
+func ( table *Table ) record() ( record GameRecord , err error ) {
 	record.Hands = []RecordHand{}
 	if table.Game == nil { return }
 	hands := []RecordHand{}

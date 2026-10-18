@@ -27,6 +27,11 @@ func ( hub *Hub ) Restart( id string , user *models.User , admin bool ) ( err er
 			if mine := table.seatOf( user.ID ); mine >= 0 { seat = mine }
 		}
 		first_bidder := table.firstBidder( seat )
+		// The game being thrown away goes into the history first; with the
+		// log starting over, the next game's place in it says nothing about
+		// the games before.
+		hub.archiveAbandoned( table )
+		table.Archives = nil
 		table.Game , table.Base , table.Log , table.Cursor , table.Held = nil , nil , nil , 0 , false
 		for index := range table.Seats {
 			// Someone invited but never arrived would hold up the new game.
@@ -56,6 +61,7 @@ func ( hub *Hub ) Delete( id string , user *models.User , admin bool ) ( err err
 		table.bot_timer.Stop()
 		table.bot_timer = nil
 	}
+	hub.archiveAbandoned( table )
 	subscribers := table.subscriberList()
 	table.mu.Unlock()
 

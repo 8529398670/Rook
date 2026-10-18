@@ -39,6 +39,8 @@ const Settings = {
     Dom.get( "copy-link-button" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "login-link-value" ) , Dom.get( "copied-notice" ) );
     } );
+    Dom.get( "edit-user-form" ).addEventListener( "submit" , this.onEditName.bind( this ) );
+    Dom.get( "delete-user-confirm" ).addEventListener( "click" , this.onDeleteUser.bind( this ) );
     await this.refreshUsers();
   },
 
@@ -158,9 +160,13 @@ const Settings = {
       } );
       hintSwitch.checked = user.can_hint === true;
 
+      const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
+      Art.avatar( avatar , user );
+
       // Built with createElement + textContent, never an HTML string: a
       // display name is user-controlled input.
       body.appendChild( Dom.el( "tr" , { children: [
+        Dom.el( "td" , { children: [ avatar ] } ),
         Dom.el( "td" , { text: user.display_name } ),
         Dom.el( "td" , { text: user.role } ),
         Dom.el( "td" , { text: I18n.get( statusKey ) } ),
@@ -172,13 +178,95 @@ const Settings = {
               const issued = await Api.reissueLogin( user.id );
               Settings.showLoginLink( issued.login_path );
             } ),
+            action( "admin.edit_button" , async function () { await Settings.openEditUser( user ); } ),
             action( user.disabled ? "admin.enable_button" : "admin.disable_button" , async function () {
               await Api.setDisabled( user.id , !user.disabled );
               await Settings.refreshUsers();
             } ),
-          ] } ),
+            user.id === Settings.me.id ? null : Dom.el( "button" , {
+              class: "secondary small danger-text",
+              text: I18n.get( "admin.delete_button" ),
+              on: { click: function () { Settings.confirmDeleteUser( user ); } },
+            } ),
+          ].filter( Boolean ) } ),
         ] } ),
       ] } ) );
     } );
+  },
+
+  // The admin's "edit player" sheet: a name, and the same icon and color
+  // picker everyone has for themselves. Choices save as they are made.
+  editing: null,
+  editPicker: null,
+
+  async openEditUser( user ) {
+    if ( !await Profile.loadOptions() ) return;
+    this.editing = Object.assign( {} , user );
+    Dom.text( Dom.get( "edit-user-heading" ) , user.display_name );
+    Dom.get( "edit-user-name" ).value = user.display_name;
+    this.editPicker = Profile.picker( Dom.get( "edit-user-icons" ) , Dom.get( "edit-user-colors" ) , {
+      person: function () { return Settings.editing; },
+      preview: function ( person ) { Art.avatar( Dom.get( "edit-user-preview" ) , person ); },
+      save: async function ( icon , color ) {
+        try {
+          await Api.adminSetAvatar( Settings.editing.id , icon , color );
+          Settings.editing.icon = icon;
+          Settings.editing.color = color;
+          Settings.editedSelf();
+        } catch ( error ) {
+          Toast.error( error );
+        }
+      },
+    } );
+    Sheet.open( "sheet-edit-user" , { onClose: function () { Settings.refreshUsers(); } } );
+  },
+
+  async onEditName( event ) {
+    event.preventDefault();
+    const name = Dom.get( "edit-user-name" ).value.trim();
+    try {
+      await Api.adminRename( this.editing.id , name );
+      this.editing.display_name = name;
+      Dom.text( Dom.get( "edit-user-heading" ) , name );
+      this.editPicker.mark();
+      this.editedSelf();
+      Toast.show( I18n.get( "account.saved_notice" ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
+  // An admin editing their own row: keep this page's idea of them in step.
+  editedSelf() {
+    if ( !this.editing || this.editing.id !== this.me.id ) return;
+    this.me.display_name = this.editing.display_name;
+    this.me.icon = this.editing.icon;
+    this.me.color = this.editing.color;
+    Dom.get( "display-name" ).value = this.me.display_name;
+    this.renderWho();
+    Profile.renderPreview();
+    if ( Profile.mine ) Profile.mine.mark();
+  },
+
+  deleting: null,
+
+  confirmDeleteUser( user ) {
+    this.deleting = user;
+    Dom.text( Dom.get( "delete-user-body" ) , I18n.format( "admin.delete_body" , { name: user.display_name } ) );
+    Sheet.open( "sheet-confirm-delete-user" );
+  },
+
+  async onDeleteUser() {
+    const user = this.deleting;
+    if ( !user ) return;
+    try {
+      await Api.deleteUser( user.id );
+      Sheet.close();
+      Toast.show( I18n.format( "admin.deleted" , { name: user.display_name } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+    this.deleting = null;
+    await this.refreshUsers();
   },
 };

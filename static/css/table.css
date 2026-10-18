@@ -989,6 +989,39 @@
 .chat-form input { flex: 1 1 auto; }
 .chat-form button { flex: 0 0 auto; }
 
+/* Someone watching: a small tag after the name, plainer for a guest who is
+   not signed in, so nobody passes for a player by typing their name. */
+.chat-tag {
+  margin-left: 6px;
+  padding: 0 6px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-radius: 999px;
+  color: var(--fg-muted);
+  background: var(--bg);
+  border: 1px solid var(--border);
+}
+
+.chat-tag.is-guest { border-style: dashed; }
+
+/* A guest's name box gets its own row, above the message box. */
+.chat-form:has(.guest-name:not([hidden])) { flex-wrap: wrap; }
+.chat-form .guest-name { flex: 1 1 100%; }
+.chat-form input:not(.guest-name) { flex: 1 1 0; min-width: 0; }
+
+.guest-chat-as {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--fg-muted);
+}
+
+.guest-chat-as[hidden] { display: none; }
+
 .rules-body p { font-size: 0.92rem; }
 
 /* ---------------------------------------------------------- chat dock */

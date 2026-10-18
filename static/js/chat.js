@@ -18,6 +18,67 @@ const Chat = {
   dockControls: [],
   dockShown: null,
 
+  // Someone watching through a watch link without signing in chats under a
+  // name they type, remembered per device like the dock side. editingName
+  // is true while they are changing it.
+  guestKey: "rook.guest_name",
+  editingName: false,
+
+  guestName() {
+    try {
+      return ( window.localStorage.getItem( this.guestKey ) || "" ).trim();
+    } catch ( error ) {
+      return this.unsavedGuestName || "";
+    }
+  },
+
+  setGuestName( name ) {
+    this.unsavedGuestName = name;
+    try {
+      window.localStorage.setItem( this.guestKey , name );
+    } catch ( error ) {
+      // Storage refused: the name still holds for this page view.
+    }
+  },
+
+  // Show the name box, or "Chatting as Cleo · Change", to a guest; neither
+  // to anyone signed in.
+  renderGuest( view ) {
+    const guest = Boolean( view && !view.signed_in );
+    const name = this.guestName();
+    const asking = guest && ( !name || this.editingName );
+    Dom.all( "[data-guest-name]" ).forEach( function ( input ) {
+      if ( asking && input.hidden && !input.value ) input.value = name;
+      input.hidden = !asking;
+    } );
+    Dom.all( "[data-guest-as]" ).forEach( function ( line ) {
+      line.hidden = !guest || asking;
+      Dom.text( line.querySelector( "[data-guest-as-text]" ) , I18n.format( "chat.chatting_as" , { name: name } ) );
+    } );
+  },
+
+  // Send what is typed in input. A guest's name comes from the form's name
+  // box when it is showing; without one, nothing is sent and the box asks.
+  submit( input ) {
+    const text = input.value.trim();
+    if ( !text ) return;
+    let name = "";
+    if ( Table.view && !Table.view.signed_in ) {
+      const box = input.form.querySelector( "[data-guest-name]" );
+      name = box && !box.hidden ? box.value.trim().replace( /\s+/g , " " ) : this.guestName();
+      if ( !name ) {
+        Toast.show( I18n.get( "chat.guest_name_needed" ) , "error" );
+        if ( box ) box.focus();
+        return;
+      }
+      if ( name !== this.guestName() ) this.setGuestName( name );
+      this.editingName = false;
+      this.renderGuest( Table.view );
+    }
+    input.value = "";
+    Chat.handlers.send( text , name );
+  },
+
   dockSide() {
     try {
       const side = window.localStorage.getItem( this.dockKey );
@@ -75,11 +136,15 @@ const Chat = {
     Dom.all( "[data-chat-dock-controls]" ).forEach( this.bindDock );
     Dom.get( "chat-dock-form" ).addEventListener( "submit" , function ( event ) {
       event.preventDefault();
-      const input = Dom.get( "chat-dock-input" );
-      const text = input.value.trim();
-      if ( !text ) return;
-      input.value = "";
-      Chat.handlers.send( text );
+      Chat.submit( Dom.get( "chat-dock-input" ) );
+    } );
+    Dom.all( "[data-guest-change]" ).forEach( function ( button ) {
+      button.addEventListener( "click" , function () {
+        Chat.editingName = true;
+        Chat.renderGuest( Table.view );
+        const box = button.closest( "[data-guest-as]" ).nextElementSibling.querySelector( "[data-guest-name]" );
+        if ( box ) box.focus();
+      } );
     } );
     if ( this.dockWide ) {
       this.dockWide.addEventListener( "change" , function () { Chat.applyDock(); } );
@@ -93,11 +158,7 @@ const Chat = {
     } );
     Dom.get( "chat-form" ).addEventListener( "submit" , function ( event ) {
       event.preventDefault();
-      const input = Dom.get( "chat-input" );
-      const text = input.value.trim();
-      if ( !text ) return;
-      input.value = "";
-      Chat.handlers.send( text );
+      Chat.submit( Dom.get( "chat-input" ) );
     } );
   },
 
@@ -106,6 +167,7 @@ const Chat = {
     this.seenChat = 0;
     this.primed = false;
     this.tab = "chat";
+    this.editingName = false;
     Record.reset();
   },
 
@@ -122,6 +184,7 @@ const Chat = {
       this.seenChat = latest;
       this.primed = true;
     }
+    this.renderGuest( view );
     if ( Sheet.isOpen( "sheet-chat" ) ) this.render( view );
     if ( this.docked() ) this.renderDock( view );
     const unread = latest > this.seenChat;
@@ -138,7 +201,12 @@ const Chat = {
     const logList = Dom.get( "log-list" );
     chatList.hidden = this.tab !== "chat";
     logList.hidden = this.tab !== "log";
-    Dom.show( Dom.get( "chat-form" ) , this.tab === "chat" && view.you >= 0 );
+    // Everyone at the table may chat: players, and anyone watching.
+    Dom.show( Dom.get( "chat-form" ) , this.tab === "chat" );
+    Dom.all( "#sheet-chat [data-guest-as]" ).forEach( function ( line ) {
+      if ( Chat.tab !== "chat" ) line.hidden = true;
+    } );
+    if ( this.tab === "chat" ) this.renderGuest( view );
 
     if ( this.tab === "chat" ) {
       Dom.clear( chatList );
@@ -155,9 +223,27 @@ const Chat = {
     }
   },
 
+  // Whether a line is the viewer's own: their seat's, or -- for someone
+  // watching -- one sent under their name from the rail.
+  mine( view , line ) {
+    if ( line.seat >= 0 ) return line.seat === view.you;
+    if ( !line.watcher || view.you >= 0 ) return false;
+    if ( line.guest ) return !view.signed_in && line.name === this.guestName();
+    return Boolean( view.signed_in && Table.me && line.name === Table.me.display_name );
+  },
+
   lineEl( view , line ) {
-    return Dom.el( "li" , { class: "chat-line" + ( line.seat === view.you ? " is-mine" : "" ) , children: [
-      Dom.el( "span" , { class: "chat-name" , text: line.name } ),
+    const name = Dom.el( "span" , { class: "chat-name" , text: line.name } );
+    // Someone watching is marked as such, and a guest (not signed in) more
+    // plainly still, so nobody can pass for a player by typing their name.
+    if ( line.watcher ) {
+      name.appendChild( Dom.el( "span" , {
+        class: "chat-tag" + ( line.guest ? " is-guest" : "" ),
+        text: I18n.get( line.guest ? "chat.guest_tag" : "chat.watching_tag" ),
+      } ) );
+    }
+    return Dom.el( "li" , { class: "chat-line" + ( this.mine( view , line ) ? " is-mine" : "" ) + ( line.watcher ? " is-watcher" : "" ) , children: [
+      name,
       Dom.el( "span" , { class: "chat-text" , text: line.text } ),
     ] } );
   },
@@ -168,7 +254,7 @@ const Chat = {
   renderDock( view ) {
     const latest = view.chat.length ? view.chat[ view.chat.length - 1 ].seq : 0;
     const shown = latest + "|" + view.you + "|" + view.chat.length;
-    Dom.show( Dom.get( "chat-dock-form" ) , view.you >= 0 );
+    Dom.show( Dom.get( "chat-dock-form" ) , true );
     this.seenChat = Math.max( this.seenChat , latest );
     if ( this.dockShown === shown ) return;
     this.dockShown = shown;

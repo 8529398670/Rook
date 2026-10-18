@@ -14,6 +14,7 @@ const Lobby = {
   init( me ) {
     this.me = me;
     Dom.get( "open-settings" ).addEventListener( "click" , function () { App.go( "#/settings" ); } );
+    Dom.get( "open-games" ).addEventListener( "click" , function () { App.go( "#/games" ); } );
     Dom.get( "new-table-button" ).addEventListener( "click" , this.openCreate.bind( this ) );
     Dom.get( "sheet-new-table" ).addEventListener( "submit" , this.onCreate.bind( this ) );
 

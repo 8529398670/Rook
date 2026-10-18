@@ -57,6 +57,8 @@ const (
 	ErrSeatChanged    Error = "seat_changed"
 	ErrNotAPlayer     Error = "not_a_player"
 	ErrBadSeatName    Error = "bad_seat_name"
+	ErrNoSuchGame     Error = "no_such_game"
+	ErrBadGuestName   Error = "bad_guest_name"
 
 	// errStale is internal: a delayed bot move found the table had moved on.
 	errStale Error = "stale"
@@ -75,6 +77,7 @@ const (
 
 	maxNameLength = 40
 	maxChatLength = 280
+	maxGuestNameLength = 24
 	maxChatLines  = 50
 	viewChatLines = 40
 	maxRequests   = 6
@@ -120,12 +123,16 @@ type SeatRequest struct {
 	At     time.Time `json:"at"`
 }
 
+// ChatLine is one message. Seat is -1 for someone watching: Watcher marks
+// them, and Guest marks a watcher who is not signed in and typed their name.
 type ChatLine struct {
-	Seq  int       `json:"seq"`
-	Seat int       `json:"seat"`
-	Name string    `json:"name"`
-	Text string    `json:"text"`
-	At   time.Time `json:"at"`
+	Seq     int       `json:"seq"`
+	Seat    int       `json:"seat"`
+	Name    string    `json:"name"`
+	Text    string    `json:"text"`
+	At      time.Time `json:"at"`
+	Watcher bool      `json:"watcher,omitempty"`
+	Guest   bool      `json:"guest,omitempty"`
 }
 
 // Table is saved whole, as JSON, after every change. The unexported fields
@@ -159,6 +166,9 @@ type Table struct {
 	// ObserversSeeAll lets people watching this table see every hand. An
 	// admin sets it; the app-wide setting can also turn it on everywhere.
 	ObserversSeeAll bool `json:"observers_see_all,omitempty"`
+	// Archives maps each game played here (by where it starts in Log) to
+	// its row in the game history. See archive.go.
+	Archives map[ string ]ArchiveRef `json:"archives,omitempty"`
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 
@@ -257,9 +267,10 @@ func ( table *Table ) ensureHost() {
 	}
 }
 
-func ( table *Table ) addChat( seat int , name string , text string ) {
+func ( table *Table ) addChat( line ChatLine ) {
 	table.ChatSeq++
-	table.Chat = append( table.Chat , ChatLine{ Seq: table.ChatSeq , Seat: seat , Name: name , Text: text , At: time.Now().UTC() } )
+	line.Seq , line.At = table.ChatSeq , time.Now().UTC()
+	table.Chat = append( table.Chat , line )
 	if len( table.Chat ) > maxChatLines {
 		table.Chat = append( []ChatLine( nil ) , table.Chat[ len( table.Chat )-maxChatLines: ]... )
 	}

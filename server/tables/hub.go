@@ -138,12 +138,14 @@ func ( hub *Hub ) mutate( id string , fn func( table *Table ) error ) ( err erro
 	table.ensureHost()
 	table.Version++
 	table.UpdatedAt = time.Now().UTC()
+	hub.syncArchive( table )
 	abandoned := table.humans() == 0
 	if abandoned == false {
 		hub.persist( table )
 		hub.scheduleBot( table )
-	} else if table.bot_timer != nil {
-		table.bot_timer.Stop()
+	} else {
+		hub.archiveAbandoned( table )
+		if table.bot_timer != nil { table.bot_timer.Stop() }
 	}
 	subscribers := table.subscriberList()
 	table.mu.Unlock()
@@ -345,6 +347,28 @@ func ( hub *Hub ) RefreshUser( user *models.User ) {
 	}
 }
 
+// ForgetUser clears a deleted account out of every table: their seat empties,
+// exactly as if the host had removed them, and any request of theirs to take
+// over a seat is dropped. A table left with nobody but computer players goes,
+// as when the last person leaves.
+func ( hub *Hub ) ForgetUser( user_id uint64 ) {
+	hub.mu.RLock()
+	ids := []string{}
+	for id , table := range hub.tables {
+		table.mu.Lock()
+		if table.seatOf( user_id ) >= 0 || table.requestOf( user_id ) >= 0 { ids = append( ids , id ) }
+		table.mu.Unlock()
+	}
+	hub.mu.RUnlock()
+	for _ , id := range ids {
+		hub.mutate( id , func( table *Table ) ( fn_err error ) {
+			if seat := table.seatOf( user_id ); seat >= 0 { table.Seats[ seat ] = Seat{} }
+			if index := table.requestOf( user_id ); index >= 0 { table.dropRequest( index ) }
+			return
+		} )
+	}
+}
+
 // Purge removes tables that finished, or that nobody has touched, longer ago
 // than the retention window. Called from main's hourly purge loop.
 func ( hub *Hub ) Purge() ( removed int ) {
@@ -363,6 +387,7 @@ func ( hub *Hub ) Purge() ( removed int ) {
 		if table := hub.table( id ); table != nil {
 			table.mu.Lock()
 			if table.bot_timer != nil { table.bot_timer.Stop() }
+			hub.archiveAbandoned( table )
 			subscribers := table.subscriberList()
 			table.mu.Unlock()
 			hub.remove( id )

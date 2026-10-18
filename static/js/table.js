@@ -51,7 +51,15 @@ const Table = {
         }
       },
     } );
-    Chat.init( { send: function ( text ) { Table.act( Api.chat( Table.id , text ) ); } } );
+    // Someone watching through a watch link without signing in chats
+    // through the link, under the name they typed.
+    Chat.init( { send: function ( text , name ) {
+      if ( Table.target && Table.target.watch && Table.view && !Table.view.signed_in ) {
+        Table.act( Api.watchChat( Table.target.watch , name , text ) );
+        return;
+      }
+      Table.act( Api.chat( Table.id , text ) );
+    } } );
 
     Dom.get( "table-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
     Dom.get( "table-menu" ).addEventListener( "click" , this.openMenu.bind( this ) );

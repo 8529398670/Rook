@@ -32,9 +32,10 @@ const (
 	BucketMeta        = "meta"
 	BucketTables      = "tables"
 	BucketSignupLinks = "signup_links"
+	BucketGames       = "games"
 )
 
-var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks }
+var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks , BucketGames }
 
 type Store struct {
 	bolt          *bolt.DB
@@ -145,6 +146,27 @@ func ( store *Store ) ForEach( bucket string , newItem func() any , visit func( 
 	err = store.bolt.View( func( tx *bolt.Tx ) ( tx_err error ) {
 		cursor := tx.Bucket( []byte( bucket ) ).Cursor()
 		for key , value := cursor.First(); key != nil; key , value = cursor.Next() {
+			item := newItem()
+			if decode_err := store.decode( value , item ); decode_err != nil {
+				tx_err = decode_err
+				return
+			}
+			key_copy := append( []byte( nil ) , key... )
+			if visit( key_copy , item ) == false {
+				return
+			}
+		}
+		return
+	} )
+	return
+}
+
+// ForEachReverse is ForEach from the last key to the first: newest first,
+// for a bucket whose keys sort by time.
+func ( store *Store ) ForEachReverse( bucket string , newItem func() any , visit func( key []byte , item any ) bool ) ( err error ) {
+	err = store.bolt.View( func( tx *bolt.Tx ) ( tx_err error ) {
+		cursor := tx.Bucket( []byte( bucket ) ).Cursor()
+		for key , value := cursor.Last(); key != nil; key , value = cursor.Prev() {
 			item := newItem()
 			if decode_err := store.decode( value , item ); decode_err != nil {
 				tx_err = decode_err

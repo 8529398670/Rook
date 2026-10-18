@@ -330,3 +330,15 @@ func PurgeDeadAPIKeys( store *db.Store ) ( removed int , err error ) {
 		} )
 	return
 }
+
+// DeleteAPIKeysForUser drops every key an account owns when the account is
+// deleted. Unlike a revocation nothing is kept: there is no owner left for a
+// listing to name.
+func DeleteAPIKeysForUser( store *db.Store , user_id uint64 ) ( err error ) {
+	_ , err = store.DeleteWhere( db.BucketAPIKeys ,
+		func() any { return &APIKey{} } ,
+		func( key []byte , item any ) bool {
+			return item.( *APIKey ).UserID == user_id
+		} )
+	return
+}

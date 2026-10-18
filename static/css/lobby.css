@@ -18,6 +18,7 @@
 }
 
 .lobby-brand { display: flex; align-items: center; gap: 4px; }
+.lobby-header-actions { display: flex; align-items: center; gap: 6px; }
 .lobby-bird .bird-art { width: 46px; height: 46px; display: block; }
 .lobby-wordmark .wordmark-art { width: 116px; height: auto; display: block; }
 
@@ -197,3 +198,42 @@ button.compass-seat.is-open:hover { background: var(--accent-soft); transform: n
   box-shadow: var(--shadow);
   pointer-events: auto;
 }
+
+/* ------------------------------------------------------- game history */
+
+.screen-games { min-height: 100dvh; }
+
+.game-card { flex-direction: column; align-items: stretch; cursor: pointer; }
+.game-card:hover { border-color: var(--accent); }
+.game-card:active:not(:disabled) { transform: none; }
+
+.game-team {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  font-size: 0.9rem;
+}
+
+.game-team-avatars { display: flex; flex: 0 0 auto; }
+.game-team-avatars .avatar + .avatar { margin-left: -6px; box-shadow: 0 0 0 2px var(--card-bg); }
+.game-team-avatars .avatar.is-bot { color: var(--fg-muted); background: var(--surface-2); }
+.game-team-avatars .avatar.is-empty { background: transparent; border: 2px dashed var(--border); }
+
+.game-team-names { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-team-score { flex: 0 0 auto; min-width: 3ch; text-align: right; font-weight: 750; font-variant-numeric: tabular-nums; }
+.game-team.is-winner .game-team-names { font-weight: 750; }
+
+.game-detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 1rem;
+  padding: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.game-detail-record { min-height: 0; overflow: visible; }
+.games-more { align-self: center; margin: 1rem auto 0; display: block; }

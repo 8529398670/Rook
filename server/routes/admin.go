@@ -201,3 +201,107 @@ func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx ) ( err error ) {
 	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }
+
+type adminRenameRequest struct {
+	DisplayName string `json:"display_name"`
+	CSRFToken   string `json:"csrf_token"`
+}
+
+// adminTarget decodes an admin request about one user and loads that user:
+// the CSRF check, the id in the path, and a 404 for nobody. ok is false when
+// it has already answered.
+func ( handlers *Handlers ) adminTarget( c fiber.Ctx , body any , csrf func() string ) ( user *models.User , ok bool , err error ) {
+	if c.Bind().Body( body ) != nil {
+		err = badRequest( c , "malformed request body" )
+		return
+	}
+	if handlers.Guard.CheckCSRF( c , csrf() ) == false {
+		err = forbidden( c , "invalid csrf token" )
+		return
+	}
+	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
+	if parse_err != nil {
+		err = badRequest( c , "invalid user id" )
+		return
+	}
+	user , get_err := models.GetUser( handlers.Store , user_id )
+	if get_err != nil {
+		err = notFound( c , "no such user" )
+		return
+	}
+	ok = true
+	return
+}
+
+// AdminRenameUser changes someone's name for them; their seats show it at
+// once.
+func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx ) ( err error ) {
+	var body adminRenameRequest
+	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
+	if ok == false {
+		err = target_err
+		return
+	}
+	if models.ValidDisplayName( body.DisplayName ) == false {
+		err = badRequest( c , "bad_name" )
+		return
+	}
+	if models.RenameUser( handlers.Store , user.ID , body.DisplayName ) != nil {
+		err = serverError( c )
+		return
+	}
+	handlers.refreshTables( user.ID )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// AdminSetAvatar picks someone's icon and color for them.
+func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx ) ( err error ) {
+	var body avatarRequest
+	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
+	if ok == false {
+		err = target_err
+		return
+	}
+	if models.SetUserAvatar( handlers.Store , user.ID , body.Icon , body.Color ) != nil {
+		err = badRequest( c , "bad_avatar" )
+		return
+	}
+	handlers.refreshTables( user.ID )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// DeleteUser removes an account for good, unlike disabling it: the row,
+// every way to sign in as it, and its seats at open tables. Games already
+// in the history keep the name it played under.
+func ( handlers *Handlers ) DeleteUser( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
+	if ok == false {
+		err = target_err
+		return
+	}
+	if user.ID == security.UserFrom( c ).ID {
+		err = badRequest( c , "cannot_delete_self" )
+		return
+	}
+	if user.IsAdmin() && user.Disabled() == false {
+		admins , count_err := models.CountActiveAdmins( handlers.Store )
+		if count_err != nil {
+			err = serverError( c )
+			return
+		}
+		if admins <= 1 {
+			err = badRequest( c , "last_admin" )
+			return
+		}
+	}
+	if models.DeleteUser( handlers.Store , user.ID ) != nil {
+		err = serverError( c )
+		return
+	}
+	handlers.Hub.ForgetUser( user.ID )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}

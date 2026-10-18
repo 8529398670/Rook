@@ -3,6 +3,7 @@ package models
 import (
 	errors "errors"
 	regexp "regexp"
+	strconv "strconv"
 	strings "strings"
 	unicode "unicode"
 
@@ -22,8 +23,25 @@ var Icons = []string{
 }
 
 // Colors are names, not hex values, so the frontend picks tones that work in
-// both themes.
+// both themes. Besides these, a color may be a custom hue, "h0" to "h359":
+// still only a hue, so the frontend's saturation and lightness keep it
+// readable in both themes too.
 var Colors = []string{ "teal" , "coral" , "plum" , "gold" , "forest" , "sky" , "rose" , "berry" }
+
+var huePattern = regexp.MustCompile( `^h(0|[1-9][0-9]{0,2})$` )
+
+// ValidColor accepts "", a named color, or a custom hue.
+func ValidColor( color string ) ( ok bool ) {
+	if validChoice( color , Colors ) {
+		ok = true
+		return
+	}
+	match := huePattern.FindStringSubmatch( color )
+	if match == nil { return }
+	hue , err := strconv.Atoi( match[ 1 ] )
+	ok = err == nil && hue < 360
+	return
+}
 
 var ErrBadProfile = errors.New( "unknown icon or color" )
 var ErrBadPin = errors.New( "pin must be 4 to 8 digits" )
@@ -45,7 +63,7 @@ func validChoice( value string , choices []string ) ( ok bool ) {
 // SetUserAvatar saves an icon and color; empty strings go back to initials
 // on an automatic color.
 func SetUserAvatar( store *db.Store , user_id uint64 , icon string , color string ) ( err error ) {
-	if validChoice( icon , Icons ) == false || validChoice( color , Colors ) == false {
+	if validChoice( icon , Icons ) == false || ValidColor( color ) == false {
 		err = ErrBadProfile
 		return
 	}
