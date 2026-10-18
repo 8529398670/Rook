@@ -20,6 +20,9 @@ const Table = {
   view: null,
   stream: null,
   inviteSeat: -1,
+  // The host's pick for who deals a new table's first hand: a seat, "random",
+  // or null until they choose.
+  firstDealer: null,
   announced: 0,
   // What a watcher asked to see: whose seat, and every hand or not.
   perspective: 0,
@@ -47,7 +50,10 @@ const Table = {
 
     Dom.get( "table-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
     Dom.get( "table-menu" ).addEventListener( "click" , this.openMenu.bind( this ) );
-    Dom.get( "deal-button" ).addEventListener( "click" , function () { Table.act( Api.start( Table.id ) ); } );
+    Dom.get( "deal-button" ).addEventListener( "click" , function () {
+      if ( Table.firstDealer === null ) return;
+      Table.act( Api.start( Table.id , Table.firstDealer ) );
+    } );
     Dom.get( "waiting-leave" ).addEventListener( "click" , this.confirmLeave.bind( this ) );
     Dom.get( "leave-confirm" ).addEventListener( "click" , this.leaveTable.bind( this ) );
     Dom.get( "manage-confirm" ).addEventListener( "click" , this.manageTable.bind( this ) );
@@ -118,6 +124,7 @@ const Table = {
       this.view = null;
       this.id = target.id || null;
       this.traySignature = null;
+      this.firstDealer = null;
       this.retryDelay = 0;
       this.announced = 0;
       this.perspective = 0;
@@ -542,10 +549,46 @@ const Table = {
     }
     Dom.text( Dom.get( "waiting-status" ) , status );
 
+    const dealing = view.is_host && view.status === "waiting" && view.you >= 0;
+    this.renderDealerPick( view , dealing && seated === 4 );
     const deal = Dom.get( "deal-button" );
-    Dom.show( deal , view.is_host && view.status === "waiting" && view.you >= 0 );
-    deal.disabled = seated < 4;
+    Dom.show( deal , dealing );
+    // Nobody deals by default: the host has to say who deals first.
+    deal.disabled = seated < 4 || this.firstDealer === null;
     Dom.show( Dom.get( "waiting-leave" ) , view.you >= 0 );
+  },
+
+  // Who deals first: any of the four, clockwise from you as they sit, or
+  // Random. Nothing is picked until the host picks.
+  renderDealerPick( view , showing ) {
+    Dom.show( Dom.get( "dealer-pick" ) , showing );
+    const box = Dom.get( "dealer-pick-options" );
+    if ( !showing ) {
+      box.removeAttribute( "data-signature" );
+      return;
+    }
+    const signature = JSON.stringify( [ this.seatNames( view ) , view.you , this.firstDealer ] );
+    if ( box.getAttribute( "data-signature" ) === signature ) return;
+    box.setAttribute( "data-signature" , signature );
+    Dom.clear( box );
+    const option = function ( value , text ) {
+      box.appendChild( Dom.el( "button" , {
+        class: "small secondary dealer-pick-option" + ( value === "random" ? " dealer-pick-random" : "" ),
+        text: text,
+        attrs: { type: "button" , role: "radio" , "aria-checked": String( Table.firstDealer === value ) },
+        on: { click: function () {
+          Table.firstDealer = value;
+          Table.renderWaiting( Table.view );
+        } },
+      } ) );
+    };
+    for ( let step = 0; step < 4; step += 1 ) {
+      const seat = ( view.you + step ) % 4;
+      const name = Seats.name( view.seats[ seat ] );
+      // "You" rather than "Ana (you)": two to a row has little room.
+      option( seat , seat === view.you ? I18n.get( "waiting.dealer_you" ) : name );
+    }
+    option( "random" , I18n.get( "waiting.dealer_random" ) );
   },
 
   // Read the newest game event to a screen reader.

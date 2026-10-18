@@ -599,6 +599,21 @@
 .waiting-status { margin: 0; font-size: 0.88rem; color: var(--fg-muted); }
 .waiting-actions { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 
+/* Who deals first: the four players two by two, then Random. */
+.dealer-pick { display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.dealer-pick-title { margin: 0; font-size: 0.8rem; font-weight: 750; }
+.dealer-pick-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+
+.dealer-pick-option {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dealer-pick-random { grid-column: 1 / -1; }
+.dealer-pick-option[aria-checked="true"] { color: var(--accent-fg); background: var(--accent); border-color: var(--accent); }
+
 .felt.is-waiting .trick { opacity: 0.25; }
 
 /* --------------------------------------------------------------- tray */

@@ -303,14 +303,30 @@ func ( handlers *Handlers ) GetRecord( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// startRequest names the first dealer: a seat, or random_dealer. With
+// neither, whoever pressed Deal deals.
+type startRequest struct {
+	Dealer       *int   `json:"dealer"`
+	RandomDealer bool   `json:"random_dealer"`
+	CSRFToken    string `json:"csrf_token"`
+}
+
 func ( handlers *Handlers ) StartTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
+	var body startRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err
 		return
 	}
+	dealer := tables.DealerHost
+	if body.RandomDealer {
+		dealer = tables.DealerRandom
+	} else if body.Dealer != nil {
+		dealer = *body.Dealer
+		// A seat number only; the two named choices go by their own fields.
+		if dealer < 0 { dealer = 4 }
+	}
 	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.Start( id , security.UserFrom( c ) ) )
+	err = handlers.tableResult( c , id , handlers.Hub.Start( id , security.UserFrom( c ) , dealer ) )
 	return
 }
 

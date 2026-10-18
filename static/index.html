@@ -185,6 +185,11 @@
         <h2 id="waiting-title" class="waiting-title"></h2>
         <ul id="waiting-rules" class="chip-row"></ul>
         <p id="waiting-status" class="waiting-status"></p>
+        <!-- With every seat filled, the host names who deals first. -->
+        <div id="dealer-pick" class="dealer-pick" hidden>
+          <p class="dealer-pick-title" data-i18n="waiting.dealer_heading"></p>
+          <div id="dealer-pick-options" class="dealer-pick-options" role="radiogroup" data-i18n-attr="aria-label:waiting.dealer_heading"></div>
+        </div>
         <div class="waiting-actions">
           <button id="deal-button" type="button" data-i18n="waiting.deal" hidden></button>
           <button id="waiting-leave" type="button" class="secondary" data-i18n="table.leave"></button>

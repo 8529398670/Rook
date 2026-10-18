@@ -18,7 +18,7 @@ func soloTable( t *testing.T , hub *Hub , person *models.User ) ( id string ) {
 	for seat := 1; seat < 4; seat++ {
 		if err := hub.AddBot( id , person , seat ); err != nil { t.Fatal( err ) }
 	}
-	if err := hub.Start( id , person ); err != nil { t.Fatal( err ) }
+	if err := hub.Start( id , person , DealerHost ); err != nil { t.Fatal( err ) }
 	return
 }
 

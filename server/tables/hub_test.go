@@ -72,10 +72,10 @@ func TestSeatingRules( t *testing.T ) {
 		t.Fatalf( "second seat: %v" , err )
 	}
 	if err := hub.AddBot( id , guest , 1 ); err != nil { t.Fatal( err ) }
-	if err := hub.Start( id , guest ); !errors.Is( err , ErrNotHost ) {
+	if err := hub.Start( id , guest , DealerHost ); !errors.Is( err , ErrNotHost ) {
 		t.Fatalf( "non-host start: %v" , err )
 	}
-	if err := hub.Start( id , host ); !errors.Is( err , ErrSeatsNotFull ) {
+	if err := hub.Start( id , host , DealerHost ); !errors.Is( err , ErrSeatsNotFull ) {
 		t.Fatalf( "start with an empty seat: %v" , err )
 	}
 
@@ -109,10 +109,45 @@ func TestTheHostDealsTheFirstHand( t *testing.T ) {
 	for _ , seat := range []int{ 1 , 3 } {
 		if err := hub.AddBot( id , ben , seat ); err != nil { t.Fatal( err ) }
 	}
-	if err := hub.Start( id , ben ); err != nil { t.Fatal( err ) }
+	if err := hub.Start( id , ben , DealerHost ); err != nil { t.Fatal( err ) }
 	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
 	if view.Game.Dealer != 2 || view.Game.BidStarter != 3 {
 		t.Fatalf( "dealer %d first bidder %d, want 2 and 3" , view.Game.Dealer , view.Game.BidStarter )
+	}
+}
+
+// The host can instead name any seat to deal first, or have one drawn.
+func TestTheHostPicksTheFirstDealer( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	table := func() ( id string ) {
+		id , _ = hub.Create( ana , "Cards" , game.DefaultOptions() )
+		for seat := 1; seat < 4; seat++ {
+			if err := hub.AddBot( id , ana , seat ); err != nil { t.Fatal( err ) }
+		}
+		return
+	}
+
+	id := table()
+	if err := hub.Start( id , ana , 4 ); !errors.Is( err , ErrBadSeat ) {
+		t.Fatalf( "dealer seat 4: %v" , err )
+	}
+	if err := hub.Start( id , ana , 3 ); err != nil { t.Fatal( err ) }
+	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	if view.Game.Dealer != 3 || view.Game.BidStarter != 0 {
+		t.Fatalf( "dealer %d first bidder %d, want 3 and 0" , view.Game.Dealer , view.Game.BidStarter )
+	}
+
+	seen := map[ int ]bool{}
+	for draw := 0; draw < 40 && len( seen ) < 4; draw++ {
+		id = table()
+		if err := hub.Start( id , ana , DealerRandom ); err != nil { t.Fatal( err ) }
+		view , _ = hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+		seen[ view.Game.Dealer ] = true
+		hub.Delete( id , ana , false )
+	}
+	if len( seen ) < 2 {
+		t.Fatalf( "random dealer never varied: %v" , seen )
 	}
 }
 
@@ -150,7 +185,7 @@ func TestAHandWithBots( t *testing.T ) {
 	for seat := 1; seat < 4; seat++ {
 		if err := hub.AddBot( id , person , seat ); err != nil { t.Fatal( err ) }
 	}
-	if err := hub.Start( id , person ); err != nil { t.Fatal( err ) }
+	if err := hub.Start( id , person , DealerHost ); err != nil { t.Fatal( err ) }
 
 	for {
 		view := waitFor( t , hub , id , person , func( view TableView ) bool {
@@ -239,7 +274,7 @@ func TestRemovePlayer( t *testing.T ) {
 	// Someone already at the table cannot be held a second seat.
 	if err = hub.Reserve( id , 3 , guest ); errors.Is( err , ErrAlreadySeated ) == false { t.Fatalf( "reserve seated: %v" , err ) }
 	if err = hub.AddBot( id , host , 3 ); err != nil { t.Fatal( err ) }
-	if err = hub.Start( id , host ); err != nil { t.Fatal( err ) }
+	if err = hub.Start( id , host , DealerHost ); err != nil { t.Fatal( err ) }
 
 	// Mid-game, removing a player pauses the table. An admin may do it too.
 	if err = hub.RemovePlayer( id , invited , true , 1 ); err != nil { t.Fatal( err ) }

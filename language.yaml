@@ -124,7 +124,10 @@ waiting:
   deal: "Deal"
   pick_seat: "Pick an open seat to join."
   seated: "{seated} of 4 seats taken. Add bots or invite friends to fill the rest."
-  ready_host: "Everyone's here. Deal when you're ready."
+  ready_host: "Everyone's here. Pick who deals first, then deal."
+  dealer_heading: "Who deals first?"
+  dealer_random: "Random"
+  dealer_you: "You"
   ready_guest: "Waiting for {name} to deal."
 
 table:

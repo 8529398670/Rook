@@ -1,6 +1,7 @@
 package tables
 
 import (
+	rand "math/rand/v2"
 	strings "strings"
 	time "time"
 	utf8 "unicode/utf8"
@@ -215,9 +216,21 @@ func ( hub *Hub ) CanReserve( id string , seat int ) ( err error ) {
 	return
 }
 
-// Start deals. Only the host may, and only with all four seats filled. After
-// a game ends, the same call starts a rematch with the opening bid moved on.
-func ( hub *Hub ) Start( id string , user *models.User ) ( err error ) {
+// Who deals a new table's first hand, besides a seat number, for Start.
+const (
+	DealerHost   = -1 // whoever pressed Deal
+	DealerRandom = -2 // a seat drawn at random
+)
+
+// Start deals. Only the host may, and only with all four seats filled. The
+// host names the first dealer -- a seat, or DealerRandom -- and the deal moves
+// on one seat each hand from there. After a game ends, the same call starts a
+// rematch with the deal moved on, whatever dealer is passed.
+func ( hub *Hub ) Start( id string , user *models.User , dealer int ) ( err error ) {
+	if dealer != DealerHost && dealer != DealerRandom && validSeat( dealer ) == false {
+		err = ErrBadSeat
+		return
+	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		if _ , fn_err = table.seated( user ); fn_err != nil { return }
 		if table.HostID != user.ID {
@@ -233,14 +246,20 @@ func ( hub *Hub ) Start( id string , user *models.User ) ( err error ) {
 			return
 		}
 		seat := table.seatOf( user.ID )
-		fn_err = table.perform( Action{ Kind: ActionStart , Seat: seat , First: table.firstBidder( seat ) } )
+		switch dealer {
+		case DealerHost:
+			dealer = seat
+		case DealerRandom:
+			dealer = rand.IntN( 4 )
+		}
+		fn_err = table.perform( Action{ Kind: ActionStart , Seat: seat , First: table.firstBidder( dealer ) } )
 		return
 	} )
 	return
 }
 
 // firstBidder is who opens the auction of a new game: the seat on the
-// dealer's left. A first game is dealt by whoever pressed Deal; a rematch or
+// dealer's left. A first game is dealt by the dealer given; a rematch or
 // restart passes the deal on one seat, the way every new hand does.
 func ( table *Table ) firstBidder( dealer int ) ( seat int ) {
 	if table.Game != nil {
