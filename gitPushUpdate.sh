@@ -28,5 +28,5 @@ else
 	git tag v1.0.$NextCommitNumber
 fi
 git remote add origin git@github-8529398670:8529398670/Rook.git
-git push origin --tags
+git push origin --tags --force
 git push origin master
