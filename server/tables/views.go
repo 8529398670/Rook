@@ -10,10 +10,12 @@ import (
 
 type SeatInfo struct {
 	Kind    string `json:"kind"`
+	UserID  uint64 `json:"user_id,omitempty"`
 	Name    string `json:"name"`
 	Bot     int    `json:"bot"`
 	Online  bool   `json:"online"`
 	Pending bool   `json:"pending"`
+	Renamed bool   `json:"renamed"`
 	Host    bool   `json:"host"`
 	Icon    string `json:"icon"`
 	Color   string `json:"color"`
@@ -110,7 +112,9 @@ func ( table *Table ) seatInfo() ( seats [4]SeatInfo ) {
 	for index , seat := range table.Seats {
 		seats[ index ] = SeatInfo{
 			Kind:    seat.Kind,
-			Name:    seat.Name,
+			UserID:  seat.UserID,
+			Name:    seat.shownName(),
+			Renamed: seat.Alias != "",
 			Bot:     seat.Bot,
 			Pending: seat.Pending,
 			Icon:    seat.Icon,

@@ -4,7 +4,8 @@
 const Kitty = {
   trump: null,
   hand: 0,
-  count: null,
+  countLong: null,
+  countShort: null,
   done: null,
 
   render( tray , view , handlers ) {
@@ -31,16 +32,20 @@ const Kitty = {
       swatches.appendChild( button );
     } );
 
-    this.count = Dom.el( "p" , { class: "tray-title" } );
+    // The count, long where there is room and short on a phone.
+    this.countLong = Dom.el( "span" , { class: "kitty-count-long" } );
+    this.countShort = Dom.el( "span" , { class: "kitty-count-short" } );
     this.done = Dom.el( "button" , { class: "kitty-done" , text: I18n.get( "kitty.done" ) , attrs: { type: "button" } , on: { click: function () {
       handlers.bury( Array.from( Hand.bury ) , Kitty.trump );
     } } } );
 
     this.swatches = swatches;
     tray.appendChild( Dom.el( "div" , { class: "tray-panel kitty-panel" , children: [
-      this.count,
       swatches,
-      this.done,
+      Dom.el( "div" , { class: "kitty-actions" , attrs: { "data-hint-slot": "" } , children: [
+        Dom.el( "p" , { class: "kitty-count" , attrs: { "aria-live": "polite" } , children: [ this.countLong , this.countShort ] } ),
+        this.done,
+      ] } ),
     ] } ) );
     this.refresh();
   },
@@ -57,8 +62,9 @@ const Kitty = {
   },
 
   refresh() {
-    if ( !this.count ) return;
-    Dom.text( this.count , I18n.format( "kitty.choose" , { count: Hand.bury.size } ) );
+    if ( !this.done ) return;
+    Dom.text( this.countLong , I18n.format( "kitty.choose" , { count: Hand.bury.size } ) );
+    Dom.text( this.countShort , I18n.format( "kitty.count" , { count: Hand.bury.size } ) );
     this.done.disabled = Hand.bury.size !== 5 || !this.trump;
   },
 

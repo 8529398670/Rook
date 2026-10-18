@@ -6,9 +6,10 @@ const Lobby = {
   me: null,
   stream: null,
   options: null,
-  // Tables we have already sent an invited player to, so backing out to the
-  // lobby does not bounce them straight back in.
-  redirected: {},
+  // Whether the lobby has drawn once since the app loaded. Only that first
+  // look may send an invited player straight to their seat; after that they
+  // choose from "Seats saved for you", so backing out is never a bounce.
+  shown: false,
 
   init( me ) {
     this.me = me;
@@ -51,32 +52,65 @@ const Lobby = {
   },
 
   render( list ) {
-    // Someone who just redeemed an invite lands here; their seat is waiting,
-    // so take them to it.
-    const held = list.find( function ( table ) {
-      return table.you >= 0 && table.seats[ table.you ].pending;
-    } );
-    if ( held && !this.redirected[ held.id ] ) {
-      this.redirected[ held.id ] = true;
-      App.go( "#/t/" + held.id );
+    // Someone who just redeemed an invite lands here; with exactly one seat
+    // waiting for them, take them to it.
+    const isHeld = function ( table ) { return table.you >= 0 && table.seats[ table.you ].pending; };
+    const saved = list.filter( isHeld );
+    const first = !this.shown;
+    this.shown = true;
+    if ( first && saved.length === 1 ) {
+      App.go( "#/t/" + saved[ 0 ].id );
       return;
     }
 
-    const mine = list.filter( function ( table ) { return table.you >= 0; } );
+    // Otherwise a seat someone saved for you gets its own section at the
+    // top, with the choice to take it or give it up.
+    const mine = list.filter( function ( table ) { return table.you >= 0 && !isHeld( table ); } );
     const others = list.filter( function ( table ) { return table.you < 0; } );
 
-    const myList = Dom.get( "my-tables" );
-    Dom.clear( myList );
-    mine.forEach( function ( table ) { myList.appendChild( Lobby.tableCard( table ) ); } );
+    const fill = function ( id , tables ) {
+      const element = Dom.get( id );
+      Dom.clear( element );
+      tables.forEach( function ( table ) { element.appendChild( Lobby.tableCard( table ) ); } );
+    };
+    fill( "held-tables" , saved );
+    fill( "my-tables" , mine );
+    fill( "open-tables" , others );
+    Dom.show( Dom.get( "held-tables-section" ) , saved.length > 0 );
     Dom.show( Dom.get( "my-tables-section" ) , mine.length > 0 );
-
-    const openList = Dom.get( "open-tables" );
-    Dom.clear( openList );
-    others.forEach( function ( table ) { openList.appendChild( Lobby.tableCard( table ) ); } );
-    Dom.show( Dom.get( "lobby-empty" ) , others.length === 0 && mine.length === 0 );
+    const anyOfYours = saved.length + mine.length > 0;
+    Dom.show( Dom.get( "lobby-empty" ) , others.length === 0 && !anyOfYours );
     // With tables of your own and nothing else open, an empty "Tables"
     // heading would only look broken.
-    Dom.show( Dom.get( "open-tables-section" ) , others.length > 0 || mine.length === 0 );
+    Dom.show( Dom.get( "open-tables-section" ) , others.length > 0 || !anyOfYours );
+  },
+
+  // Seats you could sit in from here: empty chairs at a table you are not
+  // at, while seats may change (a paused game takes a new player too).
+  openSeats( table ) {
+    if ( table.you >= 0 || [ "waiting" , "paused" , "over" ].indexOf( table.status ) < 0 ) return [];
+    const seats = [];
+    table.seats.forEach( function ( seat , index ) { if ( seat.kind === "" ) seats.push( index ); } );
+    return seats;
+  },
+
+  async sit( table , seat ) {
+    try {
+      await Api.sit( table.id , seat );
+      App.go( "#/t/" + table.id );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
+  async decline( table ) {
+    try {
+      await Api.leave( table.id );
+      Toast.show( I18n.get( "lobby.declined" ) );
+      this.render( await Api.listTables() );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
   statusText( table ) {
@@ -96,13 +130,26 @@ const Lobby = {
   },
 
   tableCard( table ) {
+    const open = this.openSeats( table );
     // A tiny compass of the four seats. Seat 0 is at the bottom and play runs
     // clockwise, the same orientation the table itself uses for a spectator.
-    const compass = Dom.el( "div" , { class: "seat-compass" , attrs: { "aria-hidden": "true" } } );
+    // An open seat you could take is a button: tap it to sit there.
+    const compass = Dom.el( "div" , { class: "seat-compass" } );
     [ "s" , "w" , "n" , "e" ].forEach( function ( side , index ) {
       const seat = table.seats[ index ];
+      const className = "compass-seat compass-" + side + " kind-" + ( seat.kind || "empty" ) + ( index === table.you ? " is-you" : "" ) + " team-" + ( index % 2 );
+      if ( open.indexOf( index ) >= 0 ) {
+        compass.appendChild( Dom.el( "button" , {
+          class: className + " is-open",
+          text: "+",
+          attrs: { type: "button" , "aria-label": I18n.format( "lobby.join_seat" , { name: table.name } ) , title: I18n.get( "seats.sit" ) },
+          on: { click: function () { Lobby.sit( table , index ); } },
+        } ) );
+        return;
+      }
       const dot = Dom.el( "span" , {
-        class: "compass-seat compass-" + side + " kind-" + ( seat.kind || "empty" ) + ( index === table.you ? " is-you" : "" ) + " team-" + ( index % 2 ),
+        class: className,
+        attrs: { "aria-hidden": "true" },
         text: seat.kind === "" ? "" : ( seat.kind === "bot" ? I18n.get( "bots.badge" ) : Art.initials( Seats.name( seat ) ) ),
       } );
       if ( seat.kind === "human" ) Art.avatar( dot , seat );
@@ -111,12 +158,11 @@ const Lobby = {
 
     const names = table.seats.filter( function ( seat ) { return seat.kind !== ""; } ).map( Seats.name ).join( ", " );
 
-    const card = Dom.el( "button" , {
-      class: "table-card status-" + table.status,
-      attrs: { type: "button" },
+    const main = Dom.el( "button" , {
+      class: "table-card-main",
+      attrs: { type: "button" , "aria-label": I18n.format( "lobby.open_table" , { name: table.name } ) },
       on: { click: function () { App.go( "#/t/" + table.id ); } },
       children: [
-        compass,
         Dom.el( "div" , { class: "table-card-body" , children: [
           Dom.el( "div" , { class: "table-card-top" , children: [
             Dom.el( "span" , { class: "table-card-name" , text: table.name } ),
@@ -128,8 +174,21 @@ const Lobby = {
         ] } ),
       ],
     } );
-    card.setAttribute( "aria-label" , I18n.format( "lobby.open_table" , { name: table.name } ) );
-    return card;
+
+    const actions = Dom.el( "div" , { class: "table-card-actions" } );
+    const action = function ( key , kind , run ) {
+      actions.appendChild( Dom.el( "button" , { class: "small " + kind , text: I18n.get( key ) , attrs: { type: "button" } , on: { click: run } } ) );
+    };
+    if ( table.you >= 0 && table.seats[ table.you ].pending ) {
+      action( "lobby.decline" , "ghost" , function () { Lobby.decline( table ); } );
+      action( "lobby.take_seat" , "" , function () { App.go( "#/t/" + table.id ); } );
+    } else if ( open.length > 0 ) {
+      action( "lobby.join" , "" , function () { Lobby.sit( table , open[ 0 ] ); } );
+    }
+
+    const children = [ compass , main ];
+    if ( actions.childElementCount > 0 ) children.push( actions );
+    return Dom.el( "div" , { class: "table-card status-" + table.status , children: children } );
   },
 
   // The rule chips shown on lobby cards, in the waiting room, and on the

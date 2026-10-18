@@ -5,13 +5,17 @@ const Observe = {
   init() {},
 
   renderTray( tray , view ) {
+    // It must fit the tray's fixed slot: the seat picker (the chosen seat is
+    // who you are watching from) and the every-hand switch, then one line
+    // of explanation.
     const watched = Seats.name( view.seats[ view.perspective ] );
-    const panel = Dom.el( "div" , { class: "tray-panel observe-panel" , children: [
-      Dom.el( "p" , { class: "tray-title" , text: I18n.format( "observe.watching" , { name: watched } ) } ),
-    ] } );
+    const controls = Dom.el( "div" , { class: "observe-controls" } );
+    const panel = Dom.el( "div" , { class: "tray-panel observe-panel" , children: [ controls ] } );
 
     // Whose seat to watch from.
-    const seats = Dom.el( "div" , { class: "segmented observe-seats" , attrs: { role: "radiogroup" , "aria-label": I18n.get( "observe.choose_seat" ) } } );
+    const seats = Dom.el( "div" , { class: "segmented observe-seats" , attrs: {
+      role: "radiogroup" , "aria-label": I18n.get( "observe.choose_seat" ) , title: I18n.format( "observe.watching" , { name: watched } ) ,
+    } } );
     view.seats.forEach( function ( seat , index ) {
       seats.appendChild( Dom.el( "button" , {
         text: Seats.name( seat ),
@@ -19,26 +23,29 @@ const Observe = {
         on: { click: function () { if ( index !== view.perspective ) Table.watchFrom( index , Table.allHands ); } },
       } ) );
     } );
-    panel.appendChild( seats );
+    controls.appendChild( seats );
 
     if ( view.can_see_all ) {
       const toggle = Dom.el( "input" , { attrs: { type: "checkbox" , role: "switch" } } );
       toggle.checked = view.all_hands;
       toggle.addEventListener( "change" , function () { Table.watchFrom( view.perspective , toggle.checked ); } );
-      panel.appendChild( Dom.el( "label" , { class: "switch-row observe-all" , children: [
+      controls.appendChild( Dom.el( "label" , { class: "switch-row observe-all" , children: [
         Dom.el( "span" , { class: "switch-title" , text: I18n.get( "observe.all_hands" ) } ),
         toggle,
       ] } ) );
     }
-    if ( !view.signed_in ) panel.appendChild( Dom.el( "p" , { class: "tray-detail" , text: I18n.get( "observe.anonymous" ) } ) );
+    // The explanations, most pressing first, as one line; the whole of it
+    // is in the tooltip when it does not fit.
+    const notes = [];
+    if ( view.signed_in && view.my_request >= 0 ) notes.push( I18n.format( "takeover.waiting" , { name: Seats.name( view.seats[ view.my_request ] ) } ) );
+    if ( !view.signed_in ) notes.push( I18n.get( "observe.anonymous" ) );
     // Someone who could still sit down is shown no hidden cards (the server
     // leaves them out); say why the hand area is empty.
-    if ( view.hands_hidden ) panel.appendChild( Dom.el( "p" , { class: "tray-detail" , text: I18n.get( "observe.hands_hidden" ) } ) );
-    // Taking over a bot: waiting on the host, or a pointer to how.
-    if ( view.signed_in && view.my_request >= 0 ) {
-      panel.appendChild( Dom.el( "p" , { class: "tray-detail takeover-waiting" , text: I18n.format( "takeover.waiting" , { name: Seats.name( view.seats[ view.my_request ] ) } ) } ) );
-    } else if ( view.signed_in && view.seats.some( function ( seat ) { return seat.kind === "bot"; } ) ) {
-      panel.appendChild( Dom.el( "p" , { class: "tray-detail" , text: I18n.get( "takeover.how" ) } ) );
+    if ( view.hands_hidden ) notes.push( I18n.get( "observe.hands_hidden" ) );
+    if ( view.signed_in && view.my_request < 0 && view.seats.some( function ( seat ) { return seat.kind === "bot"; } ) ) notes.push( I18n.get( "takeover.how" ) );
+    if ( notes.length ) {
+      const text = notes.join( " · " );
+      panel.appendChild( Dom.el( "p" , { class: "tray-detail" + ( view.my_request >= 0 ? " takeover-waiting" : "" ) , text: text , attrs: { title: text } } ) );
     }
     tray.appendChild( panel );
   },
@@ -49,6 +56,7 @@ const Observe = {
     const strip = Dom.get( "all-hands" );
     const hands = view.game && view.game.hands;
     strip.hidden = !hands;
+    Dom.get( "felt" ).classList.toggle( "has-all-hands" , Boolean( hands ) );
     Dom.clear( strip );
     if ( !hands ) return;
     [ 1 , 2 , 3 ].forEach( function ( position ) {

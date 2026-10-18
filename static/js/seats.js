@@ -19,13 +19,27 @@ const Seats = {
         Dom.el( "div" , { class: "seat-actions" } ),
       ] } );
       felt.appendChild( element );
+      // The host (or an admin) clicks any player's avatar to rename them or
+      // take them out of the seat.
+      const avatar = element.querySelector( ".seat-avatar" );
+      const manage = function () {
+        const seat = Number( avatar.getAttribute( "data-seat" ) );
+        if ( avatar.hasAttribute( "data-manageable" ) && Seats.handlers ) Seats.handlers.manageSeat( seat );
+      };
+      avatar.addEventListener( "click" , manage );
+      avatar.addEventListener( "keydown" , function ( event ) {
+        if ( event.key !== "Enter" && event.key !== " " ) return;
+        event.preventDefault();
+        manage();
+      } );
       return element;
     } );
   },
 
   name( seat ) {
     if ( !seat || seat.kind === "" ) return I18n.get( "seats.empty" );
-    if ( seat.kind === "bot" ) return I18n.get( "bots.name_" + seat.bot ) || I18n.get( "bots.name" );
+    // A bot has a name only once the host renamed it.
+    if ( seat.kind === "bot" ) return seat.name || I18n.get( "bots.name_" + seat.bot ) || I18n.get( "bots.name" );
     return seat.name;
   },
 
@@ -77,6 +91,7 @@ const Seats = {
 
   render( view , handlers ) {
     const game = view.game;
+    this.handlers = handlers;
     for ( let position = 0; position < 4; position += 1 ) {
       const seat = this.seatAt( view , position );
       const info = view.seats[ seat ];
@@ -91,6 +106,18 @@ const Seats = {
       ].filter( Boolean ).join( " " );
 
       const avatar = element.querySelector( ".seat-avatar" );
+      const manageable = ( view.is_host || view.is_admin ) && info.kind !== "";
+      avatar.setAttribute( "data-seat" , String( seat ) );
+      avatar.classList.toggle( "is-manageable" , manageable );
+      if ( manageable ) {
+        avatar.setAttribute( "data-manageable" , "" );
+        avatar.setAttribute( "role" , "button" );
+        avatar.setAttribute( "tabindex" , "0" );
+        avatar.setAttribute( "aria-label" , I18n.format( "seat_manage.open" , { name: this.name( info ) } ) );
+        avatar.setAttribute( "title" , I18n.format( "seat_manage.open" , { name: this.name( info ) } ) );
+      } else {
+        [ "data-manageable" , "role" , "tabindex" , "aria-label" , "title" ].forEach( function ( name ) { avatar.removeAttribute( name ); } );
+      }
       if ( info.kind === "human" ) {
         Art.avatar( avatar , info );
       } else {
@@ -141,7 +168,8 @@ const Seats = {
     // Rebuild only when the choices change. Snapshots arrive often (anyone
     // coming online sends one), and replacing a button between a finger
     // going down and coming up would swallow the tap.
-    const signature = [ open , info.kind , view.you < 0 , view.you >= 0 , view.can_invite , canAsk , asking , view.my_request >= 0 ].join( "|" );
+    const canSeat = view.can_invite || view.is_host || view.is_admin;
+    const signature = [ open , info.kind , view.you < 0 , view.you >= 0 , canSeat , canAsk , asking , view.my_request >= 0 ].join( "|" );
     if ( container.getAttribute( "data-signature" ) === signature ) return;
     container.setAttribute( "data-signature" , signature );
     Dom.clear( container );
@@ -161,7 +189,9 @@ const Seats = {
     if ( info.kind === "" ) {
       if ( view.you < 0 ) container.appendChild( button( "seats.sit" , "" , handlers.sit ) );
       if ( view.you >= 0 ) container.appendChild( button( "seats.add_bot" , "secondary" , handlers.addBot ) );
-      if ( view.can_invite ) container.appendChild( button( "seats.invite" , "secondary" , handlers.invite ) );
+      // Invite: pick someone with an account, or (if allowed to bring new
+      // people in) create one.
+      if ( canSeat ) container.appendChild( button( "seats.invite" , "secondary" , handlers.invite ) );
       return;
     }
     if ( info.kind === "bot" && view.you >= 0 ) {

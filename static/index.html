@@ -111,6 +111,11 @@
     </header>
 
     <main class="lobby-main">
+      <section id="held-tables-section" class="lobby-section" hidden>
+        <h2 data-i18n="lobby.held_tables"></h2>
+        <div id="held-tables" class="table-list"></div>
+      </section>
+
       <section id="my-tables-section" class="lobby-section" hidden>
         <h2 data-i18n="lobby.your_tables"></h2>
         <div id="my-tables" class="table-list"></div>
@@ -165,11 +170,13 @@
       </button>
     </header>
 
-    <div id="connection-banner" class="connection-banner" hidden>
-      <span data-i18n="table.reconnecting"></span>
-    </div>
-
     <div id="felt" class="felt">
+      <!-- Both float over the table rather than taking rows of their own, so
+           showing them never changes the size of anything. -->
+      <div id="connection-banner" class="connection-banner" hidden>
+        <span data-i18n="table.reconnecting"></span>
+      </div>
+      <div id="all-hands" class="all-hands" hidden></div>
       <div id="trick" class="trick" aria-hidden="true"></div>
       <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
       <div id="waiting-room" class="waiting-room" hidden>
@@ -183,9 +190,17 @@
       </div>
     </div>
 
-    <div id="all-hands" class="all-hands" hidden></div>
     <div id="tray" class="tray"></div>
     <div id="hand" class="hand" role="group" data-i18n-attr="aria-label:hand.label"></div>
+    <!-- Chat beside your cards, on wide screens, when chosen in Settings. -->
+    <aside id="chat-dock" class="chat-dock" data-i18n-attr="aria-label:chat.tab_chat">
+      <h3 class="chat-dock-title" data-i18n="chat.tab_chat"></h3>
+      <ol id="chat-dock-list" class="chat-list chat-dock-list" aria-live="polite"></ol>
+      <form id="chat-dock-form" class="chat-form chat-dock-form" autocomplete="off">
+        <input id="chat-dock-input" maxlength="280" data-i18n-attr="placeholder:chat.placeholder,aria-label:chat.placeholder" />
+        <button type="submit" class="small" data-i18n="chat.send"></button>
+      </form>
+    </aside>
     <p id="game-live" class="visually-hidden" aria-live="polite"></p>
   </section>
 
@@ -247,6 +262,12 @@
           <button id="theme-light" type="button" role="radio" data-theme-choice="light" data-i18n="appearance.light"></button>
           <button id="theme-dark" type="button" role="radio" data-theme-choice="dark" data-i18n="appearance.dark"></button>
         </div>
+      </div>
+
+      <div class="card">
+        <h2 data-i18n="chat_dock.heading"></h2>
+        <p class="muted" data-i18n="chat_dock.description"></p>
+        <div class="segmented" role="radiogroup" data-chat-dock-controls data-i18n-attr="aria-label:chat_dock.heading"></div>
       </div>
 
       <div class="card">
@@ -478,8 +499,14 @@
     <form id="sheet-invite" class="sheet" autocomplete="off" hidden>
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2 data-i18n="invite.heading"></h2>
-      <p class="muted" data-i18n="invite.description"></p>
-      <div id="invite-form-fields">
+      <div id="invite-pick" class="invite-pick">
+        <h3 data-i18n="invite.pick_heading"></h3>
+        <input id="invite-filter" type="search" data-i18n-attr="placeholder:invite.filter_placeholder,aria-label:invite.filter_placeholder" />
+        <ul id="invite-users" class="invite-users"></ul>
+      </div>
+      <div id="invite-form-fields" class="invite-new">
+        <h3 data-i18n="invite.new_heading"></h3>
+        <p class="muted" data-i18n="invite.description"></p>
         <div class="field">
           <label for="invite-name" data-i18n="invite.name_label"></label>
           <input id="invite-name" maxlength="80" required data-i18n-attr="placeholder:invite.name_placeholder" />
@@ -498,6 +525,35 @@
         </div>
         <span id="invite-copied" class="muted" data-i18n="invite.copied" hidden></span>
         <button type="button" class="ghost" data-sheet-close data-i18n="common.done"></button>
+      </div>
+      <div id="invite-pick-only" class="sheet-actions" hidden>
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+      </div>
+    </form>
+
+    <form id="sheet-seat" class="sheet" autocomplete="off" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="seat-sheet-who">
+        <span id="seat-sheet-avatar" class="mini-avatar" aria-hidden="true"></span>
+        <h2 id="seat-sheet-name"></h2>
+      </div>
+      <div class="field">
+        <label for="seat-sheet-rename" data-i18n="seat_manage.rename_label"></label>
+        <div class="seat-rename-row">
+          <input id="seat-sheet-rename" maxlength="40" />
+          <button type="submit" class="secondary" data-i18n="seat_manage.rename"></button>
+        </div>
+        <button id="seat-sheet-reset" type="button" class="ghost small" data-i18n="seat_manage.reset"></button>
+      </div>
+      <div id="seat-sheet-remove-box">
+        <p id="seat-sheet-body" class="muted"></p>
+        <div class="sheet-actions">
+          <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+          <button id="seat-sheet-remove" type="button" class="danger" data-i18n="seat_manage.remove"></button>
+        </div>
+      </div>
+      <div id="seat-sheet-close-only" class="sheet-actions" hidden>
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.done"></button>
       </div>
     </form>
 
@@ -522,6 +578,10 @@
           <summary data-i18n="zoom.heading"></summary>
           <div id="menu-zoom" class="zoom-controls" data-zoom-controls></div>
         </details>
+        <div class="menu-chat-dock">
+          <span class="switch-title" data-i18n="chat_dock.heading"></span>
+          <div class="segmented" role="radiogroup" data-chat-dock-controls data-i18n-attr="aria-label:chat_dock.heading"></div>
+        </div>
         <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
         <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>
         <button type="button" data-menu="leave" class="danger" data-i18n="table.leave"></button>

@@ -37,6 +37,18 @@ type inviteRequest struct {
 	CSRFToken   string `json:"csrf_token"`
 }
 
+type assignRequest struct {
+	Seat      int    `json:"seat"`
+	UserID    uint64 `json:"user_id"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+type renameSeatRequest struct {
+	Seat      int    `json:"seat"`
+	Name      string `json:"name"`
+	CSRFToken string `json:"csrf_token"`
+}
+
 type chatRequest struct {
 	Text      string `json:"text"`
 	CSRFToken string `json:"csrf_token"`
@@ -189,6 +201,32 @@ func ( handlers *Handlers ) RemoveBot( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// RemovePlayer takes someone else out of their seat: the host's or an
+// admin's call.
+func ( handlers *Handlers ) RemovePlayer( c fiber.Ctx ) ( err error ) {
+	var body seatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.RemovePlayer( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat ) )
+	return
+}
+
+// RenameSeat renames a seat's player at this table only: the host's or an
+// admin's call.
+func ( handlers *Handlers ) RenameSeat( c fiber.Ctx ) ( err error ) {
+	var body renameSeatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.RenameSeat( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Name ) )
+	return
+}
+
 // RequestTakeover asks the host to let a watcher replace a bot.
 func ( handlers *Handlers ) RequestTakeover( c fiber.Ctx ) ( err error ) {
 	var body seatRequest
@@ -337,5 +375,29 @@ func ( handlers *Handlers ) InviteToSeat( c fiber.Ctx ) ( err error ) {
 		"login_path":         "/login/" + credential,
 		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
 	} )
+	return
+}
+
+// AssignSeat holds an empty chair for someone who already has an account,
+// the way an invite does for a new one. No account is created, so the
+// table's host may do it as well as anyone allowed to invite.
+func ( handlers *Handlers ) AssignSeat( c fiber.Ctx ) ( err error ) {
+	var body assignRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	caller := security.UserFrom( c )
+	if caller.MayInvite() == false && viewerFrom( c ).Admin == false && handlers.Hub.IsHost( id , caller.ID ) == false {
+		err = handlers.tableError( c , tables.ErrCannotInvite )
+		return
+	}
+	invitee , get_err := models.GetUser( handlers.Store , body.UserID )
+	if get_err != nil || invitee == nil || invitee.Disabled() {
+		err = badRequest( c , "no_such_user" )
+		return
+	}
+	err = handlers.tableResult( c , id , handlers.Hub.Reserve( id , body.Seat , invitee ) )
 	return
 }

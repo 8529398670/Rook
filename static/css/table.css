@@ -3,8 +3,13 @@
 
     [ bar: back · table & contract / whose turn · (admin) · scores · menu ]
     [ felt: partner top, opponents left/right, you bottom-left, trick between ]
-    [ tray: bid stepper / kitty / hint -- only when there is something to press ]
+    [ tray: bid stepper / kitty / hint -- a fixed slot, empty between turns ]
     [ hand ]
+
+  The rows only change size when the window does. Nothing the game does --
+  your turn coming round, the kitty, a reconnect, the deal itself -- may
+  move the line between the table and the bottom area: anything that comes
+  and goes either fits the fixed tray slot or floats over the felt.
 
   Everything that moves gets its numbers from JS as custom properties
   (--x, --y, --r on hand cards; --tilt on trick cards). The stylesheet decides
@@ -20,8 +25,12 @@
   /* Your hand may grow, but never past a quarter of the screen's height. */
   --hand-card-w: min(calc(var(--hand-base) * var(--hand-zoom, 1)), 26dvh);
 
+  /* The tray's slot: room for one row of controls on a wide screen, two on
+     a phone held upright, and a squeezed one on a phone on its side. */
+  --tray-h: 100px;
+
   display: grid;
-  grid-template-rows: auto auto minmax(0, 1fr) auto auto auto;
+  grid-template-rows: auto minmax(0, 1fr) var(--tray-h) auto;
   /* One column that can never be wider than the screen. Left to "auto" it
      grows to its widest child's min-content (the bar, on a 320px phone), and
      everything inside quietly lays out wider than what is visible. */
@@ -33,15 +42,17 @@
   -webkit-user-select: none;
 }
 
-/* Pinned rows: the reconnecting banner is usually [hidden], and a hidden
-   element is no grid item, so without these the felt would slide into the
-   banner's auto-sized row and collapse to nothing. */
+/* Pinned rows. The chat dock shares the tray's and hand's rows, so those
+   name their column too: left to auto-placement, they would open a second
+   column beside the dock. */
 .table-bar         { grid-row: 1; }
-.connection-banner { grid-row: 2; }
-.felt              { grid-row: 3; }
-.all-hands         { grid-row: 4; }
-.tray              { grid-row: 5; }
-.hand              { grid-row: 6; }
+.felt              { grid-row: 2; }
+.tray              { grid-row: 3; grid-column: 1; }
+.hand              { grid-row: 4; grid-column: 1; }
+
+@media (min-width: 40rem) {
+  .screen-table { --tray-h: 64px; }
+}
 
 /* ---------------------------------------------------------------- bar */
 
@@ -167,6 +178,14 @@
 .score-value { font-family: var(--font-number); font-weight: 700; font-size: 1.15rem; }
 
 .connection-banner {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  z-index: 8;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  white-space: nowrap;
   padding: 4px 12px;
   font-size: 0.82rem;
   font-weight: 650;
@@ -258,6 +277,11 @@
 
 .seat.is-away .seat-avatar { filter: grayscale(0.85); opacity: 0.7; }
 .seat.is-pending .seat-avatar { opacity: 0.6; }
+
+/* The host (or an admin) can click another player's avatar to manage them. */
+.seat-avatar.is-manageable { cursor: pointer; }
+.seat-avatar.is-manageable:hover { filter: brightness(1.08); }
+.seat-avatar.is-manageable:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
 
 /* Whose turn it is: a ring that breathes, in place of the old pulsing GIF. */
 .seat.is-turn .seat-avatar::after {
@@ -464,29 +488,29 @@
 
 .felt.is-waiting .trick { opacity: 0.25; }
 
-/* Before the first deal there is no hand and nothing for the tray to say,
-   so the table gets the whole screen. */
-.screen-table.is-seating .tray,
-.screen-table.is-seating .hand { display: none; }
-
 /* --------------------------------------------------------------- tray */
 
-/* Only there when there is something to press (bidding, the kitty, a
-   hint, the hand's results); otherwise it takes no room at all. */
+/* A fixed slot between the table and your hand. Whatever is in it --
+   bidding, the kitty, the hand's results, a hint, or nothing -- it is the
+   same height, so your turn coming round never moves the table. Every
+   panel is built to fit (one row on a wide screen, two on a phone), and the
+   hint's message floats above the slot instead of adding a line. The hint
+   button sits inside the panel it belongs to, so the panel stays centered. */
 .tray {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px calc(10px + var(--safe-right)) 4px calc(10px + var(--safe-left));
+  min-height: 0;
+  padding: 0 calc(10px + var(--safe-right)) 0 calc(10px + var(--safe-left));
   background: var(--bg);
 }
-
-.tray:empty { display: none; }
 
 .tray-panel {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 6px;
   width: 100%;
   max-width: 34rem;
@@ -498,9 +522,19 @@
 
 .bid-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 6px 8px;
   width: 100%;
+}
+
+/* On a phone the hint takes the second line under the bid buttons. */
+.bid-row > .hint-row { flex-basis: 100%; justify-content: center; }
+
+@media (min-width: 40rem) {
+  .bid-row { flex-wrap: nowrap; }
+  .bid-row > .hint-row { flex-basis: auto; }
 }
 
 .bid-stepper {
@@ -532,6 +566,10 @@
 .bid-button { flex: 1 1 auto; }
 .pass-button { flex: 0 0 auto; }
 
+/* The kitty: on a phone, the four trump colors over a row with the count,
+   "done" and the hint; on a wider screen all of it in one row. */
+.kitty-panel { max-width: 48rem; }
+
 .trump-picker {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -541,20 +579,37 @@
 
 .trump-swatch {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 2px;
-  min-height: 52px;
-  padding: 4px;
+  justify-content: center;
+  gap: 4px;
+  min-height: 38px;
+  padding: 2px 6px;
   font-size: 0.78rem;
   color: var(--fg);
   background: var(--card-bg);
   border: 2px solid var(--border);
 }
 
-.trump-swatch .glyph { width: 20px; height: 20px; }
+.trump-swatch .glyph { width: 18px; height: 18px; flex: 0 0 auto; }
 .trump-swatch[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
-.kitty-done { width: 100%; }
+
+.kitty-actions { display: flex; align-items: center; gap: 8px; width: 100%; }
+.kitty-count { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
+.kitty-count-long { display: none; }
+.kitty-done { flex: 1 1 auto; min-height: 38px; }
+.kitty-actions > .hint-row { flex: 0 0 auto; }
+
+@media (min-width: 40rem) {
+  .kitty-panel { flex-direction: row; gap: 10px; }
+  .kitty-panel .trump-picker { display: flex; width: auto; flex: 0 0 auto; gap: 4px; }
+  .kitty-panel .trump-swatch { min-height: 40px; padding: 2px 10px; }
+  .kitty-actions { width: auto; flex: 1 1 auto; }
+  .kitty-count { flex: 1 1 auto; white-space: normal; text-align: left; line-height: 1.2; }
+  .kitty-count-long { display: inline; }
+  .kitty-count-short { display: none; }
+  .kitty-done { flex: 0 0 auto; }
+}
 
 /* --------------------------------------------------------------- hand */
 
@@ -565,12 +620,16 @@
   touch-action: none;
 }
 
-.hand.two-rows { height: calc(var(--hand-card-w) * 1.4 * 1.52 + 44px + var(--safe-bottom)); }
+/* Burying with 18 cards on a narrow screen: two rows of smaller cards in the
+   same space, rather than a taller hand that would squeeze the table. */
+.hand.two-rows .playing-card { --card-w: calc(var(--hand-card-w) * 0.64); }
 
 .hand .playing-card {
   position: absolute;
   left: 0;
-  bottom: calc(18px + var(--safe-bottom));
+  /* Higher than the row's middle on paper: the fan's ends drop and tilt, so
+     this is what looks centered. */
+  bottom: calc(27px + var(--safe-bottom));
   z-index: var(--z, 1);
   --card-w: var(--hand-card-w);
   --lift: 0px;
@@ -757,6 +816,70 @@
 
 .rules-body p { font-size: 0.92rem; }
 
+/* ---------------------------------------------------------- chat dock */
+
+/* A small chat window in the bottom area -- the tray's row and the hand's
+   -- left or right of your cards. Only on wide screens, and only when
+   chosen (chat.js sets data-chat-dock). The tray and the hand keep the same
+   margin on both sides, so the bid row and your cards stay centered under
+   the trick. */
+.chat-dock { display: none; }
+
+@media (min-width: 1100px) {
+  .screen-table[data-chat-dock] { --dock-w: clamp(240px, 19vw, 340px); }
+
+  .screen-table[data-chat-dock] .chat-dock {
+    grid-row: 3 / 5;
+    grid-column: 1;
+    align-self: stretch;
+    z-index: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: var(--dock-w);
+    /* Fill the rows, never size them: without this a long chat would make
+       the bottom area grow to fit every line. */
+    contain: size;
+    min-height: 150px;
+    margin: 8px 16px calc(8px + var(--safe-bottom));
+    padding: 8px;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 2px 8px rgba(60, 40, 10, 0.08);
+  }
+
+  .screen-table[data-chat-dock="left"] .chat-dock { justify-self: start; }
+  .screen-table[data-chat-dock="right"] .chat-dock { justify-self: end; }
+
+  .screen-table[data-chat-dock] .tray {
+    padding-left: calc(var(--dock-w) + 24px + var(--safe-left));
+    padding-right: calc(var(--dock-w) + 24px + var(--safe-right));
+  }
+
+  .screen-table[data-chat-dock] .hand {
+    margin-left: calc(var(--dock-w) + 24px + var(--safe-left));
+    margin-right: calc(var(--dock-w) + 24px + var(--safe-right));
+  }
+}
+
+.chat-dock-title {
+  margin: 0;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+
+.chat-dock-list { min-height: 0; gap: 4px; font-size: 0.86rem; }
+.chat-dock-list .chat-line { padding: 4px 8px; max-width: 92%; }
+.chat-dock-list .chat-empty { padding: 0.5rem; font-size: 0.82rem; }
+.chat-dock-form { display: flex; gap: 6px; }
+.chat-dock-form input { min-width: 0; min-height: 34px; padding: 0.3rem 0.6rem; font-size: 0.86rem; }
+.chat-dock-form button { min-height: 34px; padding: 0.2rem 0.7rem; font-size: 0.82rem; }
+
+.menu-chat-dock { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+
 /* ------------------------------------------------------ wider screens */
 
 @media (min-width: 48rem) {
@@ -789,7 +912,7 @@
      it, not above and below. */
   .felt { --trick-gap-top: 10px; --trick-gap-bottom: 46px; }
 
-  .tray { padding-top: 2px; }
+  .screen-table { --tray-h: 56px; }
 
   /* Width to spare, height scarce: your partner moves to the top-left
      corner, the seats lose their card fans, and the trick flattens so its
@@ -839,11 +962,33 @@
 /* --------------------------------------------------- watching a table */
 
 .observe-panel { gap: 4px; }
+.observe-controls { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
 
 .observe-seats {
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   width: 100%;
 }
+
+.observe-panel .tray-detail {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (min-width: 40rem) {
+  .observe-panel { max-width: 44rem; }
+  .observe-controls { flex-direction: row; }
+  .observe-controls .observe-all { width: auto; flex: 0 0 auto; }
+}
+
+/* Compact, to fit the tray's fixed slot with a line of explanation under
+   it: on a phone the seat picker, the switch and that line are three short
+   rows; on a wider screen picker and switch share one. */
+.observe-seats { padding: 2px; }
+.observe-seats button { min-height: 30px; padding: 2px 8px; }
+.observe-all { min-height: 30px; padding: 0; }
+.observe-panel .tray-detail { line-height: 1.25; font-size: 0.78rem; }
 
 .observe-seats button {
   min-width: 0;
@@ -856,7 +1001,14 @@
 .observe-all { width: 100%; max-width: 20rem; }
 
 /* Every other hand, face up, for a watcher allowed to see them. */
+/* It floats along the bottom of the felt; the trick and the watched seat
+   move up to clear it, inside the felt, so no row changes size. */
 .all-hands {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 5;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -864,6 +1016,15 @@
   background: var(--surface-2);
   border-top: 1px solid var(--border);
 }
+
+.all-hands[hidden] { display: none; }
+
+.felt.has-all-hands {
+  --all-hands-h: calc(clamp(22px, 6.6vw, 40px) * 1.4 * 3 + 14px);
+  --trick-gap-bottom: calc(var(--all-hands-h) + 56px);
+}
+
+.felt.has-all-hands .seat.pos-bottom { bottom: calc(var(--all-hands-h) + 10px); }
 
 .hand-row {
   display: grid;
@@ -885,17 +1046,29 @@
 
 /* ----------------------------------------------------------- hints */
 
-.hint-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
-  max-width: 34rem;
-  margin-top: 4px;
+.hint-row { display: flex; align-items: center; gap: 8px; }
+
+/* What the hint suggests floats just above the tray, over the edge of the
+   table, so it never adds a line to the fixed slot. */
+.hint-message {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  z-index: 6;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(34rem, calc(100% - 24px));
+  padding: 6px 12px;
+  border-radius: 12px;
+  background: var(--card-bg);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+  pointer-events: none;
 }
 
+.hint-message:empty { display: none; }
+
 .hint-button { flex: 0 0 auto; }
-.hint-message { font-size: 0.86rem; font-weight: 650; color: var(--accent); text-align: left; }
+.hint-message { font-size: 0.86rem; font-weight: 650; color: var(--accent); text-align: center; }
 
 .hand .playing-card.is-hinted {
   --lift: -24px;
@@ -1229,3 +1402,58 @@
   .zoom-row { grid-template-columns: 1fr 3.2rem; }
   .zoom-row input[type="range"] { grid-column: 1 / -1; grid-row: 2; }
 }
+
+/* ------------------------------------------------- invite: pick someone */
+
+.invite-pick { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+.invite-pick h3,
+.invite-new h3 { margin: 0; font-size: 0.82rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted); }
+
+.invite-users {
+  display: flex;
+  flex-direction: column;
+  max-height: 40dvh;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.invite-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.invite-user:last-child { border-bottom: 0; }
+.invite-user-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.invite-user button { min-height: 32px; padding: 0.2rem 0.75rem; font-size: 0.82rem; }
+.invite-users-empty { padding: 10px; color: var(--fg-muted); font-size: 0.88rem; }
+
+/* A small round avatar, for lists and the seat sheet. */
+.mini-avatar {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #ffffff;
+  border-radius: 50%;
+  background: hsl(var(--hue, 200) 48% 42%);
+}
+
+.mini-avatar.has-icon { font-size: 1rem; }
+
+.seat-sheet-who { display: flex; align-items: center; gap: 12px; margin-bottom: 0.5rem; }
+.seat-sheet-who .mini-avatar { width: 44px; height: 44px; font-size: 0.95rem; }
+.seat-sheet-who .mini-avatar.has-icon { font-size: 1.35rem; }
+.seat-sheet-who h2 { margin: 0; }
+.seat-rename-row { display: flex; gap: 8px; }
+.seat-rename-row input { flex: 1 1 auto; min-width: 0; }
+#seat-sheet-reset { align-self: flex-start; min-height: 32px; padding: 0.2rem 0.4rem; font-size: 0.85rem; }

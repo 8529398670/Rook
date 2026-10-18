@@ -193,3 +193,73 @@ func TestAHandWithBots( t *testing.T ) {
 		t.Fatalf( "takeover failed: %s you %d hand %d" , resumed.Status , resumed.You , len( resumed.Game.Hand ) )
 	}
 }
+
+func TestRemovePlayer( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	host := testUser( t , store , "Ana" )
+	guest := testUser( t , store , "Ben" )
+	third := testUser( t , store , "Cy" )
+	invited := testUser( t , store , "Di" )
+
+	id , err := hub.Create( host , "Kick test" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.Sit( id , guest , 1 ); err != nil { t.Fatal( err ) }
+	if err = hub.Sit( id , third , 2 ); err != nil { t.Fatal( err ) }
+	if err = hub.Reserve( id , 3 , invited ); err != nil { t.Fatal( err ) }
+	if err = hub.Reserve( id , 3 , guest ); errors.Is( err , ErrSeatTaken ) == false { t.Fatalf( "reserve taken seat: %v" , err ) }
+
+	if err = hub.RemovePlayer( id , guest , false , 2 ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host remove: %v" , err ) }
+	if err = hub.RemovePlayer( id , host , false , 0 ); errors.Is( err , ErrBadSeat ) == false { t.Fatalf( "remove self: %v" , err ) }
+
+	// A held seat counts: removing it cancels the invite.
+	if err = hub.RemovePlayer( id , host , false , 3 ); err != nil { t.Fatal( err ) }
+	if err = hub.RemovePlayer( id , host , false , 3 ); errors.Is( err , ErrNotAPlayer ) == false { t.Fatalf( "remove empty: %v" , err ) }
+
+	// Someone already at the table cannot be held a second seat.
+	if err = hub.Reserve( id , 3 , guest ); errors.Is( err , ErrAlreadySeated ) == false { t.Fatalf( "reserve seated: %v" , err ) }
+	if err = hub.AddBot( id , host , 3 ); err != nil { t.Fatal( err ) }
+	if err = hub.Start( id , host ); err != nil { t.Fatal( err ) }
+
+	// Mid-game, removing a player pauses the table. An admin may do it too.
+	if err = hub.RemovePlayer( id , invited , true , 1 ); err != nil { t.Fatal( err ) }
+	view , _ := hub.View( id , Viewer{ User: host } , ViewOptions{} )
+	if view.Status != StatusPaused || view.Seats[ 1 ].Kind != KindEmpty {
+		t.Fatalf( "after remove: status %s seat %+v" , view.Status , view.Seats[ 1 ] )
+	}
+	// A bot too, mid-game: the host frees its seat, and the table waits.
+	if err = hub.RemovePlayer( id , host , false , 3 ); err != nil { t.Fatalf( "remove bot: %v" , err ) }
+	view , _ = hub.View( id , Viewer{ User: host } , ViewOptions{} )
+	if view.Seats[ 3 ].Kind != KindEmpty || view.Status != StatusPaused { t.Fatalf( "after removing bot: %s %+v" , view.Status , view.Seats[ 3 ] ) }
+}
+
+func TestRenameSeat( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	host := testUser( t , store , "Ana" )
+	guest := testUser( t , store , "Ben" )
+
+	id , err := hub.Create( host , "Rename test" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.Sit( id , guest , 1 ); err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , host , 2 ); err != nil { t.Fatal( err ) }
+
+	if err = hub.RenameSeat( id , guest , false , 0 , "Boss" ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host rename: %v" , err ) }
+	if err = hub.RenameSeat( id , host , false , 3 , "Nobody" ); errors.Is( err , ErrNotAPlayer ) == false { t.Fatalf( "rename empty: %v" , err ) }
+	if err = hub.RenameSeat( id , host , false , 1 , "  Benny  " ); err != nil { t.Fatal( err ) }
+	if err = hub.RenameSeat( id , host , false , 2 , "Robo" ); err != nil { t.Fatal( err ) }
+	if err = hub.Chat( id , guest , "hi" ); err != nil { t.Fatal( err ) }
+
+	view , _ := hub.View( id , Viewer{ User: host } , ViewOptions{} )
+	if view.Seats[ 1 ].Name != "Benny" || view.Seats[ 1 ].Renamed == false || view.Seats[ 2 ].Name != "Robo" {
+		t.Fatalf( "after rename: %+v" , view.Seats )
+	}
+	if view.Chat[ len( view.Chat )-1 ].Name != "Benny" { t.Fatalf( "chat name: %+v" , view.Chat ) }
+
+	// An empty name gives them their own back; so does leaving the seat.
+	if err = hub.RenameSeat( id , host , false , 2 , "" ); err != nil { t.Fatal( err ) }
+	if err = hub.Leave( id , guest ); err != nil { t.Fatal( err ) }
+	if err = hub.Sit( id , guest , 1 ); err != nil { t.Fatal( err ) }
+	view , _ = hub.View( id , Viewer{ User: host } , ViewOptions{} )
+	if view.Seats[ 1 ].Name != "Ben" || view.Seats[ 2 ].Renamed {
+		t.Fatalf( "after reset: %+v" , view.Seats )
+	}
+}

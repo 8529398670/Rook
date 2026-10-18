@@ -55,6 +55,8 @@ const (
 	ErrNoRequest      Error = "no_such_request"
 	ErrTooManyRequests Error = "too_many_requests"
 	ErrSeatChanged    Error = "seat_changed"
+	ErrNotAPlayer     Error = "not_a_player"
+	ErrBadSeatName    Error = "bad_seat_name"
 
 	// errStale is internal: a delayed bot move found the table had moved on.
 	errStale Error = "stale"
@@ -92,6 +94,17 @@ type Seat struct {
 	// never needs a database read per seat.
 	Icon  string `json:"icon,omitempty"`
 	Color string `json:"color,omitempty"`
+	// Alias is what the host (or an admin) renamed this seat's player to,
+	// for this table only. It goes with the seat: whoever leaves it takes
+	// their own name back.
+	Alias string `json:"alias,omitempty"`
+}
+
+// shownName is the seat's name as everyone at the table sees it.
+func ( seat Seat ) shownName() ( result string ) {
+	result = seat.Name
+	if seat.Alias != "" { result = seat.Alias }
+	return
 }
 
 // SeatRequest is someone watching who asked to take over a computer

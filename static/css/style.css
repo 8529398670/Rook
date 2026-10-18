@@ -11,16 +11,14 @@
   buttons, forms, sheets, toasts. Each screen has its own stylesheet.
 */
 
+/* Comic Neue, a free Comic Sans look-alike (SIL Open Font License, see
+   vendor/comic-neue-LICENSE.txt), is the stand-in for devices without
+   Comic Sans -- Android, iOS, Linux. Bold only, Latin only: it is just for
+   numbers and card text. A browser fetches it only when Comic Sans is
+   missing, so Windows and Mac never download it. */
 @font-face {
-  font-family: "Luckiest Guy";
-  src: url("/vendor/luckiest-guy-latin-400-normal.woff2") format("woff2");
-  font-weight: 400;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: "Zilla Slab";
-  src: url("/vendor/zilla-slab-latin-700-normal.woff2") format("woff2");
+  font-family: "Comic Neue";
+  src: local("Comic Neue Bold"), local("ComicNeue-Bold"), url("/vendor/comic-neue-latin-700-normal.woff2") format("woff2");
   font-weight: 700;
   font-display: swap;
 }
@@ -68,8 +66,10 @@
   --gap: 1rem;
 
   --font-ui: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-number: "Zilla Slab", Rockwell, "Roboto Slab", Georgia, serif;
-  --font-display: "Luckiest Guy", "Arial Black", Impact, sans-serif;
+  /* Numbers -- on the cards, the scores, the bids -- in Comic Sans, which
+     Windows and macOS have built in; everywhere else gets Comic Neue (the
+     @font-face above). */
+  --font-number: "Comic Sans MS", "Comic Sans", "Comic Neue", var(--font-ui);
 
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);

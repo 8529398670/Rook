@@ -46,9 +46,10 @@ else
 fi
 
 # Version metadata, stamped into the binary and readable later with
-# `./rook version`. Being able to ask a binary what it is beats
-# guessing from a filename once a few copies are in circulation.
-VERSION="${VERSION:-$( git describe --tags --always --dirty 2>/dev/null || echo "dev" )}"
+# `./rook version`. It goes inside the binary, not into its file name: the
+# name stays the same on every build, so the command that runs it never
+# changes (see run.sh).
+VERSION="${VERSION:-$( git describe --tags --always 2>/dev/null || echo "dev" )}"
 COMMIT="$( git rev-parse --short HEAD 2>/dev/null || echo "unknown" )"
 # Honour SOURCE_DATE_EPOCH so a build can be byte-for-byte reproducible.
 BUILD_DATE="$( date -u -r "${SOURCE_DATE_EPOCH:-$( date +%s )}" +%Y-%m-%dT%H:%M:%SZ 2>/dev/null \
@@ -72,7 +73,7 @@ for TARGET in "${TARGETS[@]}"; do
   GOOS="${TARGET%%/*}"
   GOARCH="${TARGET##*/}"
 
-  OUTPUT="${OUTPUT_DIR}/${BINARY_NAME}_${VERSION}_${GOOS}_${GOARCH}"
+  OUTPUT="${OUTPUT_DIR}/${BINARY_NAME}_${GOOS}_${GOARCH}"
   [ "$GOOS" = "windows" ] && OUTPUT="${OUTPUT}.exe"
 
   printf "  %-22s " "${GOOS}/${GOARCH}"
@@ -102,13 +103,22 @@ if [ ${#FAILED[@]} -gt 0 ]; then
   exit 1
 fi
 
+# run.sh builds through this script and only wants the build.
+if [ -n "${QUIET:-}" ]; then
+  exit 0
+fi
+
 cat <<NOTE
 Done. ${OUTPUT_DIR}/ holds one self-contained binary per platform, plus
 SHA256SUMS.
 
-To run one:
+To build and run on this machine in one step (the usual thing):
 
-  ./${OUTPUT_DIR}/${BINARY_NAME}_${VERSION}_\$(go env GOOS)_\$(go env GOARCH)
+  ./run.sh
+
+Or run a binary you already built:
+
+  ./${OUTPUT_DIR}/${BINARY_NAME}_\$(go env GOOS)_\$(go env GOARCH)
 
 That is the whole command. No environment variables are required and no files
 need to sit beside it -- the frontend is compiled in, and on first run it

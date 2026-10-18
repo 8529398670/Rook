@@ -62,12 +62,14 @@ const Cards = {
     ];
   },
 
-  // The original deck's numerals are a heavy slab serif. weight thickens
-  // the strokes past the font's bold with an outline in the same ink.
+  // The numerals are in Comic Sans (see --font-number in style.css; an SVG
+  // attribute cannot read a CSS variable, so the list is repeated here).
+  // weight thickens the strokes past the font's bold with an outline in the
+  // same ink.
   text( value , x , y , size , fill , anchor , weight ) {
     const node = Dom.svg( "text" , {
       x: x , y: y , fill: fill ,
-      "font-family": "'Zilla Slab', Rockwell, 'Roboto Slab', Georgia, serif" ,
+      "font-family": "'Comic Sans MS', 'Comic Sans', 'Comic Neue', system-ui, sans-serif" ,
       "font-weight": 700 , "font-size": size , "text-anchor": anchor || "middle" ,
       stroke: weight ? fill : null , "stroke-width": weight || null , "stroke-linejoin": weight ? "round" : null ,
     } );
@@ -94,10 +96,14 @@ const Cards = {
     // Top-left: the number, and beside it the color's name and the points.
     // The number sits in the left-most strip, which is all that shows of a
     // card overlapped in a hand.
-    const nameX = wide ? 87 : 52;
+    // Comic Sans digits are wide, so a two-digit number is drawn a little
+    // tighter and the name moves over to make room.
+    const nameX = wide ? 94 : 54;
     const index = function ( transform ) {
+      const number = Cards.text( card.number , 12 , 62 , 58 , ink.text , "start" , 2 );
+      if ( wide ) number.setAttribute( "letter-spacing" , "-5" );
       const parts = [
-        Cards.text( card.number , 14 , 62 , 58 , ink.text , "start" , 2 ),
+        number,
         Cards.text( I18n.get( "colors." + card.color ).toUpperCase() , nameX , 33 , 15 , ink.text , "start" , 0.4 ),
       ];
       if ( points > 0 ) parts.push( Cards.pointsBox( points , nameX , ink.main ) );

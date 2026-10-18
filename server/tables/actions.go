@@ -106,6 +106,71 @@ func ( hub *Hub ) RemoveBot( id string , user *models.User , seat int ) ( err er
 	return
 }
 
+// RemovePlayer takes someone else -- a person or a bot -- out of their seat:
+// the host's call, or an admin's, at any point in the game. A seat held for
+// an invite counts too, which cancels the hold. Mid-game that pauses the
+// table, exactly as if they had left; taking yourself out is what Leave is
+// for.
+func ( hub *Hub ) RemovePlayer( id string , caller *models.User , admin bool , seat int ) ( err error ) {
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false || table.seatOf( caller.ID ) == seat {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind == KindEmpty {
+			fn_err = ErrNotAPlayer
+			return
+		}
+		table.Seats[ seat ] = Seat{}
+		return
+	} )
+	return
+}
+
+// RenameSeat gives the player in a seat -- a person or a bot -- a different
+// name at this table: the host's call, or an admin's. An empty name gives
+// them their own back.
+func ( hub *Hub ) RenameSeat( id string , caller *models.User , admin bool , seat int , name string ) ( err error ) {
+	name = strings.TrimSpace( name )
+	if utf8.RuneCountInString( name ) > maxNameLength {
+		err = ErrBadSeatName
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind == KindEmpty {
+			fn_err = ErrNotAPlayer
+			return
+		}
+		if name == table.Seats[ seat ].Name { name = "" }
+		table.Seats[ seat ].Alias = name
+		return
+	} )
+	return
+}
+
+// IsHost says whether user_id hosts the table, for routes that let the host
+// do something the user's own flags would not.
+func ( hub *Hub ) IsHost( id string , user_id uint64 ) ( result bool ) {
+	table := hub.table( id )
+	if table == nil { return }
+	table.mu.Lock()
+	result = table.HostID == user_id
+	table.mu.Unlock()
+	return
+}
+
 // Reserve holds an empty seat for someone just invited, so the link they are
 // sent leads straight to a place at this table.
 func ( hub *Hub ) Reserve( id string , seat int , invitee *models.User ) ( err error ) {
@@ -116,6 +181,10 @@ func ( hub *Hub ) Reserve( id string , seat int , invitee *models.User ) ( err e
 		}
 		if table.Seats[ seat ].Kind != KindEmpty {
 			fn_err = ErrSeatTaken
+			return
+		}
+		if table.seatOf( invitee.ID ) >= 0 {
+			fn_err = ErrAlreadySeated
 			return
 		}
 		table.Seats[ seat ] = Seat{ Pending: true }
@@ -239,7 +308,7 @@ func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err erro
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		seat , fn_err := table.seated( user )
 		if fn_err != nil { return }
-		table.addChat( seat , user.DisplayName , text )
+		table.addChat( seat , table.Seats[ seat ].shownName() , text )
 		return
 	} )
 	return

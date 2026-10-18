@@ -2,6 +2,7 @@
 .claude/
 old_php_version/
 .DS_Store
+temp/
 config.yaml
 data/
 *.db

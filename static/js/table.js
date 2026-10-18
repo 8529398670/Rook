@@ -56,6 +56,17 @@ const Table = {
       Dom.copy( Dom.get( "invite-link" ) , Dom.get( "invite-copied" ) );
     } );
     Dom.get( "invite-share" ).addEventListener( "click" , this.shareInvite.bind( this ) );
+    Dom.get( "invite-filter" ).addEventListener( "input" , this.renderInviteUsers.bind( this ) );
+    Dom.get( "invite-filter" ).addEventListener( "keydown" , function ( event ) {
+      // Enter in the search box is not "create an invite".
+      if ( event.key === "Enter" ) event.preventDefault();
+    } );
+    Dom.get( "seat-sheet-remove" ).addEventListener( "click" , this.removeFromSeat.bind( this ) );
+    Dom.get( "sheet-seat" ).addEventListener( "submit" , function ( event ) {
+      event.preventDefault();
+      Table.renameSeat( Dom.get( "seat-sheet-rename" ).value );
+    } );
+    Dom.get( "seat-sheet-reset" ).addEventListener( "click" , function () { Table.renameSeat( "" ); } );
 
     Dom.all( "[data-menu]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () {
@@ -236,6 +247,7 @@ const Table = {
       addBot: function ( seat ) { Table.act( Api.addBot( Table.id , seat ) ); },
       removeBot: function ( seat ) { Table.act( Api.removeBot( Table.id , seat ) ); },
       invite: function ( seat ) { Table.openInvite( seat ); },
+      manageSeat: function ( seat ) { Table.manageSeat( seat ); },
       requestSeat: function ( seat ) { Table.act( Api.requestSeat( Table.id , seat ) ); },
       cancelRequest: function () {
         Table.cancelledRequest = true;
@@ -357,8 +369,11 @@ const Table = {
     if ( !game || view.status === "waiting" ) return;
 
     // The hint button, for players an admin gave hints to, on their turn.
+    // It goes inside the panel it helps with (its [data-hint-slot]), so the
+    // panel stays centered and the tray keeps its one fixed height.
     const withHint = function () {
-      if ( view.can_hint && Table.isMyTurn( view ) ) tray.appendChild( Hint.element( view ) );
+      if ( !view.can_hint || !Table.isMyTurn( view ) ) return;
+      ( tray.querySelector( "[data-hint-slot]" ) || tray ).appendChild( Hint.element( view ) );
     };
     if ( this.isMyTurn( view ) && game.phase === "bidding" ) {
       Bidding.render( tray , view , {
@@ -477,7 +492,6 @@ const Table = {
     const showing = view.status === "waiting" || view.status === "paused";
     room.hidden = !showing;
     Dom.get( "felt" ).classList.toggle( "is-waiting" , showing );
-    Dom.get( "screen-table" ).classList.toggle( "is-seating" , !view.game );
     if ( !showing ) return;
 
     Dom.text( Dom.get( "waiting-title" ) , view.status === "paused" ? I18n.get( "table.paused" ) : view.name );
@@ -661,12 +675,120 @@ const Table = {
     }
   },
 
+  // The host or an admin clicked a player's avatar: rename them for this
+  // table, or take them out of the seat.
+  manageSeat( seat ) {
+    const view = this.view;
+    const info = view && view.seats[ seat ];
+    if ( !info || info.kind === "" ) return;
+    this.manageSeatIndex = seat;
+    this.manageSeatName = Seats.name( info );
+    if ( info.kind === "human" ) {
+      Art.avatar( Dom.get( "seat-sheet-avatar" ) , info );
+    } else {
+      Dom.text( Dom.get( "seat-sheet-avatar" ) , I18n.get( "bots.badge" ) );
+    }
+    Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
+    Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
+    Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+
+    // Removing: anyone's seat but your own (that is Leave), person or bot,
+    // at any point in the game.
+    const removable = seat !== view.you;
+    const midGame = Boolean( view.game ) && view.status !== "over";
+    let body = "seat_manage.body_waiting";
+    if ( info.pending ) {
+      body = "seat_manage.body_pending";
+    } else if ( info.kind === "bot" ) {
+      body = midGame ? "seat_manage.body_bot_game" : "seat_manage.body_bot";
+    } else if ( midGame ) {
+      body = "seat_manage.body_game";
+    }
+    Dom.text( Dom.get( "seat-sheet-body" ) , I18n.get( body ) );
+    Dom.show( Dom.get( "seat-sheet-remove-box" ) , removable );
+    Dom.show( Dom.get( "seat-sheet-close-only" ) , !removable );
+    Sheet.open( "sheet-seat" , { focus: false } );
+  },
+
+  async renameSeat( name ) {
+    const before = this.manageSeatName;
+    try {
+      const view = await Api.renameSeat( this.id , this.manageSeatIndex , name.trim() );
+      Sheet.close( true );
+      this.apply( view );
+      Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: Seats.name( view.seats[ this.manageSeatIndex ] ) } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
+  async removeFromSeat() {
+    const name = this.manageSeatName;
+    Sheet.close( true );
+    if ( await this.act( Api.removePlayer( this.id , this.manageSeatIndex ) ) ) {
+      Toast.show( I18n.format( "seat_manage.removed" , { name: name } ) );
+    }
+  },
+
+  // Invite to an empty seat: pick someone who already has an account, or --
+  // for people allowed to bring new ones in -- create one with a login link.
   openInvite( seat ) {
     this.inviteSeat = seat;
+    this.inviteUsers = null;
+    const canCreate = Boolean( this.view && this.view.can_invite );
     Dom.get( "invite-name" ).value = "";
-    Dom.show( Dom.get( "invite-form-fields" ) , true );
+    Dom.get( "invite-filter" ).value = "";
+    Dom.show( Dom.get( "invite-pick" ) , true );
+    Dom.show( Dom.get( "invite-form-fields" ) , canCreate );
+    Dom.show( Dom.get( "invite-pick-only" ) , !canCreate );
     Dom.show( Dom.get( "invite-result" ) , false );
-    Sheet.open( "sheet-invite" );
+    this.renderInviteUsers();
+    Sheet.open( "sheet-invite" , { focus: false } );
+    Api.listTeam().then( function ( users ) {
+      Table.inviteUsers = users;
+      Table.renderInviteUsers();
+    } ).catch( function ( error ) { Toast.error( error ); } );
+  },
+
+  renderInviteUsers() {
+    const list = Dom.get( "invite-users" );
+    Dom.clear( list );
+    if ( !this.inviteUsers ) return;
+    const seated = {};
+    ( this.view ? this.view.seats : [] ).forEach( function ( seat ) {
+      if ( seat.user_id ) seated[ seat.user_id ] = true;
+    } );
+    const filter = Dom.get( "invite-filter" ).value.trim().toLowerCase();
+    const users = this.inviteUsers.filter( function ( user ) {
+      return !seated[ user.id ] && ( filter === "" || user.display_name.toLowerCase().indexOf( filter ) >= 0 );
+    } );
+    if ( users.length === 0 ) {
+      list.appendChild( Dom.el( "li" , { class: "invite-users-empty" , text: I18n.get( "invite.no_users" ) } ) );
+      return;
+    }
+    users.forEach( function ( user ) {
+      const avatar = Dom.el( "span" , { class: "mini-avatar" , attrs: { "aria-hidden": "true" } } );
+      Art.avatar( avatar , user );
+      list.appendChild( Dom.el( "li" , { class: "invite-user" , children: [
+        avatar,
+        Dom.el( "span" , { class: "invite-user-name" , text: user.display_name } ),
+        Dom.el( "button" , {
+          class: "small" , text: I18n.get( "invite.assign" ) , attrs: { type: "button" } ,
+          on: { click: function () { Table.assignSeat( user ); } },
+        } ),
+      ] } ) );
+    } );
+  },
+
+  async assignSeat( user ) {
+    try {
+      const view = await Api.assignSeat( this.id , this.inviteSeat , user.id );
+      Sheet.close( true );
+      this.apply( view );
+      Toast.show( I18n.format( "invite.assigned" , { name: user.display_name } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
   async onInvite( event ) {
@@ -676,6 +798,7 @@ const Table = {
     try {
       const created = await Api.invite( this.id , this.inviteSeat , name );
       Dom.text( Dom.get( "invite-link" ) , window.location.origin + created.login_path );
+      Dom.show( Dom.get( "invite-pick" ) , false );
       Dom.show( Dom.get( "invite-form-fields" ) , false );
       Dom.show( Dom.get( "invite-result" ) , true );
       // The share sheet is the natural way to send a link from a phone;

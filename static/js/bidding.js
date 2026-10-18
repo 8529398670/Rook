@@ -41,7 +41,7 @@ const Bidding = {
     refresh();
 
     tray.appendChild( Dom.el( "div" , { class: "tray-panel bid-panel" , children: [
-      Dom.el( "div" , { class: "bid-row" , children: [
+      Dom.el( "div" , { class: "bid-row" , attrs: { "data-hint-slot": "" } , children: [
         Dom.el( "div" , { class: "bid-stepper" , children: [ minus , output , plus ] } ),
         bidButton,
         Dom.el( "button" , { class: "secondary pass-button" , text: I18n.get( "bidding.pass" ) , attrs: { type: "button" } , on: { click: handlers.pass } } ),

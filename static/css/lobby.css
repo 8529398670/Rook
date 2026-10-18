@@ -61,6 +61,38 @@
   box-shadow: 0 1px 2px rgba(60, 40, 10, 0.06);
 }
 
+/* The card's middle is the button that opens the table; Join and friends
+   sit beside it, so no button is nested inside another. */
+.table-card-main {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 0;
+  margin: -12px 0;
+  padding: 12px 0;
+  text-align: left;
+  font-weight: 400;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.table-card-main:hover,
+.table-card-main:active:not(:disabled) { background: none; transform: none; }
+.table-card:has(.table-card-main:hover) { border-color: var(--accent); }
+
+.table-card-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
+.table-card-actions button { min-height: 34px; padding: 0.25rem 0.9rem; font-size: 0.85rem; white-space: nowrap; }
+
+@media (max-width: 480px) {
+  .table-card { flex-wrap: wrap; }
+  .table-card-main { flex-basis: calc(100% - 76px); }
+  .table-card-actions { flex-basis: 100%; flex-direction: row; justify-content: flex-end; }
+}
+
 .table-card-body { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
 .table-card-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .table-card-name { font-weight: 750; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -110,6 +142,20 @@
 
 .compass-seat.kind-empty { background: transparent; box-shadow: inset 0 0 0 2px var(--table-seam), 0 0 0 2px var(--card-bg); border: 2px dashed rgba(124, 78, 28, 0.35); }
 .compass-seat.kind-bot { background: var(--surface-2); font-size: 0.75rem; }
+button.compass-seat.is-open {
+  min-height: 0;
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--accent-strong);
+  background: var(--card-bg);
+  border: 2px dashed var(--accent);
+  box-shadow: 0 0 0 2px var(--card-bg);
+  cursor: pointer;
+}
+
+button.compass-seat.is-open:hover { background: var(--accent-soft); transform: none; }
 .compass-seat.is-you { box-shadow: 0 0 0 2px var(--card-bg), 0 0 0 4px var(--accent); }
 .compass-s { left: 19px; bottom: -4px; }
 .compass-n { left: 19px; top: -4px; }

@@ -44,6 +44,13 @@ lobby:
   status_over: "Game over"
   status_held: "On hold — an admin is reviewing"
   status_playing: "Hand {hand} · {a} – {b}"
+  held_tables: "Seats saved for you"
+  held_note: "{seat} is saved for you."
+  take_seat: "Take your seat"
+  decline: "Decline"
+  declined: "Seat given up."
+  join: "Join"
+  join_seat: "Sit in the open seat at {name}"
 
 status:
   waiting: "Seating"
@@ -147,6 +154,7 @@ bidding:
 
 kitty:
   choose: "Pick 5 cards to bury ({count} of 5), then name trump."
+  count: "{count} of 5"
   only_five: "Five cards exactly. Tap one to put it back."
   trump_label: "Trump color"
   done: "Bury and start"
@@ -256,6 +264,26 @@ invite:
   copied: "Copied."
   share: "Share…"
   share_text: "{name}, come play Rook at {table}!"
+  pick_heading: "Pick someone"
+  filter_placeholder: "Search names"
+  assign: "Seat them"
+  assigned: "{name} has this seat saved for them."
+  no_users: "Nobody else to pick."
+  new_heading: "Or invite someone new"
+
+seat_manage:
+  open: "Manage {name}'s seat"
+  body_waiting: "Take them out of this seat? They can still watch, or sit down again if a seat is open."
+  body_game: "Take them out of this seat? The game pauses until someone — a person or a bot — fills it."
+  body_pending: "This seat is saved for them. Cancel that, and free the seat?"
+  body_bot: "Take the bot out to free the seat for a person."
+  body_bot_game: "Take the bot out? The game pauses until someone — a person or another bot — fills the seat."
+  rename_label: "Name at this table"
+  rename: "Rename"
+  reset: "Use their own name"
+  renamed: "{old} is now {name} at this table."
+  remove: "Remove from seat"
+  removed: "{name} was removed from the seat."
 
 manage:
   restart: "Restart game"
@@ -303,6 +331,13 @@ appearance:
   description: "Light is the default. Your choice is remembered on this device."
   light: "Light"
   dark: "Dark"
+
+chat_dock:
+  heading: "Chat beside your cards"
+  description: "On a wide screen, keep a small chat window next to your hand. Remembered on this device."
+  off: "Off"
+  left: "Left"
+  right: "Right"
 
 zoom:
   heading: "Card size"
@@ -429,6 +464,9 @@ errors:
   bad_table_name: "Give the table a name (up to 40 characters)."
   bad_chat_message: "Messages can be up to 280 characters."
   cannot_invite: "An admin needs to let you invite people."
+  not_a_player: "Nobody is sitting there."
+  no_such_user: "That person can't be seated."
+  bad_seat_name: "A name here is at most 40 characters."
   not_a_bot: "That seat isn't a bot."
 
 join:

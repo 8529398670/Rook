@@ -145,14 +145,17 @@ const Hand = {
     const width = this.element.clientWidth;
     if ( count === 0 || width === 0 ) return;
     const sample = this.nodes.get( this.order[ 0 ] );
-    const cardWidth = sample.offsetWidth || 64;
-    const cardHeight = cardWidth * 1.4;
     const gutter = 12;
 
     // One fanned row normally. The 18 cards you hold while burying get two
-    // rows on a narrow screen, so every card stays wide enough to tap.
-    const twoRows = count > 13 && ( width - gutter * 2 - cardWidth ) / ( count - 1 ) < cardWidth * 0.36;
+    // rows on a narrow screen, so every card stays wide enough to tap. The
+    // two rows use smaller cards (see table.css), so the hand never grows.
+    this.element.classList.remove( "two-rows" );
+    const fullWidth = sample.offsetWidth || 64;
+    const twoRows = count > 13 && ( width - gutter * 2 - fullWidth ) / ( count - 1 ) < fullWidth * 0.36;
     this.element.classList.toggle( "two-rows" , twoRows );
+    const cardWidth = twoRows ? ( sample.offsetWidth || fullWidth ) : fullWidth;
+    const cardHeight = cardWidth * 1.4;
     const rows = twoRows ? [ this.order.slice( 0 , Math.ceil( count / 2 ) ) , this.order.slice( Math.ceil( count / 2 ) ) ] : [ this.order ];
 
     let z = 1;
