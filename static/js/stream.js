@@ -15,6 +15,7 @@ const Stream = {
     let source = null;
     let closed = false;
     let downTimer = null;
+    let retryTimer = null;
 
     const status = function ( connected ) {
       window.clearTimeout( downTimer );
@@ -49,8 +50,15 @@ const Stream = {
         stop();
         if ( handlers.gone ) handlers.gone();
       } );
-      source.addEventListener( "error" , function () {
+      source.addEventListener( "error" , function ( event ) {
         status( false );
+        // A refusal (a 429, a 5xx) closes an EventSource for good -- it
+        // only retries dropped connections. Try again ourselves, or the
+        // table would sit frozen until the phone next comes to the front.
+        if ( event.target.readyState === EventSource.CLOSED ) {
+          window.clearTimeout( retryTimer );
+          retryTimer = window.setTimeout( connect , 3000 );
+        }
       } );
     };
 
@@ -61,6 +69,7 @@ const Stream = {
     const stop = function () {
       closed = true;
       window.clearTimeout( downTimer );
+      window.clearTimeout( retryTimer );
       document.removeEventListener( "visibilitychange" , onVisible );
       if ( source ) source.close();
     };

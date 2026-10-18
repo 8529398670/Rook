@@ -46,11 +46,14 @@ type Options struct {
 	RookAnytime bool `json:"rook_anytime"`
 	// RookFirstTrick false forbids the bird on the hand's first trick.
 	RookFirstTrick bool `json:"rook_first_trick"`
-	// PlayTo is the winning total; 0 means a single hand decides it.
+	// PlayTo is the winning total; 0 means a single hand decides it. The
+	// table's creator picks 100, 300 or 500, or types their own.
 	PlayTo int `json:"play_to"`
 }
 
-var PlayToChoices = []int{ 0 , 100 , 300 , 500 }
+// MaxPlayTo caps a typed-in target: high enough for a very long evening,
+// low enough that a slip of the finger does not make a game that never ends.
+const MaxPlayTo = 10000
 
 func DefaultOptions() ( options Options ) {
 	options = Options{
@@ -69,10 +72,9 @@ func ( options Options ) Validate() ( err error ) {
 		err = ErrBadOptions
 		return
 	}
-	for _ , choice := range PlayToChoices {
-		if options.PlayTo == choice { return }
+	if options.PlayTo < 0 || options.PlayTo > MaxPlayTo {
+		err = ErrBadOptions
 	}
-	err = ErrBadOptions
 	return
 }
 

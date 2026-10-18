@@ -136,6 +136,50 @@ func TestBiddingRules( t *testing.T ) {
 	}
 }
 
+// The dealer sits just before the first bidder, so they bid last; every view
+// carries the auction so far, in order, until the bidder starts playing.
+func TestDealerBidsLastAndTheAuctionIsShown( t *testing.T ) {
+	state , _ := NewGame( DefaultOptions() , 1 , seeded( 2 ) )
+	if state.Dealer() != 0 || state.Turn != 1 {
+		t.Fatalf( "dealer %d turn %d, want dealer 0 and seat 1 to open" , state.Dealer() , state.Turn )
+	}
+	if view := state.ViewFor( 2 ); view.Dealer != 0 || len( view.Auction ) != 0 {
+		t.Fatalf( "before any bid: dealer %d auction %+v" , view.Dealer , view.Auction )
+	}
+	state.PlaceBid( 1 , 70 )
+	state.Pass( 2 )
+	state.PlaceBid( 3 , 75 )
+	state.Pass( 0 )
+	state.Pass( 1 )
+	want := []AuctionEntry{ { 1 , 70 } , { 2 , 0 } , { 3 , 75 } , { 0 , 0 } , { 1 , 0 } }
+	got := state.ViewFor( -1 ).Auction
+	if state.Phase != PhaseKitty || len( got ) != len( want ) {
+		t.Fatalf( "phase %s auction %+v" , state.Phase , got )
+	}
+	for index := range want {
+		if got[ index ] != want[ index ] { t.Fatalf( "auction %+v, want %+v" , got , want ) }
+	}
+	hand := state.Hands[ 3 ]
+	if err := state.Bury( 3 , hand[ :5 ] , Red ); err != nil { t.Fatal( err ) }
+	if auction := state.ViewFor( 3 ).Auction; len( auction ) != 0 {
+		t.Fatalf( "auction still shown during play: %+v" , auction )
+	}
+}
+
+// Play to is one of the offered targets or any number someone types, from a
+// single hand (0) up to MaxPlayTo.
+func TestPlayToTakesACustomTarget( t *testing.T ) {
+	options := DefaultOptions()
+	for _ , good := range []int{ 0 , 100 , 250 , 1000 , MaxPlayTo } {
+		options.PlayTo = good
+		if err := options.Validate(); err != nil { t.Fatalf( "play to %d refused: %v" , good , err ) }
+	}
+	for _ , bad := range []int{ -100 , MaxPlayTo + 1 } {
+		options.PlayTo = bad
+		if err := options.Validate(); !errors.Is( err , ErrBadOptions ) { t.Fatalf( "play to %d allowed: %v" , bad , err ) }
+	}
+}
+
 func TestLastPlayerIsStuckAtTheOpeningBid( t *testing.T ) {
 	state , _ := NewGame( DefaultOptions() , 2 , seeded( 3 ) )
 	for _ , seat := range []int{ 2 , 3 , 0 } {
@@ -425,6 +469,9 @@ func TestContinueDealsTheNextHandWhenEveryoneIsReady( t *testing.T ) {
 	if state.HandNumber != 2 || state.BidStarter != 1 || state.Turn != 1 || state.Phase != PhaseBidding {
 		t.Fatalf( "hand %d starter %d turn %d phase %s" , state.HandNumber , state.BidStarter , state.Turn , state.Phase )
 	}
+	if state.Dealer() != 0 || len( state.ViewFor( 0 ).Auction ) != 0 {
+		t.Fatalf( "next hand: dealer %d auction %+v" , state.Dealer() , state.ViewFor( 0 ).Auction )
+	}
 }
 
 func TestViewHidesOtherHandsAndTheKitty( t *testing.T ) {
@@ -455,6 +502,7 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 	if testing.Short() { games = 200 }
 
 	rook_ranks := []RookRank{ RookHigh , RookTenHalf , RookLow }
+	play_to := []int{ 0 , 100 , 250 , 300 , 500 }
 	bids_made := 0
 	hands_played := 0
 	bid_total := 0
@@ -465,7 +513,7 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 			RookRank:       rook_ranks[ game_index%3 ],
 			RookAnytime:    game_index%2 == 0,
 			RookFirstTrick: game_index%5 != 0,
-			PlayTo:         PlayToChoices[ game_index%len( PlayToChoices ) ],
+			PlayTo:         play_to[ game_index%len( play_to ) ],
 		}
 		state , err := NewGame( options , game_index%4 , source )
 		if err != nil { t.Fatal( err ) }

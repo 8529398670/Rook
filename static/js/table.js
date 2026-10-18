@@ -118,6 +118,7 @@ const Table = {
       this.view = null;
       this.id = target.id || null;
       this.traySignature = null;
+      this.retryDelay = 0;
       this.announced = 0;
       this.perspective = 0;
       this.allHands = false;
@@ -136,6 +137,11 @@ const Table = {
 
   // Fetch a fresh snapshot and (re)open the stream -- on arrival, and again
   // whenever a watcher changes seat or switches every-hand view.
+  //
+  // Only a real "no" sends you back to the lobby: the table or link does not
+  // exist, or you may not see it. A blip -- no network, the server busy or
+  // restarting, too many requests from one house -- keeps you at the table
+  // and tries again, with the reconnecting banner up meanwhile.
   async load() {
     const key = this.key;
     this.close();
@@ -144,26 +150,42 @@ const Table = {
     try {
       first = this.target.watch ? await Api.getWatch( this.target.watch ) : await Api.getTable( this.target.id );
     } catch ( error ) {
-      Toast.error( error );
-      App.go( "#/" );
+      if ( this.key !== key ) return;
+      if ( [ 401 , 403 , 404 ].indexOf( error.status ) >= 0 ) {
+        Toast.error( error );
+        App.go( "#/" );
+        return;
+      }
+      Dom.show( Dom.get( "connection-banner" ) , true );
+      this.retryDelay = Math.min( ( this.retryDelay || 500 ) * 2 , 15000 );
+      this.retryTimer = window.setTimeout( function () {
+        if ( Table.key === key ) Table.load();
+      } , this.retryDelay );
       return;
     }
     if ( this.key !== key ) return; // navigated away while loading
+    this.retryDelay = 0;
+    Dom.show( Dom.get( "connection-banner" ) , false );
     this.id = first.id;
     this.force = true;
     this.apply( first );
     const url = this.target.watch ? Api.watchPath( this.target.watch , true ) : Api.tablePath( this.id , "events" );
     this.stream = Stream.open( url , {
       table: function ( view ) { Table.apply( view ); },
+      // The stream says the table is gone. Ask once more before leaving:
+      // if it really is, load() gets the "not open any more" answer and
+      // goes back to the lobby; if not, this simply reconnects.
       gone: function () {
-        Toast.show( I18n.get( "table.gone" ) );
-        App.go( App.me ? "#/" : "#/gone" );
+        Table.retryTimer = window.setTimeout( function () {
+          if ( Table.key === key ) Table.load();
+        } , 1000 );
       },
       status: function ( connected ) { Dom.show( Dom.get( "connection-banner" ) , !connected ); },
     } );
   },
 
   close() {
+    window.clearTimeout( this.retryTimer );
     if ( this.stream ) this.stream.close();
     this.stream = null;
   },
@@ -255,6 +277,7 @@ const Table = {
       },
     } );
     Trick.update( view , startRects );
+    Bidding.log( view );
     Hand.render( view );
     Observe.renderHands( view );
     this.renderAdmin( view );
@@ -289,14 +312,18 @@ const Table = {
     Dom.clear( contract );
     const game = view.game;
     const playing = game && game.bidder >= 0 && ( game.phase === "kitty" || game.phase === "playing" );
-    Dom.get( "screen-table" ).classList.toggle( "has-contract" , Boolean( playing ) );
+    // On a phone the hand's line (who dealt, or who holds the contract)
+    // matters more than the table's name, which gives up its room.
+    const handLine = playing || ( game && game.phase === "bidding" );
+    Dom.get( "screen-table" ).classList.toggle( "has-contract" , Boolean( handLine ) );
     if ( playing ) {
       contract.appendChild( Dom.el( "span" , { text: I18n.format( "table.contract" , { name: Seats.name( view.seats[ game.bidder ] ) , bid: game.bid } ) } ) );
       if ( game.trump ) contract.appendChild( Dom.el( "span" , { class: "contract-trump trump-" + game.trump , children: [
-        Art.glyphIcon( game.trump ) , Dom.el( "span" , { text: I18n.get( "colors." + game.trump ) } ),
+        Art.glyphIcon( game.trump ) , Dom.el( "span" , { text: I18n.format( "table.trump" , { color: I18n.get( "colors." + game.trump ) } ) } ),
       ] } ) );
+      contract.appendChild( Dom.el( "span" , { class: "contract-dealer" , text: I18n.format( "table.dealer" , { name: Seats.name( view.seats[ game.dealer ] ) } ) } ) );
     } else if ( game && game.phase === "bidding" ) {
-      contract.appendChild( Dom.el( "span" , { text: I18n.format( "table.hand_number" , { hand: game.hand_number } ) } ) );
+      contract.appendChild( Dom.el( "span" , { text: I18n.format( "table.hand_number" , { hand: game.hand_number , dealer: Seats.name( view.seats[ game.dealer ] ) } ) } ) );
     }
     // How many are watching. Admins watch invisibly and are never counted.
     if ( view.watchers > 0 ) {
@@ -385,7 +412,7 @@ const Table = {
     }
     if ( this.isMyTurn( view ) && game.phase === "kitty" ) {
       Kitty.render( tray , view , {
-        bury: function ( cards , trump ) { Table.act( Api.bury( Table.id , cards , trump ) ); },
+        bury: function ( cards , trump ) { return Table.act( Api.bury( Table.id , cards , trump ) ); },
       } );
       withHint();
       return;
@@ -630,9 +657,12 @@ const Table = {
     Sheet.open( "sheet-confirm-leave" , { focus: false } );
   },
 
-  // Restart or delete, after a confirm: neither can be undone.
-  confirmManage( action ) {
+  // Restart or delete, after a confirm: neither can be undone. Without a
+  // table id it is the table on screen; the lobby passes one so an admin can
+  // manage any game from the list.
+  confirmManage( action , tableId ) {
     this.manageAction = action;
+    this.manageId = tableId || null;
     Dom.text( Dom.get( "manage-heading" ) , I18n.get( "manage." + action + "_heading" ) );
     Dom.text( Dom.get( "manage-body" ) , I18n.get( "manage." + action + "_body" ) );
     Dom.text( Dom.get( "manage-confirm" ) , I18n.get( "manage." + action + "_confirm" ) );
@@ -641,16 +671,23 @@ const Table = {
 
   async manageTable() {
     const action = this.manageAction;
+    const fromLobby = Boolean( this.manageId );
+    const id = this.manageId || this.id;
     try {
       if ( action === "delete" ) {
-        await Api.deleteTable( this.id );
+        await Api.deleteTable( id );
         Sheet.close( true );
         Toast.show( I18n.get( "manage.deleted" ) );
-        App.go( "#/" );
+        // The lobby redraws itself from its own stream.
+        if ( !fromLobby ) App.go( "#/" );
         return;
       }
-      const view = await Api.restart( this.id );
+      const view = await Api.restart( id );
       Sheet.close( true );
+      if ( fromLobby ) {
+        Toast.show( I18n.get( "manage.restarted" ) );
+        return;
+      }
       // A new game from the first card: draw it fresh, not as a replay.
       Trick.reset();
       Hand.reset();

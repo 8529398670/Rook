@@ -13,6 +13,7 @@ const Seats = {
         Dom.el( "div" , { class: "seat-label" , children: [
           Dom.el( "span" , { class: "seat-name" } ),
           Dom.el( "span" , { class: "seat-note" } ),
+          Dom.el( "span" , { class: "seat-dealer" , text: I18n.get( "seats.dealer" ) , attrs: { hidden: "" } } ),
         ] } ),
         Dom.el( "div" , { class: "seat-bubble" , attrs: { hidden: "" } } ),
         Dom.el( "div" , { class: "seat-hand" , attrs: { "aria-hidden": "true" } } ),
@@ -41,6 +42,12 @@ const Seats = {
     // A bot has a name only once the host renamed it.
     if ( seat.kind === "bot" ) return seat.name || I18n.get( "bots.name_" + seat.bot ) || I18n.get( "bots.name" );
     return seat.name;
+  },
+
+  // The dealer sits just before whoever opens the bidding: the auction
+  // starts on the dealer's left.
+  dealerOf( firstBidder ) {
+    return ( firstBidder + 3 ) % 4;
   },
 
   base( view ) {
@@ -79,8 +86,10 @@ const Seats = {
     const game = view.game;
     if ( !game ) return null;
     if ( game.phase === "bidding" ) {
-      if ( game.seats[ seat ].passed ) return { text: I18n.get( "bidding.pass" ) , kind: "pass" };
-      if ( game.seats[ seat ].last_bid > 0 ) return { text: String( game.seats[ seat ].last_bid ) , kind: seat === game.high_bidder ? "high" : "bid" };
+      if ( game.seats[ seat ].passed ) return { text: I18n.get( "bidding.passed" ) , kind: "pass" };
+      if ( game.seats[ seat ].last_bid > 0 ) {
+        return { text: I18n.format( "bidding.bubble_bid" , { amount: game.seats[ seat ].last_bid } ) , kind: seat === game.high_bidder ? "high" : "bid" };
+      }
       return null;
     }
     if ( seat === game.bidder && ( game.phase === "kitty" || game.phase === "playing" ) ) {
@@ -127,6 +136,10 @@ const Seats = {
 
       Dom.text( element.querySelector( ".seat-name" ) , seat === view.you ? I18n.format( "seats.you" , { name: this.name( info ) } ) : this.name( info ) );
       Dom.text( element.querySelector( ".seat-note" ) , this.note( view , seat , info ) );
+      // Who dealt shows on their seat while the hand is bid for; after
+      // that it moves up into the bar, beside trump.
+      const dealing = Boolean( game ) && seat === game.dealer && game.phase === "bidding";
+      Dom.show( element.querySelector( ".seat-dealer" ) , dealing );
 
       const bubble = element.querySelector( ".seat-bubble" );
       const content = this.bubble( view , seat );

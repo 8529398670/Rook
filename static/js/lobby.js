@@ -29,8 +29,16 @@ const Lobby = {
         const button = event.target.closest( "button[data-value]" );
         if ( !button ) return;
         const raw = button.getAttribute( "data-value" );
-        Lobby.options[ name ] = name === "play_to" ? Number( raw ) : raw;
+        if ( name === "play_to" ) {
+          // "Custom" opens a box to type the target into; the number is
+          // read from it when the table is created.
+          Lobby.customPlayTo = raw === "custom";
+          if ( !Lobby.customPlayTo ) Lobby.options.play_to = Number( raw );
+        } else {
+          Lobby.options[ name ] = raw;
+        }
         Lobby.renderOptions();
+        if ( raw === "custom" ) Dom.get( "play-to-custom-input" ).focus();
       } );
     } );
   },
@@ -185,6 +193,11 @@ const Lobby = {
     } else if ( open.length > 0 ) {
       action( "lobby.join" , "" , function () { Lobby.sit( table , open[ 0 ] ); } );
     }
+    // Admins can start any game over, or remove the table, from here.
+    if ( this.me && this.me.role === "admin" ) {
+      if ( table.status !== "waiting" ) action( "lobby.restart" , "secondary" , function () { Table.confirmManage( "restart" , table.id ); } );
+      action( "lobby.delete" , "secondary table-card-delete" , function () { Table.confirmManage( "delete" , table.id ); } );
+    }
 
     const children = [ compass , main ];
     if ( actions.childElementCount > 0 ) children.push( actions );
@@ -206,6 +219,8 @@ const Lobby = {
 
   openCreate() {
     this.options = { rook_rank: "high" , rook_anytime: false , rook_first_trick: true , play_to: 500 };
+    this.customPlayTo = false;
+    Dom.get( "play-to-custom-input" ).value = "";
     Dom.get( "new-table-name" ).value = I18n.format( "create.default_name" , { name: this.me.display_name } );
     this.renderOptions();
     Sheet.open( "sheet-new-table" );
@@ -219,15 +234,21 @@ const Lobby = {
         control.checked = options[ name ] === true;
         return;
       }
+      const chosen = name === "play_to" && Lobby.customPlayTo ? "custom" : String( options[ name ] );
       Dom.all( "button[data-value]" , control ).forEach( function ( button ) {
-        button.setAttribute( "aria-pressed" , String( String( options[ name ] ) === button.getAttribute( "data-value" ) ) );
+        button.setAttribute( "aria-pressed" , String( chosen === button.getAttribute( "data-value" ) ) );
       } );
     } );
+    Dom.show( Dom.get( "play-to-custom" ) , this.customPlayTo );
+    Dom.get( "play-to-custom-input" ).disabled = !this.customPlayTo;
   },
 
   async onCreate( event ) {
     event.preventDefault();
     const name = Dom.get( "new-table-name" ).value.trim();
+    // The browser has already held the form back unless the box holds a
+    // whole number in range (its min, max and step).
+    if ( this.customPlayTo ) this.options.play_to = Number( Dom.get( "play-to-custom-input" ).value );
     try {
       const view = await Api.createTable( name , this.options );
       Sheet.close( true );

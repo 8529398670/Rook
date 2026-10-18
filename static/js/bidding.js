@@ -48,4 +48,48 @@ const Bidding = {
       ] } ),
     ] } ) );
   },
+
+  // The auction so far, in the middle of the table while the hand is bid for
+  // and while the winner buries: who dealt, then every bid and pass in the
+  // order they came, so nobody has to remember what a bubble said a moment
+  // ago. Everyone sees it, people watching included.
+  log( view ) {
+    const box = Dom.get( "auction" );
+    const game = view.game;
+    const showing = Boolean( game ) && ( game.phase === "bidding" || game.phase === "kitty" ) &&
+      view.status !== "waiting" && view.status !== "paused";
+    box.hidden = !showing;
+    if ( !showing ) {
+      box.removeAttribute( "data-signature" );
+      return;
+    }
+    // Redraw only when something in it changed; snapshots arrive often.
+    const signature = JSON.stringify( [ game.hand_number , game.phase , game.turn , game.auction , Table.seatNames( view ) , view.perspective ] );
+    if ( box.getAttribute( "data-signature" ) === signature ) return;
+    box.setAttribute( "data-signature" , signature );
+
+    const name = function ( seat ) { return Seats.name( view.seats[ seat ] ); };
+    // The last bid made is the one standing.
+    let high = -1;
+    game.auction.forEach( function ( entry , index ) { if ( entry.amount > 0 ) high = index; } );
+    const list = Dom.el( "ol" , { class: "auction-list" } );
+    game.auction.forEach( function ( entry , index ) {
+      const classes = [ "auction-row" , Seats.teamClass( view , entry.seat ) , entry.amount > 0 ? "" : "is-pass" , index === high ? "is-high" : "" ];
+      list.appendChild( Dom.el( "li" , { class: classes.filter( Boolean ).join( " " ) , children: [
+        Dom.el( "span" , { class: "auction-name" , text: name( entry.seat ) } ),
+        Dom.el( "span" , { class: "auction-call" , text: entry.amount > 0 ? I18n.format( "bidding.bubble_bid" , { amount: entry.amount } ) : I18n.get( "bidding.passed" ) } ),
+      ] } ) );
+    } );
+    const next = game.phase === "bidding"
+      ? I18n.format( "bidding.log_turn" , { name: name( game.turn ) } )
+      : I18n.format( "bidding.log_won" , { name: name( game.bidder ) , bid: game.bid } );
+    list.appendChild( Dom.el( "li" , { class: "auction-row auction-next" , text: next } ) );
+
+    Dom.clear( box );
+    box.appendChild( Dom.el( "div" , { class: "auction-panel" , children: [
+      Dom.el( "p" , { class: "auction-dealer" , text: I18n.format( "bidding.log_dealer" , { name: name( game.dealer ) } ) } ),
+      list,
+    ] } ) );
+    list.scrollTop = list.scrollHeight;
+  },
 };

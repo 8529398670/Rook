@@ -2,15 +2,22 @@
 //
 // A sheet's markup lives in index.html (so its text comes from language.yaml
 // like everything else); this file only shows one, hides the rest, and
-// handles closing -- the backdrop, the Escape key, and the close buttons.
+// handles closing -- the X in each sheet's corner, its own close buttons,
+// and the Escape key. A tap outside a sheet does nothing: one stray tap
+// should never throw away a half-filled form.
 const Sheet = {
   current: null,
   onClose: null,
 
   init() {
-    const layer = Dom.get( "sheet-layer" );
-    layer.addEventListener( "click" , function ( event ) {
-      if ( event.target === layer && Sheet.dismissible ) Sheet.close();
+    Dom.all( ".sheet" ).forEach( function ( sheet ) {
+      sheet.insertBefore( Dom.el( "button" , {
+        class: "icon-button sheet-close",
+        attrs: { type: "button" , "data-sheet-close": "" , "aria-label": I18n.get( "common.close" ) , title: I18n.get( "common.close" ) },
+        children: [ Dom.svg( "svg" , { viewBox: "0 0 24 24" , "aria-hidden": "true" } , [
+          Dom.svg( "path" , { d: "M6 6l12 12M18 6L6 18" , fill: "none" , stroke: "currentColor" , "stroke-width": "2.4" , "stroke-linecap": "round" } ),
+        ] ) ],
+      } ) , sheet.firstChild );
     } );
     Dom.all( "[data-sheet-close]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () { Sheet.close(); } );
@@ -21,18 +28,19 @@ const Sheet = {
   },
 
   // open( "sheet-rules", { onClose: fn, dismissible: false } ). A sheet that
-  // waits on the player (the hand summary) is not dismissible by tapping
-  // outside it.
+  // waits on the player (the hand summary) is not dismissible: it has no X
+  // and ignores Escape, so only its own buttons close it.
   open( id , options ) {
     const settings = options || {};
     if ( this.current && this.current !== id ) this.close( true );
     Dom.all( ".sheet" ).forEach( function ( sheet ) { sheet.hidden = sheet.id !== id; } );
+    Dom.show( Dom.get( id ).querySelector( ".sheet-close" ) , settings.dismissible !== false );
     Dom.get( "sheet-layer" ).hidden = false;
     document.body.classList.add( "sheet-open" );
     this.current = id;
     this.onClose = settings.onClose || null;
     this.dismissible = settings.dismissible !== false;
-    const focusable = Dom.get( id ).querySelector( "[autofocus], input, button" );
+    const focusable = Dom.get( id ).querySelector( "[autofocus], input, button:not(.sheet-close)" );
     if ( focusable && settings.focus !== false ) window.setTimeout( function () { focusable.focus( { preventScroll: true } ); } , 60 );
   },
 

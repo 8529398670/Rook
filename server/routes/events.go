@@ -3,6 +3,7 @@ package routes
 import (
 	bufio "bufio"
 	json "encoding/json"
+	strings "strings"
 	time "time"
 
 	fiber "github.com/gofiber/fiber/v3"
@@ -121,7 +122,11 @@ func ( handlers *Handlers ) GetWatchRecord( c fiber.Ctx ) ( err error ) {
 
 func ( handlers *Handlers ) streamTable( c fiber.Ctx , id string ) ( err error ) {
 	// Copy what the stream needs now: c is recycled once this handler
-	// returns, long before the stream writer finishes.
+	// returns, long before the stream writer finishes. That includes the
+	// table id -- a route param is a view into c's own path buffer, which the
+	// next request to reuse c overwrites, and the stream would then look up
+	// a table that does not exist and tell the player it closed.
+	id = strings.Clone( id )
 	viewer := viewerFrom( c )
 	if viewer.User != nil {
 		copied := *viewer.User

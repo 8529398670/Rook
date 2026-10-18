@@ -232,13 +232,22 @@ func ( hub *Hub ) Start( id string , user *models.User ) ( err error ) {
 			fn_err = ErrSeatsNotFull
 			return
 		}
-		first_bidder := 0
-		if table.Game != nil {
-			first_bidder = ( table.Game.BidStarter + 1 ) % 4
-		}
-		fn_err = table.perform( Action{ Kind: ActionStart , Seat: table.seatOf( user.ID ) , First: first_bidder } )
+		seat := table.seatOf( user.ID )
+		fn_err = table.perform( Action{ Kind: ActionStart , Seat: seat , First: table.firstBidder( seat ) } )
 		return
 	} )
+	return
+}
+
+// firstBidder is who opens the auction of a new game: the seat on the
+// dealer's left. A first game is dealt by whoever pressed Deal; a rematch or
+// restart passes the deal on one seat, the way every new hand does.
+func ( table *Table ) firstBidder( dealer int ) ( seat int ) {
+	if table.Game != nil {
+		seat = ( table.Game.BidStarter + 1 ) % 4
+		return
+	}
+	seat = ( dealer + 1 ) % 4
 	return
 }
 

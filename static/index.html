@@ -178,6 +178,8 @@
       </div>
       <div id="all-hands" class="all-hands" hidden></div>
       <div id="trick" class="trick" aria-hidden="true"></div>
+      <!-- The bids so far, while the hand is bid for (bidding.js). -->
+      <div id="auction" class="auction" hidden></div>
       <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
       <div id="waiting-room" class="waiting-room" hidden>
         <h2 id="waiting-title" class="waiting-title"></h2>
@@ -474,6 +476,13 @@
           <button type="button" data-value="100" data-i18n="options.play_to_100"></button>
           <button type="button" data-value="300" data-i18n="options.play_to_300"></button>
           <button type="button" data-value="500" data-i18n="options.play_to_500"></button>
+          <button type="button" data-value="custom" data-i18n="options.play_to_custom"></button>
+        </div>
+        <!-- Shown for "Custom": type any target. Disabled while hidden, so
+             the form only checks it when it is in use. -->
+        <div id="play-to-custom" class="field play-to-custom" hidden>
+          <label for="play-to-custom-input" data-i18n="options.play_to_custom_label"></label>
+          <input id="play-to-custom-input" type="number" inputmode="numeric" min="1" max="10000" step="1" required disabled data-i18n-attr="placeholder:options.play_to_custom_placeholder" />
         </div>
       </fieldset>
       <label class="switch-row">

@@ -93,7 +93,7 @@ const History = {
     const name = entry.seat >= 0 ? Seats.name( view.seats[ entry.seat ] ) : "";
     switch ( entry.kind ) {
       case "start":
-        return I18n.format( "history.start" , { name: Seats.name( view.seats[ entry.first ] ) } );
+        return I18n.format( "history.start" , { name: Seats.name( view.seats[ entry.first ] ) , dealer: Seats.name( view.seats[ Seats.dealerOf( entry.first ) ] ) } );
       case "bid":
         return I18n.format( "events.bid" , { name: name , amount: entry.amount } );
       case "pass":

@@ -22,20 +22,17 @@ func ( table *Table ) mayManage( user *models.User , admin bool ) ( err error ) 
 func ( hub *Hub ) Restart( id string , user *models.User , admin bool ) ( err error ) {
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		if fn_err = table.mayManage( user , admin ); fn_err != nil { return }
-		first_bidder := 0
-		if table.Game != nil {
-			first_bidder = ( table.Game.BidStarter + 1 ) % 4
+		seat := 0
+		if user != nil {
+			if mine := table.seatOf( user.ID ); mine >= 0 { seat = mine }
 		}
+		first_bidder := table.firstBidder( seat )
 		table.Game , table.Base , table.Log , table.Cursor , table.Held = nil , nil , nil , 0 , false
 		for index := range table.Seats {
 			// Someone invited but never arrived would hold up the new game.
 			table.Seats[ index ].Pending = false
 		}
 		if table.emptySeats() > 0 { return }
-		seat := 0
-		if user != nil {
-			if mine := table.seatOf( user.ID ); mine >= 0 { seat = mine }
-		}
 		fn_err = table.perform( Action{ Kind: ActionStart , Seat: seat , First: first_bidder } )
 		return
 	} )

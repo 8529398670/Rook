@@ -14,6 +14,7 @@ type View struct {
 	You        int     `json:"you"` // -1 for a spectator
 	Turn       int     `json:"turn"`
 	BidStarter int     `json:"bid_starter"`
+	Dealer     int     `json:"dealer"`
 
 	Hand  []string `json:"hand"`  // sorted for display
 	Legal []string `json:"legal"` // empty unless it is your turn to play
@@ -27,6 +28,9 @@ type View struct {
 	MaxBid     int    `json:"max_bid"`
 	Bidder     int    `json:"bidder"`
 	Trump      string `json:"trump"`
+	// Auction is this hand's bids in the order they were made, while it is
+	// being bid for and while the winner buries. Empty the rest of the time.
+	Auction []AuctionEntry `json:"auction"`
 
 	Seats     [4]SeatView `json:"seats"`
 	Trick     TrickView   `json:"trick"`
@@ -43,6 +47,12 @@ type View struct {
 	// Hands is every seat's hand, filled in only for someone watching who is
 	// allowed to see them all (see the tables package). Nil otherwise.
 	Hands [][]string `json:"hands,omitempty"`
+}
+
+// AuctionEntry is one turn of the bidding: a bid, or a pass (amount 0).
+type AuctionEntry struct {
+	Seat   int `json:"seat"`
+	Amount int `json:"amount"`
 }
 
 type SeatView struct {
@@ -74,6 +84,7 @@ func ( state *State ) ViewFor( seat int ) ( view View ) {
 		You:        seat,
 		Turn:       state.Turn,
 		BidStarter: state.BidStarter,
+		Dealer:     state.Dealer(),
 		Hand:       []string{},
 		Legal:      []string{},
 		PickedUp:   []string{},
@@ -82,6 +93,7 @@ func ( state *State ) ViewFor( seat int ) ( view View ) {
 		MinBid:     state.MinNextBid(),
 		MaxBid:     MaxBid,
 		Bidder:     state.Bidder,
+		Auction:    state.auction(),
 		TricksWon:  state.TricksWon,
 		Taken:      state.Taken,
 		Scores:     state.Scores,
@@ -125,6 +137,31 @@ func ( state *State ) ViewFor( seat int ) ( view View ) {
 		events = events[ len( events )-viewEvents: ]
 	}
 	view.Events = append( []Event{} , events... )
+	return
+}
+
+// auction reads this hand's bids back out of the event log. The log always
+// holds a whole auction: nothing but bids and passes is logged between the
+// deal and the bid being won, and a full auction is far shorter than
+// maxEvents.
+func ( state *State ) auction() ( entries []AuctionEntry ) {
+	entries = []AuctionEntry{}
+	if state.Phase != PhaseBidding && state.Phase != PhaseKitty { return }
+	start := 0
+	for index := len( state.Events ) - 1; index >= 0; index-- {
+		if state.Events[ index ].Kind == "deal" {
+			start = index + 1
+			break
+		}
+	}
+	for _ , event := range state.Events[ start: ] {
+		switch event.Kind {
+		case "bid":
+			entries = append( entries , AuctionEntry{ Seat: event.Seat , Amount: event.Amount } )
+		case "pass":
+			entries = append( entries , AuctionEntry{ Seat: event.Seat } )
+		}
+	}
 	return
 }
 

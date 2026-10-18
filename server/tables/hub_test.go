@@ -95,6 +95,27 @@ func TestSeatingRules( t *testing.T ) {
 	}
 }
 
+// Whoever presses Deal deals the first hand, so the seat on their left
+// opens the bidding -- not the dealer.
+func TestTheHostDealsTheFirstHand( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id , _ := hub.Create( ana , "Cards" , game.DefaultOptions() )
+	if err := hub.Sit( id , ben , 2 ); err != nil { t.Fatal( err ) }
+	// Ana steps away and back, which leaves Ben -- in seat 2 -- hosting.
+	if err := hub.Leave( id , ana ); err != nil { t.Fatal( err ) }
+	if err := hub.Sit( id , ana , 0 ); err != nil { t.Fatal( err ) }
+	for _ , seat := range []int{ 1 , 3 } {
+		if err := hub.AddBot( id , ben , seat ); err != nil { t.Fatal( err ) }
+	}
+	if err := hub.Start( id , ben ); err != nil { t.Fatal( err ) }
+	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	if view.Game.Dealer != 2 || view.Game.BidStarter != 3 {
+		t.Fatalf( "dealer %d first bidder %d, want 2 and 3" , view.Game.Dealer , view.Game.BidStarter )
+	}
+}
+
 func TestInvitedSeatIsHeldUntilTheyArrive( t *testing.T ) {
 	hub , store , _ := testHub( t )
 	host := testUser( t , store , "Ana" )

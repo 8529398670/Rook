@@ -184,7 +184,7 @@ const Chat = {
     const name = event.seat >= 0 ? Seats.name( view.seats[ event.seat ] ) : "";
     switch ( event.kind ) {
       case "deal":
-        return I18n.format( "events.deal" , { hand: event.amount , name: name } );
+        return I18n.format( "events.deal" , { hand: event.amount , name: name , dealer: Seats.name( view.seats[ Seats.dealerOf( event.seat ) ] ) } );
       case "bid":
         return I18n.format( "events.bid" , { name: name , amount: event.amount } );
       case "pass":

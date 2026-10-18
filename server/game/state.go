@@ -169,6 +169,14 @@ func ( state *State ) log( event Event ) {
 	}
 }
 
+// Dealer is who dealt this hand: the seat just before whoever opens the
+// bidding, since the auction starts on the dealer's left. Both move one seat
+// clockwise each hand, so it is worked out rather than stored.
+func ( state *State ) Dealer() ( seat int ) {
+	seat = ( state.BidStarter + 3 ) % 4
+	return
+}
+
 // IsTurn reports whether seat is the one being waited on. During the hand
 // summary every seat that has not confirmed is being waited on.
 func ( state *State ) IsTurn( seat int ) ( result bool ) {

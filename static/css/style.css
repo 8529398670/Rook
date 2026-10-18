@@ -285,6 +285,7 @@ fieldset.option {
 }
 
 fieldset.option legend { margin-bottom: 0.35rem; }
+fieldset.option .play-to-custom { margin-top: 0.5rem; }
 
 /* A row of mutually exclusive choices. */
 .segmented {
@@ -468,6 +469,30 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .sheet h2 { margin: 0.25rem 0 0; font-size: 1.2rem; }
+
+/* The X in every closable sheet's top corner. It stays put while a long
+   sheet scrolls, and takes no room of its own: the negative margin cancels
+   its height and the sheet's gap, so whatever comes next starts level with
+   it. The first heading or tab row leaves it space on the right. */
+.sheet-close {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  align-self: flex-end;
+  flex: 0 0 auto;
+  width: 40px;
+  min-width: 40px;
+  min-height: 40px;
+  margin: 0 -0.5rem calc(-40px - 0.75rem) 0;
+  color: var(--fg-muted);
+  background: var(--card-bg);
+  border-radius: 50%;
+}
+
+.sheet-close:hover { color: var(--fg); background: var(--surface-2); }
+.sheet-close svg { width: 22px; height: 22px; }
+.sheet > h2:first-of-type,
+.sheet > .segmented:first-of-type { margin-right: 40px; }
 
 .sheet-tall { min-height: 70dvh; }
 

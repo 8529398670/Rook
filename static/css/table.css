@@ -94,10 +94,14 @@
 
 .table-contract:empty { display: none; }
 
-/* On a phone, once there is a contract it matters more than the table's
-   name: the name gives up its room. */
+/* On a phone, once a hand is under way its line -- who dealt, or the
+   contract -- matters more than the table's name: the name gives up its
+   room. */
 @media (max-width: 30rem) {
   .screen-table.has-contract .table-name { display: none; }
+  /* Contract, trump and dealer wrap onto a second line rather than run
+     off the edge. */
+  .table-contract { flex: 1 1 auto; flex-wrap: wrap; row-gap: 2px; min-width: 0; }
 }
 
 /* What is happening right now: whose turn, and the trick count. */
@@ -347,9 +351,23 @@
   animation: pop-in 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.4);
 }
 
+/* Who dealt this hand, under their name while it is bid for. */
+.seat-dealer {
+  margin: 1px 0;
+  padding: 0 6px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--accent-fg);
+  background: var(--accent);
+  border-radius: 999px;
+}
+
 .seat.pos-right .seat-bubble { right: auto; left: -14px; }
 .seat.pos-bottom .seat-bubble { position: static; }
-.seat-bubble.bubble-pass { font-family: var(--font-ui); font-size: 0.75rem; color: var(--fg-muted); }
+.seat-bubble { white-space: nowrap; }
+.seat-bubble.bubble-pass { font-family: var(--font-ui); font-size: 0.75rem; font-weight: 750; color: var(--fg-muted); }
 .seat-bubble.bubble-high { color: #ffffff; background: var(--team); }
 .seat-bubble.bubble-contract { color: #ffffff; background: var(--team); }
 .seat-bubble .glyph { width: 0.85em; height: 0.85em; }
@@ -404,6 +422,101 @@
 .seat-actions:empty { display: none; }
 .seat.pos-bottom .seat-actions { flex-direction: row; }
 .seat-actions button { min-height: 32px; padding: 0.2rem 0.6rem; font-size: 0.78rem; }
+
+/* ------------------------------------------------------------ auction */
+
+/* The bids so far, in the room the trick uses once play starts. The outer
+   box spans that room; the panel inside hugs its rows and scrolls if a long
+   auction outgrows it. */
+.auction {
+  position: absolute;
+  top: calc(var(--trick-gap-top) + 4px);
+  bottom: calc(var(--trick-gap-bottom) + 4px);
+  left: 50%;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: min(15rem, calc(100cqw - 2 * var(--trick-gap-x)));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.auction-panel {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 100%;
+  padding: 6px 8px;
+  color: var(--fg);
+  background: var(--table-panel);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  pointer-events: auto;
+}
+
+.auction-dealer {
+  margin: 0 0 4px;
+  padding-bottom: 4px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: var(--fg-muted);
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.auction-list {
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.auction-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 2px 2px;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  --team: var(--us);
+}
+
+.auction-row.team-them { --team: var(--them); }
+
+.auction-name {
+  min-width: 0;
+  overflow: hidden;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* A dot in the team's color, matching the seat badges. */
+.auction-name::before {
+  content: "";
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin-right: 5px;
+  vertical-align: 1px;
+  background: var(--team);
+  border-radius: 50%;
+}
+
+.auction-call { flex: 0 0 auto; font-weight: 750; white-space: nowrap; }
+.auction-row.is-pass .auction-call { font-weight: 650; color: var(--fg-muted); }
+.auction-row.is-high .auction-call { padding: 0 7px; color: #ffffff; background: var(--team); border-radius: 999px; }
+
+.auction-next {
+  justify-content: center;
+  margin-top: 2px;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: var(--fg-muted);
+}
 
 /* -------------------------------------------------------------- trick */
 
@@ -600,8 +713,32 @@
 .kitty-done { flex: 1 1 auto; min-height: 38px; }
 .kitty-actions > .hint-row { flex: 0 0 auto; }
 
+/* "Done" swaps the picker for one question: this color, these five? */
+.kitty-confirm { display: none; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.kitty-panel.is-confirming > .trump-picker,
+.kitty-panel.is-confirming > .kitty-actions { display: none; }
+.kitty-panel.is-confirming > .kitty-confirm { display: flex; }
+
+.kitty-question {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.kitty-question .glyph { width: 22px; height: 22px; flex: 0 0 auto; }
+.kitty-confirm-actions { display: flex; gap: 8px; width: 100%; }
+.kitty-confirm-actions > button { flex: 1 1 0; min-height: 38px; }
+
 @media (min-width: 40rem) {
   .kitty-panel { flex-direction: row; gap: 10px; }
+  .kitty-confirm { flex-direction: row; justify-content: center; gap: 12px; }
+  .kitty-confirm-actions { width: auto; }
+  .kitty-confirm-actions > button { flex: 0 0 auto; }
   .kitty-panel .trump-picker { display: flex; width: auto; flex: 0 0 auto; gap: 4px; }
   .kitty-panel .trump-swatch { min-height: 40px; padding: 2px 10px; }
   .kitty-actions { width: auto; flex: 1 1 auto; }
