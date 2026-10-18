@@ -543,6 +543,12 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 			if count := state.CardsInPlay(); count != 57 {
 				t.Fatalf( "game %d: %d cards in play after %s" , game_index , count , state.Phase )
 			}
+			view := state.ViewFor( -1 )
+			for team := 0; team < 2; team++ {
+				if seats := view.Seats[ team ].Taken + view.Seats[ team+2 ].Taken; seats != view.Taken[ team ] {
+					t.Fatalf( "game %d team %d after %s: seats took %d, team took %d" , game_index , team , state.Phase , seats , view.Taken[ team ] )
+				}
+			}
 			if state.Phase == PhaseHandOver || state.Phase == PhaseGameOver {
 				result := state.History[ len( state.History )-1 ]
 				if result.Taken[ 0 ]+result.Taken[ 1 ] != TotalPoints {

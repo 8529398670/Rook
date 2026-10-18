@@ -27,6 +27,11 @@ const Table = {
   // What a watcher asked to see: whose seat, and every hand or not.
   perspective: 0,
   allHands: false,
+  // Each player's points this hand under their team's score in the bar,
+  // switched in Settings and the table menu. Chosen per device, so it lives
+  // in localStorage (wrapped, like the chat dock: blocked storage means off).
+  playerScoresKey: "rook.player_scores",
+  playerScores: null,
 
   init( me ) {
     this.me = me;
@@ -108,6 +113,32 @@ const Table = {
     Dom.get( "admin-resume" ).addEventListener( "click" , function () { Table.act( Api.resume( Table.id ) ); } );
     Observe.init();
     Zoom.bind( Dom.get( "menu-zoom" ) );
+    Dom.all( "[data-player-scores-toggle]" ).forEach( function ( toggle ) {
+      toggle.checked = Table.showPlayerScores();
+      toggle.addEventListener( "change" , function () { Table.setPlayerScores( toggle.checked ); } );
+    } );
+  },
+
+  showPlayerScores() {
+    if ( this.playerScores === null ) {
+      try {
+        this.playerScores = window.localStorage.getItem( this.playerScoresKey ) === "on";
+      } catch ( error ) {
+        this.playerScores = false;
+      }
+    }
+    return this.playerScores;
+  },
+
+  setPlayerScores( on ) {
+    this.playerScores = on;
+    try {
+      window.localStorage.setItem( this.playerScoresKey , on ? "on" : "off" );
+    } catch ( error ) {
+      // Storage refused: the choice still applies for this page view.
+    }
+    Dom.all( "[data-player-scores-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
+    if ( this.view ) this.renderBar( this.view );
   },
 
   // target is { id } for #/t/<id> or { watch: code } for a watch link.
@@ -343,14 +374,40 @@ const Table = {
 
     const scores = Dom.get( "table-scores" );
     Dom.clear( scores );
-    const us = view.you >= 0 ? view.you % 2 : view.perspective % 2;
+    const seat = view.you >= 0 ? view.you : view.perspective;
+    const us = seat % 2;
     const totals = game ? game.scores : [ 0 , 0 ];
-    [ [ us , "us" ] , [ 1 - us , "them" ] ].forEach( function ( pair ) {
-      scores.appendChild( Dom.el( "div" , { class: "score score-" + pair[ 1 ] , children: [
+    // With the setting on, each team's two players and the points they have
+    // taken this hand: you (or whoever is watched) then your partner, and
+    // your left then your right. Zeros while the hand is bid for, so the bar
+    // keeps one height all hand.
+    const players = this.showPlayerScores() && game && view.status !== "waiting";
+    scores.classList.toggle( "has-players" , Boolean( players ) );
+    [ [ us , "us" , seat ] , [ 1 - us , "them" , seat + 1 ] ].forEach( function ( pair ) {
+      const children = [
         Dom.el( "span" , { class: "score-label" , text: Summary.teamName( view , pair[ 0 ] ) } ),
         Dom.el( "span" , { class: "score-value" , text: String( totals[ pair[ 0 ] ] ) } ),
-      ] } ) );
+      ];
+      if ( players ) children.push( Table.scorePlayers( view , [ pair[ 2 ] % 4 , ( pair[ 2 ] + 2 ) % 4 ] ) );
+      scores.appendChild( Dom.el( "div" , { class: "score score-" + pair[ 1 ] , children: children } ) );
     } );
+  },
+
+  // One team's players under its score. The name is swapped for initials (or
+  // their icon) on a phone, where the bar has no room for two names a side.
+  scorePlayers( view , seats ) {
+    return Dom.el( "span" , { class: "score-players" , children: seats.map( function ( seat ) {
+      const info = view.seats[ seat ];
+      const name = Seats.name( info );
+      const points = view.game.seats[ seat ].taken;
+      const label = I18n.format( "player_scores.label" , { name: name , points: points } );
+      return Dom.el( "span" , { class: "score-player" , attrs: { title: label } , children: [
+        Dom.el( "span" , { class: "score-player-name" , text: name , attrs: { "aria-hidden": "true" } } ),
+        Dom.el( "span" , { class: "score-player-short" , text: info && info.kind === "human" && info.icon ? info.icon : Art.initials( name ) , attrs: { "aria-hidden": "true" } } ),
+        Dom.el( "span" , { class: "score-player-points" , text: String( points ) , attrs: { "aria-hidden": "true" } } ),
+        Dom.el( "span" , { class: "visually-hidden" , text: label } ),
+      ] } );
+    } ) } );
   },
 
   // Whose turn and how the hand stands, in the bar's second line. Your own

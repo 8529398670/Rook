@@ -359,6 +359,11 @@ chat_dock:
   left: "Left"
   right: "Right"
 
+player_scores:
+  heading: "Players' points in the top bar"
+  description: "Under each team's score, show the points each player has taken this hand. Remembered on this device."
+  label: "{name}: {points} this hand"
+
 zoom:
   heading: "Card size"
   description: "Make the cards bigger or smaller. Remembered on this device, so your phone and computer can differ. The table cards never grow past what fits between the seats."

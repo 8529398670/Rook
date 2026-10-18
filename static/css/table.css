@@ -196,6 +196,14 @@
 .score-label { font-size: 0.66rem; font-weight: 750; text-transform: uppercase; letter-spacing: 0.04em; }
 .score-value { font-family: var(--font-number); font-weight: 700; font-size: 1.15rem; }
 
+/* Each player's points this hand under their team's score, when chosen in
+   Settings. Names on wide screens, initials (or the icon) on a phone. */
+.score-players { display: flex; gap: 6px; font-size: 0.62rem; font-weight: 650; }
+.score-player { display: inline-flex; align-items: baseline; gap: 2px; min-width: 0; }
+.score-player-name { max-width: 5.5em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.score-player-short { display: none; }
+.score-player-points { font-family: var(--font-number); font-weight: 700; }
+
 .connection-banner {
   position: absolute;
   top: 8px;
@@ -1115,6 +1123,9 @@
 @media (max-width: 30rem) {
   .score { min-width: 36px; padding: 2px 4px; }
   .score-label { font-size: 0.58rem; }
+  .score-players { gap: 4px; }
+  .score-player-name { display: none; }
+  .score-player-short { display: inline; }
   .table-bar > .icon-button { width: 36px; min-width: 36px; }
   .bar-icon { width: 32px; min-width: 32px; }
 }

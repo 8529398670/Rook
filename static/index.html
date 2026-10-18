@@ -282,6 +282,16 @@
       </div>
 
       <div class="card">
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="player_scores.heading"></span>
+            <span class="switch-help" data-i18n="player_scores.description"></span>
+          </span>
+          <input type="checkbox" role="switch" data-player-scores-toggle />
+        </label>
+      </div>
+
+      <div class="card">
         <h2 data-i18n="zoom.heading"></h2>
         <p class="muted" data-i18n="zoom.description"></p>
         <div id="settings-zoom" class="zoom-controls" data-zoom-controls></div>
@@ -600,6 +610,13 @@
           <span class="switch-title" data-i18n="chat_dock.heading"></span>
           <div class="segmented" role="radiogroup" data-chat-dock-controls data-i18n-attr="aria-label:chat_dock.heading"></div>
         </div>
+        <label class="switch-row menu-switch">
+          <span>
+            <span class="switch-title" data-i18n="player_scores.heading"></span>
+            <span class="switch-help" data-i18n="player_scores.description"></span>
+          </span>
+          <input type="checkbox" role="switch" data-player-scores-toggle />
+        </label>
         <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
         <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>
         <button type="button" data-menu="leave" class="danger" data-i18n="table.leave"></button>

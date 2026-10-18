@@ -59,6 +59,7 @@ type SeatView struct {
 	Cards   int  `json:"cards"`
 	Passed  bool `json:"passed"`
 	LastBid int  `json:"last_bid"`
+	Taken   int  `json:"taken"` // counters in the tricks this seat won this hand
 }
 
 type PlayView struct {
@@ -119,11 +120,13 @@ func ( state *State ) ViewFor( seat int ) ( view View ) {
 		}
 	}
 
+	taken := state.seatTaken()
 	for index := 0; index < 4; index++ {
 		view.Seats[ index ] = SeatView{
 			Cards:   len( state.Hands[ index ] ),
 			Passed:  state.Passed[ index ],
 			LastBid: state.LastBid[ index ],
+			Taken:   taken[ index ],
 		}
 	}
 
@@ -160,6 +163,24 @@ func ( state *State ) auction() ( entries []AuctionEntry ) {
 			entries = append( entries , AuctionEntry{ Seat: event.Seat , Amount: event.Amount } )
 		case "pass":
 			entries = append( entries , AuctionEntry{ Seat: event.Seat } )
+		}
+	}
+	return
+}
+
+// seatTaken is the counters in the tricks each seat has won this hand. Once
+// the hand is over the kitty joins whoever took the last trick, as it does in
+// finishHand, so a team's two seats always add up to its Taken. Its points
+// are on the score sheet by then, so this gives nothing away.
+func ( state *State ) seatTaken() ( taken [4]int ) {
+	for _ , trick := range state.Completed {
+		taken[ trick.Winner ] += trick.Points
+	}
+	over := state.Phase == PhaseHandOver || state.Phase == PhaseGameOver
+	if over && len( state.Completed ) == HandSize {
+		last := state.Completed[ len( state.Completed )-1 ]
+		for _ , card := range state.Kitty {
+			taken[ last.Winner ] += card.Points()
 		}
 	}
 	return
