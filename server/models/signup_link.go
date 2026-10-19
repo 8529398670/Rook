@@ -173,6 +173,13 @@ func RevokeSignupLink( store *db.Store , link_id string ) ( err error ) {
 	return
 }
 
+// DeleteSignupLink removes a link for good. The accounts it made stay; they
+// just can no longer sign in on a new device through it.
+func DeleteSignupLink( store *db.Store , link_id string ) ( err error ) {
+	err = store.Delete( db.BucketSignupLinks , []byte( link_id ) )
+	return
+}
+
 // SignupMatches are this link's accounts whose names are close to typed,
 // closest first. Disabled accounts and admins are never offered.
 func SignupMatches( store *db.Store , link *SignupLink , typed string ) ( matches []*User , err error ) {

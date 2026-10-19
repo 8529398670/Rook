@@ -391,6 +391,9 @@
 }
 
 .seat.pos-right .seat-bubble { right: auto; left: -14px; }
+/* Your partner's seat is a row whose right end can be Add bot / Invite /
+   Remove, so their bubble sits on the avatar's other corner instead. */
+.seat.pos-top .seat-bubble { right: auto; left: -14px; }
 .seat.pos-bottom .seat-bubble { position: static; }
 .seat-bubble { white-space: nowrap; }
 .seat-bubble.bubble-pass { font-family: var(--font-ui); font-size: 0.75rem; font-weight: 750; color: var(--fg-muted); }
@@ -1173,6 +1176,8 @@
      corner, the seats lose their card fans, and the trick flattens so its
      top and bottom cards overlap like a real pile. */
   .seat.pos-top { top: 14px; left: calc(12px + var(--safe-left)); transform: none; }
+  /* Close to the edge here: keep the bubble on the felt. */
+  .seat.pos-top .seat-bubble { left: -8px; }
   .seat.pos-left { top: 46%; }
   .seat.pos-right { top: 18%; }
   .seat-avatar { width: 34px; height: 34px; font-size: 0.8rem; }

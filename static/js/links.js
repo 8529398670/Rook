@@ -6,6 +6,7 @@ const Links = {
   settingsReady: false,
   linksReady: false,
   showMaker: false,
+  isOwner: false,
 
   // The pauses on offer after a finished trick, in ms -- the same list as
   // models.TrickPauses on the server.
@@ -55,6 +56,7 @@ const Links = {
     if ( this.linksReady ) return;
     this.linksReady = true;
     this.showMaker = me.role === "admin";
+    this.isOwner = !!me.owner;
     Dom.show( Dom.get( "signup-links-panel" ) , true );
     Dom.show( Dom.get( "signup-links-by-head" ) , this.showMaker );
     Dom.get( "signup-link-form" ).addEventListener( "submit" , this.onCreate.bind( this ) );
@@ -120,6 +122,23 @@ const Links = {
           on: { click: async function () {
             try {
               await Api.revokeSignupLink( link.id );
+              await Links.refresh();
+            } catch ( error ) {
+              Toast.error( error );
+            }
+          } },
+        } ) );
+      }
+      if ( Links.isOwner ) {
+        actions.appendChild( Dom.el( "button" , {
+          class: "secondary small danger-text",
+          text: I18n.get( "signup_links.delete" ),
+          attrs: { type: "button" },
+          on: { click: async function () {
+            const question = I18n.format( "signup_links.delete_confirm" , { label: link.label } );
+            if ( question !== "" && !window.confirm( question ) ) return;
+            try {
+              await Api.deleteSignupLink( link.id );
               await Links.refresh();
             } catch ( error ) {
               Toast.error( error );

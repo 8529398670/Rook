@@ -104,6 +104,7 @@ const Api = {
     return this.post( "/api/signup-links" , { label: label , max_uses: maxUses , days: days } );
   },
   revokeSignupLink( id )       { return this.post( "/api/signup-links/" + encodeURIComponent( id ) + "/revoke" ); },
+  deleteSignupLink( id )       { return this.post( "/api/signup-links/" + encodeURIComponent( id ) + "/delete" ); },
 
   // A one-time link that signs another device in as you.
   myLoginLink()                { return this.post( "/api/account/login-link" ); },

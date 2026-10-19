@@ -318,6 +318,18 @@
         </div>
       </div>
 
+      <div class="card">
+        <h2 data-i18n="profile.heading"></h2>
+        <div class="avatar-preview-row">
+          <span id="avatar-preview" class="avatar avatar-large" aria-hidden="true"></span>
+          <p class="muted" data-i18n="profile.description"></p>
+        </div>
+        <h3 data-i18n="profile.icon"></h3>
+        <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
+        <h3 data-i18n="profile.color"></h3>
+        <div id="color-grid" class="color-picker"></div>
+      </div>
+
       <!-- Signing in somewhere else: a one-time link to yourself. -->
       <div class="card">
         <h2 data-i18n="device_link.heading"></h2>
@@ -331,16 +343,44 @@
         </div>
       </div>
 
-      <div class="card">
-        <h2 data-i18n="profile.heading"></h2>
-        <div class="avatar-preview-row">
-          <span id="avatar-preview" class="avatar avatar-large" aria-hidden="true"></span>
-          <p class="muted" data-i18n="profile.description"></p>
+      <div class="card" id="signup-links-panel" hidden>
+        <h2 data-i18n="signup_links.heading"></h2>
+        <p class="muted" data-i18n="signup_links.description"></p>
+        <form id="signup-link-form" autocomplete="off">
+          <div class="field">
+            <label for="signup-link-label" data-i18n="signup_links.label"></label>
+            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
+          </div>
+          <div class="field">
+            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
+            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
+          </div>
+          <div class="field">
+            <label for="signup-link-days" data-i18n="signup_links.days"></label>
+            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
+          </div>
+          <button type="submit" data-i18n="signup_links.create"></button>
+        </form>
+        <div id="signup-link-box" class="notice notice-link" hidden>
+          <p data-i18n="signup_links.link_notice"></p>
+          <code id="signup-link-value"></code>
+          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
+          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
         </div>
-        <h3 data-i18n="profile.icon"></h3>
-        <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
-        <h3 data-i18n="profile.color"></h3>
-        <div id="color-grid" class="color-picker"></div>
+        <div class="table-scroll">
+          <table id="signup-links-table">
+            <thead>
+              <tr>
+                <th data-i18n="signup_links.table_label"></th>
+                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
+                <th data-i18n="signup_links.table_used"></th>
+                <th data-i18n="signup_links.table_status"></th>
+                <th data-i18n="signup_links.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
       </div>
 
       <div class="card">
@@ -454,46 +494,6 @@
                 <th data-i18n="api_keys.table_last_used"></th>
                 <th data-i18n="api_keys.table_expires"></th>
                 <th data-i18n="api_keys.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" id="signup-links-panel" hidden>
-        <h2 data-i18n="signup_links.heading"></h2>
-        <p class="muted" data-i18n="signup_links.description"></p>
-        <form id="signup-link-form" autocomplete="off">
-          <div class="field">
-            <label for="signup-link-label" data-i18n="signup_links.label"></label>
-            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
-          </div>
-          <div class="field">
-            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
-            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
-          </div>
-          <div class="field">
-            <label for="signup-link-days" data-i18n="signup_links.days"></label>
-            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
-          </div>
-          <button type="submit" data-i18n="signup_links.create"></button>
-        </form>
-        <div id="signup-link-box" class="notice notice-link" hidden>
-          <p data-i18n="signup_links.link_notice"></p>
-          <code id="signup-link-value"></code>
-          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
-          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
-        </div>
-        <div class="table-scroll">
-          <table id="signup-links-table">
-            <thead>
-              <tr>
-                <th data-i18n="signup_links.table_label"></th>
-                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
-                <th data-i18n="signup_links.table_used"></th>
-                <th data-i18n="signup_links.table_status"></th>
-                <th data-i18n="signup_links.table_actions"></th>
               </tr>
             </thead>
             <tbody></tbody>

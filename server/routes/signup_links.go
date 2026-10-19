@@ -125,3 +125,24 @@ func ( handlers *Handlers ) RevokeSignupLink( c fiber.Ctx ) ( err error ) {
 	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }
+
+// DeleteSignupLink removes anyone's link, live or dead, so it drops off the
+// list. The owner only (RequireOwner on the route).
+func ( handlers *Handlers ) DeleteSignupLink( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	link , get_err := models.GetSignupLink( handlers.Store , c.Params( "link_id" ) )
+	if get_err != nil {
+		err = notFound( c , "no such link" )
+		return
+	}
+	if models.DeleteSignupLink( handlers.Store , link.ID ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}

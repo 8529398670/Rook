@@ -745,6 +745,8 @@ signup_links:
   expired: "expired"
   revoked: "switched off"
   revoke: "Switch off"
+  delete: "Delete"
+  delete_confirm: "Delete \"{label}\" for good? The accounts it made stay, but they can no longer use it to sign in on a new device."
 
 games:
   heading: "Game history"

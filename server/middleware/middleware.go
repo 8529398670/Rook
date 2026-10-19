@@ -5,6 +5,8 @@
 package middleware
 
 import (
+	strings "strings"
+
 	fiber "github.com/gofiber/fiber/v3"
 	helmet "github.com/gofiber/fiber/v3/middleware/helmet"
 	limiter "github.com/gofiber/fiber/v3/middleware/limiter"
@@ -59,10 +61,20 @@ func SecurityHeaders( cfg *config.Config ) ( handler fiber.Handler ) {
 // counters stop being shared, so each replica would allow the full budget --
 // move to a shared store (limiter.Config.Storage) at that point rather than
 // assuming the limit still holds.
+//
+// Only the API and login links count against it. The page's own files are
+// static and cheap, and one page load fetches some forty of them -- counted,
+// two or three loads from one household's IP (signing up through a link
+// reloads the app) used the whole budget and locked everyone there out.
 func RateLimit( cfg *config.Config ) ( handler fiber.Handler ) {
 	handler = limiter.New( limiter.Config{
 		Max:        cfg.RateLimitMax,
 		Expiration: cfg.RateLimitWindow,
+		Next: func( c fiber.Ctx ) ( skip bool ) {
+			request_path := c.Path()
+			skip = strings.HasPrefix( request_path , "/api/" ) == false && strings.HasPrefix( request_path , "/login/" ) == false
+			return
+		},
 		KeyGenerator: func( c fiber.Ctx ) ( result string ) {
 			result = c.IP()
 			return

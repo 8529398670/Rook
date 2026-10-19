@@ -98,6 +98,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Get( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.ListSignupLinks )
 	account.Post( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.CreateSignupLink )
 	account.Post( "/signup-links/:link_id/revoke" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.RevokeSignupLink )
+	account.Post( "/signup-links/:link_id/delete" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.DeleteSignupLink )
 
 	// API keys: any signed-in user manages their own.
 	//
