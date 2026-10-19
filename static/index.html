@@ -108,6 +108,10 @@
         <div class="lobby-wordmark" data-art="wordmark"></div>
       </div>
       <div class="lobby-header-actions">
+        <button id="lobby-fullscreen" type="button" class="icon-button bar-fullscreen" data-fullscreen data-i18n-attr="aria-label:table.fullscreen,title:table.fullscreen">
+          <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
         <button id="open-games" type="button" class="icon-button" data-i18n-attr="aria-label:games.heading,title:games.heading">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
@@ -195,6 +199,10 @@
         </button>
       </div>
       <div id="table-scores" class="scoreboard"></div>
+      <button id="table-fullscreen" type="button" class="icon-button bar-fullscreen" data-fullscreen data-i18n-attr="aria-label:table.fullscreen,title:table.fullscreen">
+          <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
       <button id="table-menu" type="button" class="icon-button" data-i18n-attr="aria-label:table.menu,title:table.menu">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="12" r="2.2" fill="currentColor"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/><circle cx="19" cy="12" r="2.2" fill="currentColor"/></svg>
         <span id="chat-unread" class="badge-dot" hidden></span>
@@ -274,6 +282,19 @@
         </form>
         <p id="rename-saved" class="notice notice-ok" data-i18n="account.saved_notice" hidden></p>
         <button id="logout-button" type="button" class="secondary" data-i18n="account.logout_button"></button>
+      </div>
+
+      <!-- Signing in somewhere else: a one-time link to yourself. -->
+      <div class="card">
+        <h2 data-i18n="device_link.heading"></h2>
+        <p class="muted" data-i18n="device_link.description"></p>
+        <button id="device-link-button" type="button" data-i18n="device_link.button"></button>
+        <div id="device-link-box" class="notice notice-link" hidden>
+          <p id="device-link-notice"></p>
+          <code id="device-link-value"></code>
+          <button id="device-link-copy" type="button" class="secondary" data-i18n="device_link.copy"></button>
+          <span id="device-link-copied" class="muted" data-i18n="device_link.copied" hidden></span>
+        </div>
       </div>
 
       <div class="card">
@@ -475,6 +496,7 @@
             <thead>
               <tr>
                 <th data-i18n="signup_links.table_label"></th>
+                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
                 <th data-i18n="signup_links.table_used"></th>
                 <th data-i18n="signup_links.table_status"></th>
                 <th data-i18n="signup_links.table_actions"></th>
@@ -631,6 +653,7 @@
         <button type="button" data-menu="scores" data-i18n="menu.scores"></button>
         <button type="button" data-menu="rules" data-i18n="menu.rules"></button>
         <button type="button" data-menu="share" data-i18n="menu.share"></button>
+        <button type="button" class="menu-fullscreen" data-fullscreen><span data-fullscreen-label data-i18n="menu.fullscreen"></span></button>
         <button type="button" data-menu="history" data-i18n="admin_game.history"></button>
         <label class="switch-row menu-switch" id="menu-observers-row">
           <span>
@@ -849,6 +872,7 @@
   <script src="/js/i18n.js"></script>
   <script src="/js/api.js"></script>
   <script src="/js/ui.js"></script>
+  <script src="/js/fullscreen.js"></script>
   <script src="/js/stream.js"></script>
   <script src="/js/art-paths.js"></script>
   <script src="/js/art.js"></script>

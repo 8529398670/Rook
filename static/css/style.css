@@ -534,6 +534,58 @@ td .row-actions { display: flex; gap: 0.4rem; }
   from { transform: translateY(40px); opacity: 0; }
 }
 
+@keyframes sheet-in-side {
+  from { transform: translateX(40px); opacity: 0; }
+}
+
+/* At the table on a wide screen, a sheet docks to the right as a drawer
+   instead of covering the middle: a laptop has width to spare and little
+   height, so the table moves over and stays in full view -- and playable --
+   beside the scores, the chat or the hand summary. No backdrop; the layer is
+   only as wide as the drawer, so the table keeps its clicks. */
+@media (min-width: 60rem) {
+  body[data-screen="screen-table"] { --drawer-w: clamp(320px, 28vw, 420px); }
+
+  body[data-screen="screen-table"] .sheet-layer {
+    left: auto;
+    width: var(--drawer-w);
+    padding: 0;
+    align-items: stretch;
+    justify-content: stretch;
+    background: none;
+    animation: none;
+  }
+
+  body[data-screen="screen-table"] .sheet {
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    min-height: 0;
+    padding: calc(0.5rem + var(--safe-top)) calc(1rem + var(--safe-right)) calc(1rem + var(--safe-bottom)) 1rem;
+    border-left: 1px solid var(--border);
+    border-radius: 0;
+    box-shadow: -6px 0 24px rgba(0, 0, 0, 0.12);
+    animation: sheet-in-side 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);
+  }
+
+  body[data-screen="screen-table"] .sheet-grip { display: none; }
+
+  body[data-screen="screen-table"].sheet-open .screen-table { margin-right: var(--drawer-w); }
+}
+
+/* Full screen controls (fullscreen.js): one icon for each state. In a bar
+   only where it has room; on a phone it is a row in the table menu. */
+[data-fullscreen] .fs-exit { display: none; }
+[data-fullscreen][aria-pressed="true"] .fs-enter { display: none; }
+[data-fullscreen][aria-pressed="true"] .fs-exit { display: block; }
+.icon-button.bar-fullscreen { display: none; }
+.bar-fullscreen svg { width: 22px; height: 22px; }
+
+@media (min-width: 40rem) {
+  .icon-button.bar-fullscreen { display: inline-grid; }
+  .menu-list .menu-fullscreen { display: none; }
+}
+
 @keyframes fade-in {
   from { opacity: 0; }
 }

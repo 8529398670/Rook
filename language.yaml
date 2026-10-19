@@ -132,6 +132,8 @@ waiting:
 
 table:
   menu: "Table menu"
+  fullscreen: "Full screen"
+  exit_fullscreen: "Exit full screen"
   leave: "Leave table"
   reconnecting: "Reconnecting…"
   paused: "Game paused"
@@ -206,6 +208,8 @@ menu:
   scores: "Score sheet"
   rules: "Rules"
   share: "Share this table"
+  fullscreen: "Full screen"
+  exit_fullscreen: "Exit full screen"
 
 last_trick:
   caption: "{name} took it, {points} points."
@@ -351,6 +355,14 @@ account:
   save_button: "Save"
   saved_notice: "Saved."
   logout_button: "Log out"
+
+device_link:
+  heading: "Sign in on another device"
+  description: "Get a one-time link to yourself. Open it on your phone or another computer and it signs you in there as you."
+  button: "Make a sign-in link"
+  notice: "Open this on the other device. It works once, within {hours} hours. Don't share it: whoever opens it is signed in as you."
+  copy: "Copy"
+  copied: "Copied."
 
 appearance:
   heading: "Appearance"
@@ -656,6 +668,7 @@ signup_links:
   copy: "Copy"
   copied: "Copied."
   table_label: "Link"
+  table_by: "Made by"
   table_used: "Accounts"
   table_status: "Status"
   table_actions: "Actions"

@@ -82,6 +82,15 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Post( "/account/avatar" , handlers.SetAvatar )
 	account.Post( "/account/pin" , handlers.SetPin )
 	account.Post( "/join/:code" , handlers.JoinTable )
+	// Guarded per route rather than by a group, for the prefix reason
+	// spelled out at the API keys group below.
+	account.Post( "/account/login-link" , handlers.Guard.RequireSession , handlers.CreateMyLoginLink )
+
+	// Sign-up links: anyone allowed to invite manages their own, admins
+	// everyone's (see signup_links.go).
+	account.Get( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.ListSignupLinks )
+	account.Post( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.CreateSignupLink )
+	account.Post( "/signup-links/:link_id/revoke" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.RevokeSignupLink )
 
 	// API keys: any signed-in user manages their own.
 	//
@@ -113,9 +122,6 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/delete" , handlers.DeleteUser )
 	admin.Get( "/settings" , handlers.GetSettings )
 	admin.Post( "/settings" , handlers.SaveSettings )
-	admin.Get( "/signup-links" , handlers.ListSignupLinks )
-	admin.Post( "/signup-links" , handlers.CreateSignupLink )
-	admin.Post( "/signup-links/:link_id/revoke" , handlers.RevokeSignupLink )
 
 	// Admin view of every key in the app -- "who has standing access" -- and
 	// the ability to revoke someone else's. Its own prefix for the same reason

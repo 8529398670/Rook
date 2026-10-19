@@ -11,6 +11,10 @@ const Settings = {
     Dom.get( "settings-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
     Dom.get( "rename-form" ).addEventListener( "submit" , this.onRename.bind( this ) );
     Dom.get( "logout-button" ).addEventListener( "click" , this.onLogout.bind( this ) );
+    Dom.get( "device-link-button" ).addEventListener( "click" , this.onDeviceLink.bind( this ) );
+    Dom.get( "device-link-copy" ).addEventListener( "click" , function () {
+      Dom.copy( Dom.get( "device-link-value" ) , Dom.get( "device-link-copied" ) );
+    } );
     Dom.all( "[data-theme-choice]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () {
         Theme.set( button.getAttribute( "data-theme-choice" ) );
@@ -31,10 +35,11 @@ const Settings = {
     // Each panel owns its own file and its own init(); this is the one line
     // that knows the API keys screen exists.
     await Keys.init( this.me );
+    if ( this.me.can_invite ) Links.initSignupLinks( this.me );
 
     if ( this.me.role !== "admin" ) return;
     Dom.show( Dom.get( "admin-panel" ) , true );
-    Links.init();
+    Links.initGameSettings();
     Dom.get( "create-user-form" ).addEventListener( "submit" , this.onCreateUser.bind( this ) );
     Dom.get( "copy-link-button" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "login-link-value" ) , Dom.get( "copied-notice" ) );
@@ -80,6 +85,22 @@ const Settings = {
       // which is the honest state to show.
     }
     window.location.href = "/";
+  },
+
+  // A fresh one-time link to yourself, for signing in on another device.
+  // Each press mints a new one; earlier ones still work until used or
+  // expired.
+  async onDeviceLink() {
+    try {
+      const issued = await Api.myLoginLink();
+      Dom.text( Dom.get( "device-link-value" ) , window.location.origin + issued.login_path );
+      Dom.text( Dom.get( "device-link-notice" ) , I18n.format( "device_link.notice" , {
+        hours: Math.max( 1 , Math.round( issued.expires_in_seconds / 3600 ) ),
+      } ) );
+      Dom.show( Dom.get( "device-link-box" ) , true );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
   async onCreateUser( event ) {

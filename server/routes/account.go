@@ -95,3 +95,25 @@ func ( handlers *Handlers ) Logout( c fiber.Ctx ) ( err error ) {
 	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }
+
+// CreateMyLoginLink is ReissueLogin for yourself: a one-time link that signs
+// another device in as you, so a player can move to their phone without
+// asking an admin. Registered with RequireSession -- an API key must not be
+// able to turn itself into a browser session.
+func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	credential , token_err := models.IssueLoginToken( handlers.Store , security.UserFrom( c ).ID , handlers.Config.LoginTokenTTL )
+	if token_err != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{
+		"login_path":         "/login/" + credential,
+		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
+	} )
+	return
+}

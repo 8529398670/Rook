@@ -1,22 +1,19 @@
-// Admin-only Settings panels about how people get in and what watchers see:
-// the app-wide game settings, and multi-use sign-up links.
+// Settings panels about how people get in and what watchers see: the
+// app-wide game settings (admins only), and multi-use sign-up links, which
+// anyone allowed to invite may make. An admin sees everyone's links, with
+// who made each; anyone else only their own.
 const Links = {
-  ready: false,
+  settingsReady: false,
+  linksReady: false,
+  showMaker: false,
 
-  async init() {
-    if ( this.ready ) return;
-    this.ready = true;
+  async initGameSettings() {
+    if ( this.settingsReady ) return;
+    this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
-    Dom.show( Dom.get( "signup-links-panel" ) , true );
-
     [ "setting-join-signup" , "setting-observers-all" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
-    Dom.get( "signup-link-form" ).addEventListener( "submit" , this.onCreate.bind( this ) );
-    Dom.get( "signup-link-copy" ).addEventListener( "click" , function () {
-      Dom.copy( Dom.get( "signup-link-value" ) , Dom.get( "signup-link-copied" ) );
-    } );
-
     try {
       const settings = await Api.getSettings();
       Dom.get( "setting-join-signup" ).checked = settings.allow_join_signup;
@@ -24,6 +21,18 @@ const Links = {
     } catch ( error ) {
       Toast.error( error );
     }
+  },
+
+  async initSignupLinks( me ) {
+    if ( this.linksReady ) return;
+    this.linksReady = true;
+    this.showMaker = me.role === "admin";
+    Dom.show( Dom.get( "signup-links-panel" ) , true );
+    Dom.show( Dom.get( "signup-links-by-head" ) , this.showMaker );
+    Dom.get( "signup-link-form" ).addEventListener( "submit" , this.onCreate.bind( this ) );
+    Dom.get( "signup-link-copy" ).addEventListener( "click" , function () {
+      Dom.copy( Dom.get( "signup-link-value" ) , Dom.get( "signup-link-copied" ) );
+    } );
     await this.refresh();
   },
 
@@ -87,10 +96,11 @@ const Links = {
       }
       body.appendChild( Dom.el( "tr" , { children: [
         Dom.el( "td" , { text: link.label } ),
+        Links.showMaker ? Dom.el( "td" , { text: link.created_by_name || "—" } ) : null,
         Dom.el( "td" , { text: I18n.format( "signup_links.used_of" , { used: link.used , max: link.max_uses } ) } ),
         Dom.el( "td" , { text: I18n.get( state ) } ),
         actions,
-      ] } ) );
+      ].filter( Boolean ) } ) );
     } );
   },
 };

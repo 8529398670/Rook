@@ -89,11 +89,15 @@ const Api = {
   setCanHint( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-hint" , { can_hint: flag } ); },
   getSettings()                { return this.request( "/api/admin/settings" ); },
   saveSettings( settings )     { return this.post( "/api/admin/settings" , settings ); },
-  listSignupLinks()            { return this.request( "/api/admin/signup-links" ); },
+  // Sign-up links: anyone who may invite manages their own; admins see all.
+  listSignupLinks()            { return this.request( "/api/signup-links" ); },
   createSignupLink( label , maxUses , days ) {
-    return this.post( "/api/admin/signup-links" , { label: label , max_uses: maxUses , days: days } );
+    return this.post( "/api/signup-links" , { label: label , max_uses: maxUses , days: days } );
   },
-  revokeSignupLink( id )       { return this.post( "/api/admin/signup-links/" + encodeURIComponent( id ) + "/revoke" ); },
+  revokeSignupLink( id )       { return this.post( "/api/signup-links/" + encodeURIComponent( id ) + "/revoke" ); },
+
+  // A one-time link that signs another device in as you.
+  myLoginLink()                { return this.post( "/api/account/login-link" ); },
 
   // Your own look and PIN.
   profileOptions()             { return this.request( "/api/profile/options" ); },

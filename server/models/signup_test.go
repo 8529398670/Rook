@@ -48,7 +48,8 @@ func TestNameCloseness( t *testing.T ) {
 
 func TestSignupLinkCapacityAndMatches( t *testing.T ) {
 	store := testStore( t )
-	credential , link , err := IssueSignupLink( store , "Family" , 2 , time.Hour , 1 )
+	admin , _ := CreateUser( store , "Admin" , RoleAdmin )
+	credential , link , err := IssueSignupLink( store , "Family" , 2 , time.Hour , admin.ID )
 	if err != nil { t.Fatal( err ) }
 
 	if _ , err := LoadSignupLink( store , link.ID+".wrong" ); !errors.Is( err , ErrSignupLinkInvalid ) {
@@ -75,6 +76,34 @@ func TestSignupLinkCapacityAndMatches( t *testing.T ) {
 	RevokeSignupLink( store , link.ID )
 	if _ , err := LoadSignupLink( store , credential ); !errors.Is( err , ErrSignupLinkInvalid ) {
 		t.Fatalf( "revoked link still loads" )
+	}
+}
+
+// A link lives only as long as its maker may hand one out.
+func TestSignupLinkFollowsCreator( t *testing.T ) {
+	store := testStore( t )
+	inviter , _ := CreateUser( store , "Cara" , RoleUser )
+	SetUserCanInvite( store , inviter.ID , true )
+	credential , link , err := IssueSignupLink( store , "Club" , 5 , time.Hour , inviter.ID )
+	if err != nil { t.Fatal( err ) }
+	if _ , err := LoadSignupLink( store , credential ); err != nil {
+		t.Fatalf( "an inviter's link should load: %v" , err )
+	}
+
+	mine , _ := ListSignupLinksBy( store , inviter.ID )
+	others , _ := ListSignupLinksBy( store , inviter.ID+1 )
+	if len( mine ) != 1 || mine[ 0 ].ID != link.ID || len( others ) != 0 {
+		t.Fatalf( "ListSignupLinksBy: mine=%v others=%v" , mine , others )
+	}
+
+	SetUserCanInvite( store , inviter.ID , false )
+	if _ , err := LoadSignupLink( store , credential ); !errors.Is( err , ErrSignupLinkInvalid ) {
+		t.Fatalf( "link still loads after its maker lost the invite right" )
+	}
+	SetUserCanInvite( store , inviter.ID , true )
+	SetUserDisabled( store , inviter.ID , true )
+	if _ , err := LoadSignupLink( store , credential ); !errors.Is( err , ErrSignupLinkInvalid ) {
+		t.Fatalf( "link still loads after its maker was disabled" )
 	}
 }
 

@@ -32,6 +32,7 @@ const App = {
 
     Cards.init();
     Sheet.init();
+    Fullscreen.init();
     this.drawArt();
 
     let me = { authenticated: false };

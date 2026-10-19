@@ -87,6 +87,10 @@ func IssueSignupLink( store *db.Store , label string , max_uses int , ttl time.D
 
 // LoadSignupLink checks a credential and returns its live link. Every way it
 // can be wrong answers the same, like a login link.
+//
+// A link also dies with its maker's right to hand one out: once an admin
+// switches off someone's invite permission, or disables or deletes them,
+// the links they made stop working too.
 func LoadSignupLink( store *db.Store , credential string ) ( link *SignupLink , err error ) {
 	id , secret , ok := splitCredential( credential )
 	if ok == false {
@@ -99,6 +103,11 @@ func LoadSignupLink( store *db.Store , credential string ) ( link *SignupLink , 
 		return
 	}
 	if encryption.ConstantTimeEqual( link.SecretHash , encryption.Sha256Hex( secret ) ) == false || link.Live() == false {
+		link , err = nil , ErrSignupLinkInvalid
+		return
+	}
+	creator , creator_err := GetUser( store , link.CreatedBy )
+	if creator_err != nil || creator.Disabled() || creator.MayInvite() == false {
 		link , err = nil , ErrSignupLinkInvalid
 	}
 	return
@@ -130,6 +139,26 @@ func ListSignupLinks( store *db.Store ) ( links []*SignupLink , err error ) {
 			return true
 		} )
 	sort.Slice( links , func( i int , j int ) bool { return links[ i ].CreatedAt.After( links[ j ].CreatedAt ) } )
+	return
+}
+
+// GetSignupLink loads a link by its public id, without its secret: for
+// managing a link, never for signing up through one.
+func GetSignupLink( store *db.Store , link_id string ) ( link *SignupLink , err error ) {
+	link = &SignupLink{}
+	if err = store.Get( db.BucketSignupLinks , []byte( link_id ) , link ); err != nil { link = nil }
+	return
+}
+
+// ListSignupLinksBy is the links one person made, newest first: what a
+// player who may invite sees of them.
+func ListSignupLinksBy( store *db.Store , user_id uint64 ) ( links []*SignupLink , err error ) {
+	all , err := ListSignupLinks( store )
+	if err != nil { return }
+	links = []*SignupLink{}
+	for _ , link := range all {
+		if link.CreatedBy == user_id { links = append( links , link ) }
+	}
 	return
 }
 
