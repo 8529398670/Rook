@@ -61,7 +61,8 @@ func chatSeq( c fiber.Ctx ) ( seq int , ok bool ) {
 	return
 }
 
-// EditGlobalChat and DeleteGlobalChat change one of the caller's own lines.
+// EditGlobalChat and DeleteGlobalChat change one of the caller's own lines,
+// or anyone's for the owner.
 func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx ) ( err error ) {
 	var body globalChatRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
@@ -73,7 +74,7 @@ func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "no_such_message" )
 		return
 	}
-	if chat_err := handlers.Hub.EditGlobalChat( security.UserFrom( c ) , seq , body.Text ); chat_err != nil {
+	if chat_err := handlers.Hub.EditGlobalChat( security.UserFrom( c ) , handlers.isOwner( c ) , seq , body.Text ); chat_err != nil {
 		err = handlers.tableError( c , chat_err )
 		return
 	}
@@ -92,7 +93,7 @@ func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "no_such_message" )
 		return
 	}
-	if chat_err := handlers.Hub.DeleteGlobalChat( security.UserFrom( c ) , seq ); chat_err != nil {
+	if chat_err := handlers.Hub.DeleteGlobalChat( security.UserFrom( c ) , handlers.isOwner( c ) , seq ); chat_err != nil {
 		err = handlers.tableError( c , chat_err )
 		return
 	}

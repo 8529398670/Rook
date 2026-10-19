@@ -342,7 +342,7 @@ func ( handlers *Handlers ) ChatAtTable( c fiber.Ctx ) ( err error ) {
 }
 
 // EditChatAtTable and DeleteChatAtTable change one of the caller's own
-// lines in a table's chat.
+// lines in a table's chat -- or anyone's, for the owner.
 func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx ) ( err error ) {
 	var body chatRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
@@ -355,7 +355,7 @@ func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.EditChat( id , security.UserFrom( c ) , seq , body.Text ) )
+	err = handlers.tableResult( c , id , handlers.Hub.EditChat( id , security.UserFrom( c ) , handlers.isOwner( c ) , seq , body.Text ) )
 	return
 }
 
@@ -371,7 +371,7 @@ func ( handlers *Handlers ) DeleteChatAtTable( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.DeleteChat( id , security.UserFrom( c ) , seq ) )
+	err = handlers.tableResult( c , id , handlers.Hub.DeleteChat( id , security.UserFrom( c ) , handlers.isOwner( c ) , seq ) )
 	return
 }
 

@@ -32,7 +32,7 @@ const Links = {
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
     this.fillPauses( Dom.get( "setting-trick-pause" ) );
-    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" ].forEach( function ( id ) {
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-first-trick" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
@@ -44,6 +44,8 @@ const Links = {
       Dom.get( "setting-global-chat" ).checked = !settings.global_chat_off;
       // 0 (never set) is the built-in pause, which is on the list.
       Dom.get( "setting-trick-pause" ).value = String( settings.trick_pause_ms || 1100 );
+      Dom.get( "setting-rook-anytime" ).checked = settings.rook_anytime;
+      Dom.get( "setting-rook-first-trick" ).checked = !settings.rook_first_trick_off;
     } catch ( error ) {
       Toast.error( error );
     }
@@ -70,6 +72,8 @@ const Links = {
         table_chat_off: !Dom.get( "setting-table-chat" ).checked,
         global_chat_off: !Dom.get( "setting-global-chat" ).checked,
         trick_pause_ms: Number( Dom.get( "setting-trick-pause" ).value ),
+        rook_anytime: Dom.get( "setting-rook-anytime" ).checked,
+        rook_first_trick_off: !Dom.get( "setting-rook-first-trick" ).checked,
       } );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {

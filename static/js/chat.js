@@ -332,7 +332,7 @@ const Chat = {
   // a line from before lines recorded that -- their seat's, or one sent
   // under their name from the rail.
   mine( view , line ) {
-    if ( line.user_id ) return this.editable( line );
+    if ( line.user_id ) return Boolean( Table.me && line.user_id === Table.me.id );
     if ( line.seat >= 0 ) return line.seat === view.you;
     if ( !line.watcher || view.you >= 0 ) return false;
     if ( line.guest ) return !view.signed_in && line.name === this.guestName();
@@ -340,8 +340,10 @@ const Chat = {
   },
 
   // Only lines sent from your own account can be edited or deleted. A
-  // guest's have no account behind them, so they stay as written.
+  // guest's have no account behind them, so they stay as written -- except
+  // to the owner, who may edit or delete anyone's line.
   editable( line ) {
+    if ( Table.me && Table.me.owner ) return true;
     return Boolean( line.user_id && Table.me && line.user_id === Table.me.id );
   },
 

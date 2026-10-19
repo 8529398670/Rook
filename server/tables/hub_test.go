@@ -347,3 +347,31 @@ func TestRenameSeat( t *testing.T ) {
 		t.Fatalf( "after reset: %+v" , view.Seats )
 	}
 }
+
+func TestNewTablesTakeTheRookRulesFromTheSettings( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	host := testUser( t , store , "Ana" )
+
+	// Whatever the creator sends, the table starts with the app's rules.
+	sent := game.DefaultOptions()
+	sent.RookAnytime , sent.RookFirstTrick = true , false
+	before , err := hub.Create( host , "Before" , sent )
+	if err != nil { t.Fatal( err ) }
+	view , _ := hub.View( before , Viewer{ User: host } , ViewOptions{} )
+	if view.Options.RookAnytime || view.Options.RookFirstTrick == false {
+		t.Fatalf( "default settings not applied: %+v" , view.Options )
+	}
+
+	if err := hub.SetSettings( models.AppSettings{ RookAnytime: true , RookFirstTrickOff: true } ); err != nil { t.Fatal( err ) }
+	after , err := hub.Create( host , "After" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	view , _ = hub.View( after , Viewer{ User: host } , ViewOptions{} )
+	if view.Options.RookAnytime == false || view.Options.RookFirstTrick {
+		t.Fatalf( "changed settings not applied: %+v" , view.Options )
+	}
+	// A table made earlier keeps the rules it started with.
+	view , _ = hub.View( before , Viewer{ User: host } , ViewOptions{} )
+	if view.Options.RookAnytime || view.Options.RookFirstTrick == false {
+		t.Fatalf( "existing table's rules changed: %+v" , view.Options )
+	}
+}

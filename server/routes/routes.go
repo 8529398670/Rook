@@ -114,32 +114,34 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	keys.Post( "" , handlers.CreateMyAPIKey )
 	keys.Post( "/:key_id/revoke" , handlers.RevokeMyAPIKey )
 
-	// Admin only: deciding who gets in. Note this is the *only* thing admin
-	// rights gate in the base template -- see architecture.md on defaulting
-	// new features to "any signed-in user".
+	// Admin only, and of the admins the owner only: deciding who gets in.
+	// RequireOwner is added per route rather than on the group, for the
+	// prefix reason spelled out at the API keys group above. See
+	// architecture.md on defaulting new features to "any signed-in user".
 	admin := app.Group( "/api/admin" , handlers.Guard.RequireAdmin )
-	admin.Get( "/users" , handlers.ListUsers )
-	admin.Post( "/users" , handlers.CreateUser )
-	admin.Post( "/users/:user_id/reissue-login" , handlers.ReissueLogin )
-	admin.Post( "/users/:user_id/disabled" , handlers.SetUserDisabled )
-	admin.Post( "/users/:user_id/can-invite" , handlers.SetUserCanInvite )
-	admin.Post( "/users/:user_id/can-hint" , handlers.SetUserCanHint )
-	admin.Post( "/users/:user_id/can-undo" , handlers.SetUserCanUndo )
-	admin.Post( "/users/:user_id/role" , handlers.AdminSetRole )
-	admin.Post( "/users/:user_id/rename" , handlers.AdminRenameUser )
-	admin.Post( "/users/:user_id/avatar" , handlers.AdminSetAvatar )
-	admin.Post( "/users/:user_id/delete" , handlers.DeleteUser )
+	admin.Get( "/users" , handlers.RequireOwner , handlers.ListUsers )
+	admin.Post( "/users" , handlers.RequireOwner , handlers.CreateUser )
+	admin.Post( "/users/:user_id/reissue-login" , handlers.RequireOwner , handlers.ReissueLogin )
+	admin.Post( "/users/:user_id/disabled" , handlers.RequireOwner , handlers.SetUserDisabled )
+	admin.Post( "/users/:user_id/can-invite" , handlers.RequireOwner , handlers.SetUserCanInvite )
+	admin.Post( "/users/:user_id/can-hint" , handlers.RequireOwner , handlers.SetUserCanHint )
+	admin.Post( "/users/:user_id/can-undo" , handlers.RequireOwner , handlers.SetUserCanUndo )
+	admin.Post( "/users/:user_id/role" , handlers.RequireOwner , handlers.AdminSetRole )
+	admin.Post( "/users/:user_id/rename" , handlers.RequireOwner , handlers.AdminRenameUser )
+	admin.Post( "/users/:user_id/avatar" , handlers.RequireOwner , handlers.AdminSetAvatar )
+	admin.Post( "/users/:user_id/delete" , handlers.RequireOwner , handlers.DeleteUser )
 	// The app-wide game settings: the owner's, not every admin's.
 	admin.Get( "/settings" , handlers.RequireOwner , handlers.GetSettings )
 	admin.Post( "/settings" , handlers.RequireOwner , handlers.SaveSettings )
 
 	// Admin view of every key in the app -- "who has standing access" -- and
-	// the ability to revoke someone else's. Its own prefix for the same reason
+	// the ability to revoke or delete someone else's. Its own prefix for the same reason
 	// as above: mounted on "/api/admin" it would gate the account routes too.
 	// Owner only, like the game settings.
 	admin_keys := app.Group( "/api/admin/keys" , handlers.RequireAPIKeys , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
 	admin_keys.Get( "" , handlers.ListAllAPIKeys )
 	admin_keys.Post( "/:key_id/revoke" , handlers.RevokeAnyAPIKey )
+	admin_keys.Post( "/:key_id/delete" , handlers.DeleteAnyAPIKey )
 
 	// The card game. Any signed-in player, by session or API key -- a key
 	// at a table is how a script (or a test) takes a seat. Everything that
@@ -189,10 +191,11 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/trick-pause" , handlers.Guard.RequireAdmin , handlers.SetTableTrickPause )
 
 	// The game history: every finished or abandoned game, for anyone
-	// signed in.
+	// signed in. Only the owner may delete one.
 	games := app.Group( "/api/games" , handlers.Guard.RequireLogin )
 	games.Get( "" , handlers.ListGames )
 	games.Get( "/:game_id" , handlers.GetGame )
+	games.Post( "/:game_id/delete" , handlers.RequireOwner , handlers.DeleteGame )
 
 	lobby := app.Group( "/api/lobby" , handlers.Guard.RequireLogin )
 	lobby.Get( "/events" , handlers.LobbyEvents )

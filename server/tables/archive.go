@@ -170,3 +170,15 @@ func ( hub *Hub ) Game( id string ) ( entry ArchivedGame , err error ) {
 	err = json.Unmarshal( row.Document , &entry )
 	return
 }
+
+// DeleteGame takes one game out of the history for good. A table that is
+// still open keeps its note that the game was archived, so the game is not
+// written back when it next changes.
+func ( hub *Hub ) DeleteGame( id string ) ( err error ) {
+	if _ , get_err := models.GetGame( hub.store , id ); get_err != nil {
+		err = ErrNoSuchGame
+		return
+	}
+	err = models.DeleteGame( hub.store , id )
+	return
+}

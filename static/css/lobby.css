@@ -300,6 +300,11 @@ button.compass-seat.is-open:hover { background: var(--accent-soft); transform: n
 .game-card { flex-direction: column; align-items: stretch; cursor: pointer; }
 .game-card:hover { border-color: var(--accent); }
 .game-card:active:not(:disabled) { transform: none; }
+/* The owner's game card: the opening button, with Delete beside it. */
+.game-card-owned { align-items: stretch; }
+.game-card-owned .table-card-actions { justify-content: center; }
+.game-detail-actions { display: flex; justify-content: flex-end; }
+.game-detail-actions .table-card-delete { color: var(--danger); }
 
 .game-team {
   display: flex;

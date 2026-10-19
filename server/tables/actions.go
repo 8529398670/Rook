@@ -374,9 +374,10 @@ func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err erro
 	return
 }
 
-// chatLineOf finds line seq and checks it is user's own. Called with the
-// table locked.
-func ( table *Table ) chatLineOf( user *models.User , seq int ) ( index int , err error ) {
+// chatLineOf finds line seq and checks it is user's own -- unless user is a
+// moderator (the owner), who may change anyone's. Called with the table
+// locked.
+func ( table *Table ) chatLineOf( user *models.User , moderator bool , seq int ) ( index int , err error ) {
 	index = -1
 	for candidate , line := range table.Chat {
 		if line.Seq == seq {
@@ -387,14 +388,16 @@ func ( table *Table ) chatLineOf( user *models.User , seq int ) ( index int , er
 	switch {
 	case index < 0:
 		err = ErrNoSuchMessage
+	case moderator:
 	case table.Chat[ index ].UserID == 0 || table.Chat[ index ].UserID != user.ID:
 		err = ErrNotYourMessage
 	}
 	return
 }
 
-// EditChat rewrites one of your own lines, marking it edited.
-func ( hub *Hub ) EditChat( id string , user *models.User , seq int , text string ) ( err error ) {
+// EditChat rewrites one of your own lines (anyone's, for a moderator),
+// marking it edited.
+func ( hub *Hub ) EditChat( id string , user *models.User , moderator bool , seq int , text string ) ( err error ) {
 	if hub.Settings().TableChatOff {
 		err = ErrChatOff
 		return
@@ -405,7 +408,7 @@ func ( hub *Hub ) EditChat( id string , user *models.User , seq int , text strin
 		return
 	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
-		index , fn_err := table.chatLineOf( user , seq )
+		index , fn_err := table.chatLineOf( user , moderator , seq )
 		if fn_err != nil { return }
 		table.Chat[ index ].Text , table.Chat[ index ].Edited = text , true
 		return
@@ -413,10 +416,11 @@ func ( hub *Hub ) EditChat( id string , user *models.User , seq int , text strin
 	return
 }
 
-// DeleteChat takes one of your own lines away for everyone.
-func ( hub *Hub ) DeleteChat( id string , user *models.User , seq int ) ( err error ) {
+// DeleteChat takes one of your own lines (anyone's, for a moderator) away
+// for everyone.
+func ( hub *Hub ) DeleteChat( id string , user *models.User , moderator bool , seq int ) ( err error ) {
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
-		index , fn_err := table.chatLineOf( user , seq )
+		index , fn_err := table.chatLineOf( user , moderator , seq )
 		if fn_err != nil { return }
 		table.Chat = append( table.Chat[ :index:index ] , table.Chat[ index+1: ]... )
 		return

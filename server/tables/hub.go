@@ -211,6 +211,11 @@ func ( hub *Hub ) Create( user *models.User , name string , options game.Options
 		err = ErrBadName
 		return
 	}
+	// The bird's house rules are the owner's app-wide choice, not the
+	// creator's: whatever was sent, the table starts with the current ones.
+	settings := hub.Settings()
+	options.RookAnytime = settings.RookAnytime
+	options.RookFirstTrick = settings.RookFirstTrickOff == false
 	if err = options.Validate(); err != nil { return }
 
 	hub.mu.Lock()

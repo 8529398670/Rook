@@ -26,6 +26,13 @@ type AppSettings struct {
 	// own. 0 means DefaultTrickPauseMS, so a database saved before this
 	// existed keeps the pause it always had.
 	TrickPauseMS int `json:"trick_pause_ms,omitempty"`
+	// RookAnytime and RookFirstTrickOff are the bird's house rules, copied
+	// into each table when it is created (see game.Options), so a change
+	// never alters a game already under way. RookFirstTrickOff is named for
+	// "off" so a database saved before it existed keeps the bird allowed on
+	// the first trick, as it always was.
+	RookAnytime       bool `json:"rook_anytime"`
+	RookFirstTrickOff bool `json:"rook_first_trick_off"`
 }
 
 // DefaultTrickPauseMS is the pause a finished trick has always had.

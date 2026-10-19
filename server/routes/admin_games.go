@@ -185,12 +185,20 @@ func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx ) ( err error ) {
 // with -- acting with admin rights. The app-wide game settings and the list
 // of everyone's API keys are theirs alone, not every admin's.
 func ( handlers *Handlers ) RequireOwner( c fiber.Ctx ) ( err error ) {
-	actor := security.ActorFrom( c )
-	if actor == nil || actor.IsAdmin() == false || models.IsSuperAdmin( handlers.Store , actor.User.ID ) == false {
+	if handlers.isOwner( c ) == false {
 		err = forbidden( c , "forbidden" )
 		return
 	}
 	err = c.Next()
+	return
+}
+
+// isOwner answers whether the caller is the owner acting with admin rights:
+// RequireOwner's test, for a handler that lets the owner do more rather
+// than refusing everyone else.
+func ( handlers *Handlers ) isOwner( c fiber.Ctx ) ( result bool ) {
+	actor := security.ActorFrom( c )
+	result = actor != nil && actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , actor.User.ID )
 	return
 }
 

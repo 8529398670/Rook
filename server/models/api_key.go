@@ -313,6 +313,14 @@ func RevokeAPIKey( store *db.Store , key_id string ) ( err error ) {
 	return
 }
 
+// DeleteAPIKey removes a key's row outright. A live key stops working at
+// once, as with a revocation, since LoadAPIKey no longer finds it; unlike a
+// revocation, no listing shows it ever existed.
+func DeleteAPIKey( store *db.Store , key_id string ) ( err error ) {
+	err = store.Delete( db.BucketAPIKeys , []byte( key_id ) )
+	return
+}
+
 // PurgeDeadAPIKeys drops rows for keys that have been revoked or expired for
 // longer than apiKeyRetention. Dead keys are already refused by LoadAPIKey, so
 // this is only housekeeping -- one transaction, for the same reason as

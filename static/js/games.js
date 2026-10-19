@@ -1,7 +1,8 @@
 // The game history: every game played here -- finished, or given up partway
 // -- newest first, open to anyone signed in. #/games is the list; a game opens
 // at #/games/<id> with its final score and the whole hand-by-hand log, drawn
-// by record.js exactly as at the table.
+// by record.js exactly as at the table. The owner may delete a game, from
+// its card or from the game itself.
 const Games = {
   screenId: "screen-games",
   bound: false,
@@ -99,23 +100,60 @@ const Games = {
     } );
   },
 
+  isOwner() {
+    return Boolean( App.me && App.me.owner );
+  },
+
   card( game ) {
     const when = this.when( game );
-    return Dom.el( "button" , {
-      class: "table-card game-card",
+    const body = Dom.el( "div" , { class: "table-card-body" , children: [
+      Dom.el( "div" , { class: "table-card-top" , children: [
+        Dom.el( "span" , { class: "table-card-name" , text: game.table_name } ),
+        this.statusChip( game ),
+      ] } ),
+      Dom.el( "span" , { class: "table-card-status" , text: when + " · " + this.hands( game ) } ),
+      this.teamRow( game , 0 ),
+      this.teamRow( game , 1 ),
+    ] } );
+    const open = {
       attrs: { type: "button" , "aria-label": I18n.format( "games.open_game" , { name: game.table_name , date: when } ) },
       on: { click: function () { App.go( "#/games/" + game.id ); } },
-      children: [
-        Dom.el( "div" , { class: "table-card-body" , children: [
-          Dom.el( "div" , { class: "table-card-top" , children: [
-            Dom.el( "span" , { class: "table-card-name" , text: game.table_name } ),
-            this.statusChip( game ),
-          ] } ),
-          Dom.el( "span" , { class: "table-card-status" , text: when + " · " + this.hands( game ) } ),
-          this.teamRow( game , 0 ),
-          this.teamRow( game , 1 ),
-        ] } ),
-      ],
+      children: [ body ],
+    };
+    if ( !this.isOwner() ) return Dom.el( "button" , Object.assign( { class: "table-card game-card" } , open ) );
+
+    // The owner's card: the opening button with Delete beside it, as on the
+    // lobby's table cards, so no button sits inside another.
+    const card = Dom.el( "div" , { class: "table-card game-card-owned" , children: [
+      Dom.el( "button" , Object.assign( { class: "table-card-main" } , open ) ),
+    ] } );
+    card.appendChild( Dom.el( "div" , { class: "table-card-actions" , children: [
+      this.deleteButton( game , function () {
+        Games.list = Games.list.filter( function ( other ) { return other.id !== game.id; } );
+        card.remove();
+        Dom.show( Dom.get( "games-empty" ) , Games.list.length === 0 && !Games.more );
+      } ),
+    ] } ) );
+    return card;
+  },
+
+  // Delete asks first, then runs done() once the game is gone.
+  deleteButton( game , done ) {
+    return Dom.el( "button" , {
+      class: "small secondary table-card-delete",
+      text: I18n.get( "games.delete" ),
+      attrs: { type: "button" },
+      on: { click: async function () {
+        const question = I18n.format( "games.delete_confirm" , { name: game.table_name } );
+        if ( question !== "" && !window.confirm( question ) ) return;
+        try {
+          await Api.deleteGame( game.id );
+          Toast.show( I18n.get( "games.deleted" ) );
+          done();
+        } catch ( error ) {
+          Toast.error( error );
+        }
+      } },
     } );
   },
 
@@ -141,6 +179,11 @@ const Games = {
     ] } ) );
     head.appendChild( this.teamRow( game , 0 ) );
     head.appendChild( this.teamRow( game , 1 ) );
+    if ( this.isOwner() ) {
+      head.appendChild( Dom.el( "div" , { class: "game-detail-actions" , children: [
+        this.deleteButton( game , function () { App.go( "#/games" ); } ),
+      ] } ) );
+    }
 
     // record.js draws from a table view; an archived game is seen as from
     // the rail, so the teams are "Team 1" and "Team 2".

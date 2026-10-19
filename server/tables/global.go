@@ -141,10 +141,10 @@ func ( hub *Hub ) GlobalChat( user *models.User , text string ) ( err error ) {
 	return
 }
 
-// changeGlobalChat runs change on the line seq, which must be user's own,
-// then saves the chat and rings every global stream -- the tail of
+// changeGlobalChat runs change on the line seq, which must be user's own
+// unless user is a moderator (the owner), then saves the chat and rings every global stream -- the tail of
 // GlobalChat, for an edit or a delete.
-func ( hub *Hub ) changeGlobalChat( user *models.User , seq int , change func( index int ) ) ( err error ) {
+func ( hub *Hub ) changeGlobalChat( user *models.User , moderator bool , seq int , change func( index int ) ) ( err error ) {
 	hub.global_mu.Lock()
 	index := -1
 	for candidate , line := range hub.global_chat {
@@ -156,6 +156,7 @@ func ( hub *Hub ) changeGlobalChat( user *models.User , seq int , change func( i
 	switch {
 	case index < 0:
 		err = ErrNoSuchMessage
+	case moderator:
 	case hub.global_chat[ index ].UserID != user.ID:
 		err = ErrNotYourMessage
 	}
@@ -175,8 +176,9 @@ func ( hub *Hub ) changeGlobalChat( user *models.User , seq int , change func( i
 	return
 }
 
-// EditGlobalChat rewrites one of your own lines in the shared chat.
-func ( hub *Hub ) EditGlobalChat( user *models.User , seq int , text string ) ( err error ) {
+// EditGlobalChat rewrites one of your own lines in the shared chat (anyone's,
+// for a moderator).
+func ( hub *Hub ) EditGlobalChat( user *models.User , moderator bool , seq int , text string ) ( err error ) {
 	if hub.Settings().GlobalChatOff {
 		err = ErrChatOff
 		return
@@ -186,15 +188,16 @@ func ( hub *Hub ) EditGlobalChat( user *models.User , seq int , text string ) ( 
 		err = ErrBadChat
 		return
 	}
-	err = hub.changeGlobalChat( user , seq , func( index int ) {
+	err = hub.changeGlobalChat( user , moderator , seq , func( index int ) {
 		hub.global_chat[ index ].Text , hub.global_chat[ index ].Edited = text , true
 	} )
 	return
 }
 
-// DeleteGlobalChat takes one of your own lines out of the shared chat.
-func ( hub *Hub ) DeleteGlobalChat( user *models.User , seq int ) ( err error ) {
-	err = hub.changeGlobalChat( user , seq , func( index int ) {
+// DeleteGlobalChat takes one of your own lines out of the shared chat
+// (anyone's, for a moderator).
+func ( hub *Hub ) DeleteGlobalChat( user *models.User , moderator bool , seq int ) ( err error ) {
+	err = hub.changeGlobalChat( user , moderator , seq , func( index int ) {
 		hub.global_chat = append( hub.global_chat[ :index:index ] , hub.global_chat[ index+1: ]... )
 	} )
 	return

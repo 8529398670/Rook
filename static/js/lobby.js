@@ -236,7 +236,7 @@ const Lobby = {
   },
 
   openCreate() {
-    this.options = { rook_rank: "high" , rook_anytime: false , rook_first_trick: true , play_to: 500 };
+    this.options = { rook_rank: "high" , play_to: 500 };
     this.customPlayTo = false;
     Dom.get( "play-to-custom-input" ).value = "";
     Dom.get( "new-table-name" ).value = I18n.format( "create.default_name" , { name: this.me.display_name } );

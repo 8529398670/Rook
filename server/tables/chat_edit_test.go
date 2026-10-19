@@ -22,26 +22,26 @@ func TestOnlyTheSenderEditsOrDeletesAChatLine( t *testing.T ) {
 		t.Fatalf( "senders not recorded: %+v" , view.Chat )
 	}
 
-	if err := hub.EditChat( id , ana , bens.Seq , "nope" ); !errors.Is( err , ErrNotYourMessage ) {
+	if err := hub.EditChat( id , ana , false , bens.Seq , "nope" ); !errors.Is( err , ErrNotYourMessage ) {
 		t.Fatalf( "edited someone else's line: %v" , err )
 	}
-	if err := hub.DeleteChat( id , ana , guest.Seq ); !errors.Is( err , ErrNotYourMessage ) {
+	if err := hub.DeleteChat( id , ana , false , guest.Seq ); !errors.Is( err , ErrNotYourMessage ) {
 		t.Fatalf( "deleted a guest's line: %v" , err )
 	}
-	if err := hub.EditChat( id , ana , 999 , "nope" ); !errors.Is( err , ErrNoSuchMessage ) {
+	if err := hub.EditChat( id , ana , false , 999 , "nope" ); !errors.Is( err , ErrNoSuchMessage ) {
 		t.Fatalf( "edited a missing line: %v" , err )
 	}
-	if err := hub.EditChat( id , ana , mine.Seq , "   " ); !errors.Is( err , ErrBadChat ) {
+	if err := hub.EditChat( id , ana , false , mine.Seq , "   " ); !errors.Is( err , ErrBadChat ) {
 		t.Fatalf( "blank edit: %v" , err )
 	}
 
-	if err := hub.EditChat( id , ana , mine.Seq , "hello there" ); err != nil { t.Fatal( err ) }
+	if err := hub.EditChat( id , ana , false , mine.Seq , "hello there" ); err != nil { t.Fatal( err ) }
 	view , _ = hub.View( id , Viewer{ User: ana } , ViewOptions{} )
 	if view.Chat[ 0 ].Text != "hello there" || view.Chat[ 0 ].Edited == false {
 		t.Fatalf( "edit not applied: %+v" , view.Chat[ 0 ] )
 	}
 
-	if err := hub.DeleteChat( id , ben , bens.Seq ); err != nil { t.Fatal( err ) }
+	if err := hub.DeleteChat( id , ben , false , bens.Seq ); err != nil { t.Fatal( err ) }
 	view , _ = hub.View( id , Viewer{ User: ana } , ViewOptions{} )
 	if len( view.Chat ) != 2 || view.Chat[ 0 ].Seq != mine.Seq || view.Chat[ 1 ].Seq != guest.Seq {
 		t.Fatalf( "delete took the wrong line: %+v" , view.Chat )
@@ -58,18 +58,47 @@ func TestGlobalChatEditAndDelete( t *testing.T ) {
 	chat := hub.Global().Chat
 	first , second := chat[ 0 ] , chat[ 1 ]
 
-	if err := hub.EditGlobalChat( ben , first.Seq , "mine now" ); !errors.Is( err , ErrNotYourMessage ) {
+	if err := hub.EditGlobalChat( ben , false , first.Seq , "mine now" ); !errors.Is( err , ErrNotYourMessage ) {
 		t.Fatalf( "edited someone else's line: %v" , err )
 	}
-	if err := hub.DeleteGlobalChat( ana , second.Seq ); !errors.Is( err , ErrNotYourMessage ) {
+	if err := hub.DeleteGlobalChat( ana , false , second.Seq ); !errors.Is( err , ErrNotYourMessage ) {
 		t.Fatalf( "deleted someone else's line: %v" , err )
 	}
-	if err := hub.EditGlobalChat( ana , first.Seq , "first!" ); err != nil { t.Fatal( err ) }
-	if err := hub.DeleteGlobalChat( ben , second.Seq ); err != nil { t.Fatal( err ) }
+	if err := hub.EditGlobalChat( ana , false , first.Seq , "first!" ); err != nil { t.Fatal( err ) }
+	if err := hub.DeleteGlobalChat( ben , false , second.Seq ); err != nil { t.Fatal( err ) }
 
 	chat = hub.Global().Chat
 	if len( chat ) != 1 || chat[ 0 ].Text != "first!" || chat[ 0 ].Edited == false {
 		t.Fatalf( "global chat after edit and delete: %+v" , chat )
+	}
+}
+
+func TestAModeratorEditsOrDeletesAnyChatLine( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id := soloTable( t , hub , ana )
+
+	if err := hub.Chat( id , ana , "hello" ); err != nil { t.Fatal( err ) }
+	if err := hub.GuestChat( id , "Guest" , "spam" ); err != nil { t.Fatal( err ) }
+	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	anas , guest := view.Chat[ 0 ] , view.Chat[ 1 ]
+
+	if err := hub.EditChat( id , ben , true , anas.Seq , "hello, edited" ); err != nil { t.Fatal( err ) }
+	if err := hub.DeleteChat( id , ben , true , guest.Seq ); err != nil { t.Fatal( err ) }
+	view , _ = hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	if len( view.Chat ) != 1 || view.Chat[ 0 ].Text != "hello, edited" || view.Chat[ 0 ].Edited == false {
+		t.Fatalf( "table chat after moderation: %+v" , view.Chat )
+	}
+
+	if err := hub.GlobalChat( ana , "first" ); err != nil { t.Fatal( err ) }
+	if err := hub.GlobalChat( ana , "second" ); err != nil { t.Fatal( err ) }
+	chat := hub.Global().Chat
+	if err := hub.EditGlobalChat( ben , true , chat[ 0 ].Seq , "first!" ); err != nil { t.Fatal( err ) }
+	if err := hub.DeleteGlobalChat( ben , true , chat[ 1 ].Seq ); err != nil { t.Fatal( err ) }
+	chat = hub.Global().Chat
+	if len( chat ) != 1 || chat[ 0 ].Text != "first!" || chat[ 0 ].Edited == false {
+		t.Fatalf( "global chat after moderation: %+v" , chat )
 	}
 }
 

@@ -240,3 +240,29 @@ func ( handlers *Handlers ) RevokeAnyAPIKey( c fiber.Ctx ) ( err error ) {
 	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }
+
+// DeleteAnyAPIKey removes a key -- anyone's, live or dead -- for good, so it
+// drops off the listings too rather than waiting for the purge loop.
+func ( handlers *Handlers ) DeleteAnyAPIKey( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if c.Bind().Body( &body ) != nil {
+		err = badRequest( c , "malformed request body" )
+		return
+	}
+	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
+		err = forbidden( c , "invalid csrf token" )
+		return
+	}
+
+	key , get_err := models.GetAPIKey( handlers.Store , c.Params( "key_id" ) )
+	if get_err != nil {
+		err = notFound( c , "no such api key" )
+		return
+	}
+	if models.DeleteAPIKey( handlers.Store , key.ID ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}

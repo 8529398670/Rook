@@ -461,6 +461,46 @@
         </div>
       </div>
 
+      <div class="card" id="signup-links-panel" hidden>
+        <h2 data-i18n="signup_links.heading"></h2>
+        <p class="muted" data-i18n="signup_links.description"></p>
+        <form id="signup-link-form" autocomplete="off">
+          <div class="field">
+            <label for="signup-link-label" data-i18n="signup_links.label"></label>
+            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
+          </div>
+          <div class="field">
+            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
+            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
+          </div>
+          <div class="field">
+            <label for="signup-link-days" data-i18n="signup_links.days"></label>
+            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
+          </div>
+          <button type="submit" data-i18n="signup_links.create"></button>
+        </form>
+        <div id="signup-link-box" class="notice notice-link" hidden>
+          <p data-i18n="signup_links.link_notice"></p>
+          <code id="signup-link-value"></code>
+          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
+          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
+        </div>
+        <div class="table-scroll">
+          <table id="signup-links-table">
+            <thead>
+              <tr>
+                <th data-i18n="signup_links.table_label"></th>
+                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
+                <th data-i18n="signup_links.table_used"></th>
+                <th data-i18n="signup_links.table_status"></th>
+                <th data-i18n="signup_links.table_actions"></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
       <div class="card" id="admin-panel" hidden>
         <h2 data-i18n="admin.heading"></h2>
         <p class="muted" data-i18n="admin.description"></p>
@@ -544,46 +584,20 @@
           </span>
           <select id="setting-trick-pause" class="pause-select"></select>
         </label>
-      </div>
-
-      <div class="card" id="signup-links-panel" hidden>
-        <h2 data-i18n="signup_links.heading"></h2>
-        <p class="muted" data-i18n="signup_links.description"></p>
-        <form id="signup-link-form" autocomplete="off">
-          <div class="field">
-            <label for="signup-link-label" data-i18n="signup_links.label"></label>
-            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
-          </div>
-          <div class="field">
-            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
-            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
-          </div>
-          <div class="field">
-            <label for="signup-link-days" data-i18n="signup_links.days"></label>
-            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
-          </div>
-          <button type="submit" data-i18n="signup_links.create"></button>
-        </form>
-        <div id="signup-link-box" class="notice notice-link" hidden>
-          <p data-i18n="signup_links.link_notice"></p>
-          <code id="signup-link-value"></code>
-          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
-          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
-        </div>
-        <div class="table-scroll">
-          <table id="signup-links-table">
-            <thead>
-              <tr>
-                <th data-i18n="signup_links.table_label"></th>
-                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
-                <th data-i18n="signup_links.table_used"></th>
-                <th data-i18n="signup_links.table_status"></th>
-                <th data-i18n="signup_links.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="options.rook_anytime"></span>
+            <span class="switch-help" data-i18n="game_settings.rook_anytime_help"></span>
+          </span>
+          <input id="setting-rook-anytime" type="checkbox" role="switch" />
+        </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="options.rook_first_trick"></span>
+            <span class="switch-help" data-i18n="game_settings.rook_first_trick_help"></span>
+          </span>
+          <input id="setting-rook-first-trick" type="checkbox" role="switch" />
+        </label>
       </div>
 
       <div class="card" id="admin-keys-panel" hidden>
@@ -642,20 +656,6 @@
           <input id="play-to-custom-input" type="number" inputmode="numeric" min="1" max="10000" step="1" required disabled data-i18n-attr="placeholder:options.play_to_custom_placeholder" />
         </div>
       </fieldset>
-      <label class="switch-row">
-        <span>
-          <span class="switch-title" data-i18n="options.rook_anytime"></span>
-          <span class="switch-help" data-i18n="options.rook_anytime_help"></span>
-        </span>
-        <input type="checkbox" role="switch" data-option="rook_anytime" />
-      </label>
-      <label class="switch-row">
-        <span>
-          <span class="switch-title" data-i18n="options.rook_first_trick"></span>
-          <span class="switch-help" data-i18n="options.rook_first_trick_help"></span>
-        </span>
-        <input type="checkbox" role="switch" data-option="rook_first_trick" />
-      </label>
       <div class="sheet-actions">
         <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
         <button type="submit" data-i18n="create.submit"></button>

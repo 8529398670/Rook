@@ -42,10 +42,11 @@ const Settings = {
     await Keys.init( this.me );
     if ( this.me.can_invite ) Links.initSignupLinks( this.me );
 
-    if ( this.me.role !== "admin" ) return;
+    // The Players card and the app-wide game settings are the owner's
+    // alone, not every admin's.
+    if ( !this.me.owner ) return;
     Dom.show( Dom.get( "admin-panel" ) , true );
-    // The app-wide game settings are the owner's alone.
-    if ( this.me.owner ) Links.initGameSettings();
+    Links.initGameSettings();
     Dom.get( "create-user-form" ).addEventListener( "submit" , this.onCreateUser.bind( this ) );
     Dom.get( "copy-link-button" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "login-link-value" ) , Dom.get( "copied-notice" ) );

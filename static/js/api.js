@@ -79,6 +79,7 @@ const Api = {
   // The game history: finished and abandoned games, newest first.
   listGames( offset )          { return this.request( "/api/games?offset=" + ( offset || 0 ) ); },
   getGame( id )                { return this.request( "/api/games/" + encodeURIComponent( id ) ); },
+  deleteGame( id )             { return this.post( "/api/games/" + encodeURIComponent( id ) + "/delete" ); },
 
   // API keys. createKey's expiresInDays is passed through as-is including null,
   // because the server reads absent as "use the default" and 0 as "never
@@ -90,6 +91,7 @@ const Api = {
   revokeKey( keyId )           { return this.post( "/api/keys/" + encodeURIComponent( keyId ) + "/revoke" ); },
   listAllKeys()                { return this.request( "/api/admin/keys" ); },
   revokeAnyKey( keyId )        { return this.post( "/api/admin/keys/" + encodeURIComponent( keyId ) + "/revoke" ); },
+  deleteAnyKey( keyId )        { return this.post( "/api/admin/keys/" + encodeURIComponent( keyId ) + "/delete" ); },
   setCanInvite( userId , flag ) { return this.post( "/api/admin/users/" + userId + "/can-invite" , { can_invite: flag } ); },
 
   setCanHint( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-hint" , { can_hint: flag } ); },

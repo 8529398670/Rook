@@ -7,7 +7,8 @@ import (
 )
 
 // The game history: every finished or abandoned game, open to any signed-in
-// player. See tables/archive.go for what is kept and when.
+// player; only the owner may delete one. See tables/archive.go for what is
+// kept and when.
 
 const (
 	gamesPageDefault = 50
@@ -39,5 +40,20 @@ func ( handlers *Handlers ) GetGame( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	err = c.JSON( entry )
+	return
+}
+
+// DeleteGame removes a game from the history. Registered behind RequireOwner.
+func ( handlers *Handlers ) DeleteGame( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	if delete_err := handlers.Hub.DeleteGame( c.Params( "game_id" ) ); delete_err != nil {
+		err = handlers.tableError( c , delete_err )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }

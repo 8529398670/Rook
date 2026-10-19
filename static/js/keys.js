@@ -61,7 +61,7 @@ const Keys = {
       this.showSecret( created.credential );
       Dom.get( "key-name" ).value = "";
       await this.refresh();
-      if ( this.me.role === "admin" ) await this.refreshAll();
+      if ( this.me.owner ) await this.refreshAll();
     } catch ( error ) {
       App.showError( error.message );
     }
@@ -86,18 +86,28 @@ const Keys = {
   // endpoint kills the key, so that is the parameter.
   revokeButton( key , revoke ) {
     if ( !key.live ) return Dom.el( "span" , { class: "muted" , text: "" } );
+    return this.actionButton( "api_keys.revoke_button" , "api_keys.revoke_confirm" , function () { return revoke( key.id ); } );
+  },
+
+  // deleteButton removes any key outright, live or dead -- the All API keys
+  // table only.
+  deleteButton( key ) {
+    return this.actionButton( "api_keys.delete_button" , "api_keys.delete_confirm" , function () { return Api.deleteAnyKey( key.id ); } );
+  },
+
+  actionButton( textKey , confirmKey , run ) {
     return Dom.el( "button" , {
       class: "secondary small",
-      text: I18n.get( "api_keys.revoke_button" ),
+      text: I18n.get( textKey ),
       on: { click: async function () {
         // An empty confirm message means "do not ask", following the same
         // language.yaml rule as every other string here.
-        const question = I18n.get( "api_keys.revoke_confirm" );
+        const question = I18n.get( confirmKey );
         if ( question !== "" && !window.confirm( question ) ) return;
         try {
-          await revoke( key.id );
+          await run();
           await Keys.refresh();
-          if ( Keys.me.role === "admin" ) await Keys.refreshAll();
+          if ( Keys.me.owner ) await Keys.refreshAll();
         } catch ( error ) { App.showError( error.message ); }
       } },
     } );
@@ -153,6 +163,7 @@ const Keys = {
         Dom.el( "td" , { children: [
           Dom.el( "div" , { class: "row-actions" , children: [
             Keys.revokeButton( key , function ( id ) { return Api.revokeAnyKey( id ); } ),
+            Keys.deleteButton( key ),
           ] } ),
         ] } ),
       ] } ) );

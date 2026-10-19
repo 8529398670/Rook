@@ -134,8 +134,9 @@ const Global = {
       Dom.el( "span" , { class: "chat-name" , text: line.name } ),
       Chat.textEl( line ),
     ] } );
-    // Your own lines can be edited or deleted, the same way as at a table.
-    if ( mine ) {
+    // Your own lines can be edited or deleted, the same way as at a table;
+    // the owner may edit or delete anyone's.
+    if ( mine || ( this.me && this.me.owner ) ) {
       item.appendChild( Chat.ownActions( item , line , {
         save: async function ( seq , text ) { Global.update( await Api.editGlobalChat( seq , text ) ); },
         remove: async function ( seq ) { Global.update( await Api.deleteGlobalChat( seq ) ); },

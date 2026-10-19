@@ -497,6 +497,8 @@ api_keys:
   revoke_button: "Revoke"
   # Empty this string to stop asking for confirmation before revoking.
   revoke_confirm: "Revoke this key? Anything using it stops working immediately."
+  delete_button: "Delete"
+  delete_confirm: "Delete this key for good? Anything using it stops working immediately, and it disappears from the list."
 
 admin_keys:
   heading: "All API keys"
@@ -718,6 +720,8 @@ game_settings:
   table_chat_help: "Players and watchers can chat at each table. When off, nobody can, at any table."
   global_chat: "Global chat"
   global_chat_help: "One chat shared by everyone signed in, on the home screen and at every table."
+  rook_anytime_help: "Official rule: even when you could follow the color led. Applies to tables created from now on."
+  rook_first_trick_help: "Turn off to keep the bird out of the hand's opening trick. Applies to tables created from now on."
   saved: "Saved."
 
 signup_links:
@@ -755,3 +759,6 @@ games:
   ended: "{date}"
   open_game: "Open {name}, {date}"
   team_names: "{a} & {b}"
+  delete: "Delete"
+  delete_confirm: "Delete {name} from the game history for good?"
+  deleted: "Game deleted."
