@@ -80,8 +80,12 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	delay := hub.cfg.BotDelay
 	if state.Phase == game.PhasePlaying && len( state.Trick.Plays ) == 0 && len( state.Completed ) > 0 {
 		// A trick just finished: leave it on the table long enough to read
-		// before a bot leads the next one.
+		// before a bot leads the next one -- at least the table's pause
+		// plus the sweep that follows it, so the cards are gone first. A
+		// bot delay of 0 asks for no waiting at all (the tests use it).
 		delay *= 2
+		sweep := time.Duration( table.trickPause( int( hub.trick_pause.Load() ) ) )*time.Millisecond + 400*time.Millisecond
+		if delay > 0 && sweep > delay { delay = sweep }
 	}
 	id , version , seat := table.ID , table.Version , state.Turn
 	table.bot_timer = time.AfterFunc( delay , func() {

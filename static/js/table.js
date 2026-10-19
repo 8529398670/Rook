@@ -106,6 +106,9 @@ const Table = {
       const toggle = event.target;
       if ( !await Table.setAutoPlay( toggle.checked ) ) toggle.checked = !toggle.checked;
     } );
+    Dom.get( "menu-trick-pause" ).addEventListener( "change" , function ( event ) {
+      Table.act( Api.setTrickPause( Table.id , Number( event.target.value ) ) );
+    } );
     Dom.get( "menu-observers" ).addEventListener( "change" , function ( event ) {
       Table.act( Api.setObservers( Table.id , event.target.checked ) );
     } );
@@ -696,6 +699,13 @@ const Table = {
       Dom.show( document.querySelector( "[data-menu='history']" ) , view.can_rewind );
       Dom.show( Dom.get( "menu-observers-row" ) , view.is_admin );
       Dom.get( "menu-observers" ).checked = view.observers_see_all;
+      // This table's pause after a trick: admins only.
+      Dom.show( Dom.get( "menu-trick-pause-row" ) , view.is_admin );
+      if ( view.is_admin ) {
+        const pause = Dom.get( "menu-trick-pause" );
+        Links.fillPauses( pause , view.trick_pause_default );
+        pause.value = String( view.trick_pause_table || 0 );
+      }
       // Auto play: for a seated player, once the cards are being played.
       const playing = Boolean( view.game ) && view.game.phase === "playing" && view.status === "playing";
       Dom.show( Dom.get( "menu-auto-play-row" ) , view.you >= 0 && Boolean( view.game ) && view.status !== "waiting" );

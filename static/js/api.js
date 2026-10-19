@@ -145,6 +145,7 @@ const Api = {
   resetTo( id , to )           { return this.post( this.tablePath( id , "reset" ) , { to: to } ); },
   resume( id )                 { return this.post( this.tablePath( id , "resume" ) ); },
   setObservers( id , seeAll )  { return this.post( this.tablePath( id , "observers" ) , { see_all: seeAll } ); },
+  setTrickPause( id , ms )     { return this.post( this.tablePath( id , "trick-pause" ) , { ms: ms } ); },
   sit( id , seat )             { return this.post( this.tablePath( id , "sit" ) , { seat: seat } ); },
   leave( id )                  { return this.post( this.tablePath( id , "leave" ) ); },
   addBot( id , seat )          { return this.post( this.tablePath( id , "bot" ) , { seat: seat } ); },

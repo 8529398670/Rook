@@ -78,11 +78,11 @@
 }
 
 /* A Home Screen web app on an iPad or iPhone (theme.js sets the class): the
-   system blurs a band under the clock about 24 points taller than
+   system blurs a band under the clock a little taller than
    safe-area-inset-top, which would blur the top row of every header. Every
    header already pads by --safe-top, so growing it here moves them all
    clear of the blur at once. */
-:root.ios-app { --safe-top: calc(env(safe-area-inset-top, 0px) + 24px); }
+:root.ios-app { --safe-top: calc(env(safe-area-inset-top, 0px) + 14px); }
 
 :root[data-theme="dark"] {
   color-scheme: dark;
@@ -366,6 +366,12 @@ input[type="checkbox"][role="switch"]:disabled { opacity: 0.55; cursor: default;
 }
 
 .switch-title { display: block; font-weight: 650; }
+/* A choice from a list where a switch would be: kept to its content. */
+/* Where it is narrow (the table menu), the list drops under the words
+   rather than squeezing them into a column. */
+.pause-row { flex-wrap: wrap; row-gap: 0.4rem; }
+.pause-row > span { flex: 1 1 12rem; }
+.pause-row select { flex: 0 0 auto; width: auto; min-width: 6.5rem; }
 .switch-help { display: block; font-weight: 400; font-size: 0.85rem; color: var(--fg-muted); }
 
 /* -------------------------------------------------------------- chips */

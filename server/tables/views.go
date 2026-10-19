@@ -98,6 +98,14 @@ type TableView struct {
 	CanRedo         bool `json:"can_redo"`
 	ObserversSeeAll bool `json:"observers_see_all"`
 
+	// How long a finished trick stays before it is swept away, in ms:
+	// TrickPause is what this table uses; TrickPauseTable is its own choice
+	// (0 = follow the default) and TrickPauseDefault the app-wide one, for
+	// the admin's menu.
+	TrickPause        int `json:"trick_pause_ms"`
+	TrickPauseTable   int `json:"trick_pause_table"`
+	TrickPauseDefault int `json:"trick_pause_default"`
+
 	// Shareable links, given to the people at the table and to admins.
 	JoinCode  string `json:"join_code,omitempty"`
 	WatchCode string `json:"watch_code,omitempty"`
@@ -189,6 +197,9 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 		Held:            table.Held,
 		ObserversSeeAll: table.ObserversSeeAll,
 		ChatOff:         settings.TableChatOff,
+		TrickPause:        table.trickPause( settings.TrickPause() ),
+		TrickPauseTable:   table.TrickPauseMS,
+		TrickPauseDefault: settings.TrickPause(),
 	}
 	if viewer.User != nil {
 		view.IsHost = table.HostID == viewer.User.ID

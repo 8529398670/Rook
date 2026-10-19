@@ -63,6 +63,7 @@ const (
 	ErrNotPlaying     Error = "not_playing"
 	ErrNotYourMessage Error = "not_your_message"
 	ErrNoSuchMessage  Error = "no_such_message"
+	ErrBadTrickPause  Error = "bad_trick_pause"
 
 	// errStale is internal: a delayed bot move found the table had moved on.
 	errStale Error = "stale"
@@ -174,6 +175,9 @@ type Table struct {
 	// ObserversSeeAll lets people watching this table see every hand. An
 	// admin sets it; the app-wide setting can also turn it on everywhere.
 	ObserversSeeAll bool `json:"observers_see_all,omitempty"`
+	// TrickPauseMS is this table's own pause after a finished trick, set by
+	// an admin; 0 follows the app-wide setting.
+	TrickPauseMS int `json:"trick_pause_ms,omitempty"`
 	// Archives maps each game played here (by where it starts in Log) to
 	// its row in the game history. See archive.go.
 	Archives map[ string ]ArchiveRef `json:"archives,omitempty"`
@@ -205,6 +209,14 @@ func ( table *Table ) autoPlays( seat int ) ( result bool ) {
 	if table.Seats[ seat ].Kind != KindHuman { return }
 	hand , ok := table.AutoPlay[ table.Seats[ seat ].UserID ]
 	result = ok && hand == table.Game.HandNumber
+	return
+}
+
+// trickPause is how long a finished trick stays on this table, in ms: its
+// own choice, or else the app-wide one (fallback).
+func ( table *Table ) trickPause( fallback int ) ( ms int ) {
+	ms = table.TrickPauseMS
+	if ms == 0 { ms = fallback }
 	return
 }
 

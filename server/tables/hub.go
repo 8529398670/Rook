@@ -5,6 +5,7 @@ import (
 	errors "errors"
 	log "log"
 	sync "sync"
+	atomic "sync/atomic"
 	time "time"
 
 	config "rook/server/config"
@@ -24,6 +25,9 @@ type Hub struct {
 	mu       sync.RWMutex
 	tables   map[ string ]*Table
 	settings models.AppSettings
+	// trick_pause mirrors settings.TrickPause() for scheduleBot, which runs
+	// with a table locked and so must not take mu (see View on lock order).
+	trick_pause atomic.Int64
 	lobby  map[ *Subscriber ]struct{}
 	closed bool
 	done   chan struct{}
@@ -52,6 +56,7 @@ func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
 	}
 
 	if hub.settings , err = models.LoadSettings( store ); err != nil { return }
+	hub.trick_pause.Store( int64( hub.settings.TrickPause() ) )
 	if hub.global_chat , err = models.LoadGlobalChat( store ); err != nil { return }
 	if count := len( hub.global_chat ); count > 0 { hub.global_seq = hub.global_chat[ count-1 ].Seq }
 
@@ -261,6 +266,7 @@ func ( hub *Hub ) SetSettings( settings models.AppSettings ) ( err error ) {
 	if err = models.SaveSettings( hub.store , settings ); err != nil { return }
 	hub.mu.Lock()
 	hub.settings = settings
+	hub.trick_pause.Store( int64( settings.TrickPause() ) )
 	tables := make( []*Table , 0 , len( hub.tables ) )
 	for _ , table := range hub.tables {
 		tables = append( tables , table )
@@ -282,6 +288,20 @@ func ( hub *Hub ) SetSettings( settings models.AppSettings ) ( err error ) {
 func ( hub *Hub ) SetObserversSeeAll( id string , see_all bool ) ( err error ) {
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		table.ObserversSeeAll = see_all
+		return
+	} )
+	return
+}
+
+// SetTrickPause sets how long this table's finished tricks stay before they
+// are swept away, or with 0 goes back to the app-wide default.
+func ( hub *Hub ) SetTrickPause( id string , ms int ) ( err error ) {
+	if models.ValidTrickPause( ms ) == false {
+		err = ErrBadTrickPause
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		table.TrickPauseMS = ms
 		return
 	} )
 	return

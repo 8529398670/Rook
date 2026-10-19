@@ -29,6 +29,11 @@ type settingsRequest struct {
 	CSRFToken string `json:"csrf_token"`
 }
 
+type trickPauseRequest struct {
+	MS        int    `json:"ms"`
+	CSRFToken string `json:"csrf_token"`
+}
+
 type setCanUndoRequest struct {
 	CanUndo   bool   `json:"can_undo"`
 	CSRFToken string `json:"csrf_token"`
@@ -98,6 +103,19 @@ func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// SetTableTrickPause is an admin choosing this table's pause after a
+// finished trick; 0 goes back to the app-wide default.
+func ( handlers *Handlers ) SetTableTrickPause( c fiber.Ctx ) ( err error ) {
+	var body trickPauseRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.SetTrickPause( id , body.MS ) )
+	return
+}
+
 func ( handlers *Handlers ) GetSettings( c fiber.Ctx ) ( err error ) {
 	err = c.JSON( handlers.Hub.Settings() )
 	return
@@ -107,6 +125,10 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 	var body settingsRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err
+		return
+	}
+	if models.ValidTrickPause( body.TrickPauseMS ) == false {
+		err = badRequest( c , "bad_trick_pause" )
 		return
 	}
 	if handlers.Hub.SetSettings( body.AppSettings ) != nil {

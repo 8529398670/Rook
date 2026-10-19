@@ -211,8 +211,9 @@ const Trick = {
     entries.forEach( function ( entry ) {
       entry.node.classList.toggle( "is-winner" , entry.card === winningCard );
     } );
-    // Long enough to see who took it before the cards move.
-    await Motion.wait( 1100 );
+    // Long enough to see who took it before the cards move: the table's
+    // pause, which an admin can change (1.1 s unless they did).
+    await Motion.wait( view.trick_pause_ms || 1100 );
     const target = Seats.rect( view , winner );
     if ( target ) {
       await Promise.all( entries.map( function ( entry ) {

@@ -7,11 +7,32 @@ const Links = {
   linksReady: false,
   showMaker: false,
 
+  // The pauses on offer after a finished trick, in ms -- the same list as
+  // models.TrickPauses on the server.
+  trickPauses: [ 500 , 800 , 1100 , 1500 , 2000 , 2500 , 3000 , 4000 , 5000 ],
+
+  pauseText( ms ) {
+    return I18n.format( "trick_pause.seconds" , { seconds: ( ms / 1000 ).toLocaleString( undefined , { maximumFractionDigits: 1 } ) } );
+  },
+
+  // Fill a select with the pauses. With defaultMs, the first choice is
+  // "Default (x s)", value 0 -- a table following the app-wide setting.
+  fillPauses( select , defaultMs ) {
+    Dom.clear( select );
+    if ( defaultMs ) {
+      select.appendChild( Dom.el( "option" , { text: I18n.format( "trick_pause.default" , { time: this.pauseText( defaultMs ) } ) , attrs: { value: "0" } } ) );
+    }
+    this.trickPauses.forEach( function ( ms ) {
+      select.appendChild( Dom.el( "option" , { text: Links.pauseText( ms ) , attrs: { value: String( ms ) } } ) );
+    } );
+  },
+
   async initGameSettings() {
     if ( this.settingsReady ) return;
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
-    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" ].forEach( function ( id ) {
+    this.fillPauses( Dom.get( "setting-trick-pause" ) );
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
@@ -21,6 +42,8 @@ const Links = {
       // Stored as "off" so older databases read as on; shown as "on".
       Dom.get( "setting-table-chat" ).checked = !settings.table_chat_off;
       Dom.get( "setting-global-chat" ).checked = !settings.global_chat_off;
+      // 0 (never set) is the built-in pause, which is on the list.
+      Dom.get( "setting-trick-pause" ).value = String( settings.trick_pause_ms || 1100 );
     } catch ( error ) {
       Toast.error( error );
     }
@@ -46,6 +69,7 @@ const Links = {
         observers_see_all: Dom.get( "setting-observers-all" ).checked,
         table_chat_off: !Dom.get( "setting-table-chat" ).checked,
         global_chat_off: !Dom.get( "setting-global-chat" ).checked,
+        trick_pause_ms: Number( Dom.get( "setting-trick-pause" ).value ),
       } );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {

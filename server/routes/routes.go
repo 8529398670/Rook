@@ -186,6 +186,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/reset" , handlers.RequireRewind , handlers.ResetTo )
 	game_tables.Post( "/:table_id/resume" , handlers.RequireRewind , handlers.Resume )
 	game_tables.Post( "/:table_id/observers" , handlers.Guard.RequireAdmin , handlers.SetTableObservers )
+	game_tables.Post( "/:table_id/trick-pause" , handlers.Guard.RequireAdmin , handlers.SetTableTrickPause )
 
 	// The game history: every finished or abandoned game, for anyone
 	// signed in.

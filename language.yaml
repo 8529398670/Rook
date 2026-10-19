@@ -576,6 +576,7 @@ errors:
   not_playing: "Auto play can only be switched on while the cards are being played."
   not_your_message: "You can only change your own messages."
   no_such_message: "That message isn't there any more."
+  bad_trick_pause: "Pick one of the pauses on the list."
 
 join:
   kicker: "You're invited to a table"
@@ -699,6 +700,13 @@ pin:
   is_set: "A PIN is set."
   not_set: "No PIN set."
   saved: "PIN saved."
+
+trick_pause:
+  heading: "Pause after each trick"
+  global_help: "How long the last card stays on the table before the trick is cleared. Admins can change it for a single table from its menu."
+  table_help: "How long the last card stays before the trick is cleared, at this table."
+  seconds: "{seconds} s"
+  default: "Default ({time})"
 
 game_settings:
   heading: "Game settings"
