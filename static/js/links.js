@@ -11,13 +11,16 @@ const Links = {
     if ( this.settingsReady ) return;
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
-    [ "setting-join-signup" , "setting-observers-all" ].forEach( function ( id ) {
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
       const settings = await Api.getSettings();
       Dom.get( "setting-join-signup" ).checked = settings.allow_join_signup;
       Dom.get( "setting-observers-all" ).checked = settings.observers_see_all;
+      // Stored as "off" so older databases read as on; shown as "on".
+      Dom.get( "setting-table-chat" ).checked = !settings.table_chat_off;
+      Dom.get( "setting-global-chat" ).checked = !settings.global_chat_off;
     } catch ( error ) {
       Toast.error( error );
     }
@@ -41,6 +44,8 @@ const Links = {
       await Api.saveSettings( {
         allow_join_signup: Dom.get( "setting-join-signup" ).checked,
         observers_see_all: Dom.get( "setting-observers-all" ).checked,
+        table_chat_off: !Dom.get( "setting-table-chat" ).checked,
+        global_chat_off: !Dom.get( "setting-global-chat" ).checked,
       } );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {

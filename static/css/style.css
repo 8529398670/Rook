@@ -666,6 +666,14 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .settings-main .segmented { max-width: 20rem; }
+.switch-row + h3 { margin-top: 0.9rem; }
+.dock-choice { display: flex; flex-direction: column; gap: 4px; margin-top: 0.5rem; }
+
+/* The players table's role column: a select, and an "owner" tag on the
+   account that always stays an admin. */
+.role-cell { display: flex; align-items: center; gap: 6px; }
+.role-cell select { width: auto; min-height: 34px; padding: 0.2rem 0.5rem; }
+.owner-chip { white-space: nowrap; }
 
 @media (min-width: 40rem) {
   h1 { font-size: 1.5rem; }

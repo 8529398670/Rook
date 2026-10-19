@@ -1026,17 +1026,19 @@
 
 /* ---------------------------------------------------------- chat dock */
 
-/* A small chat window in the bottom area -- the tray's row and the hand's
-   -- left or right of your cards. Only on wide screens, and only when
-   chosen (chat.js sets data-chat-dock). The tray and the hand keep the same
-   margin on both sides, so the bid row and your cards stay centered under
-   the trick. */
+/* Small chat windows in the bottom area -- the tray's row and the hand's
+   -- left or right of your cards: the table's chat and the global chat, one
+   per side. Only on wide screens, and only when chosen (chat.js sets each
+   dock's data-side, and data-chat-dock on the screen while any shows). The
+   tray and the hand keep the same margin on both sides, so the bid row and
+   your cards stay centered under the trick. */
 .chat-dock { display: none; }
 
 @media (min-width: 1100px) {
   .screen-table[data-chat-dock] { --dock-w: clamp(240px, 19vw, 340px); }
 
-  .screen-table[data-chat-dock] .chat-dock {
+  .screen-table[data-chat-dock] .chat-dock[data-side="left"],
+  .screen-table[data-chat-dock] .chat-dock[data-side="right"] {
     grid-row: 3 / 5;
     grid-column: 1;
     align-self: stretch;
@@ -1057,8 +1059,8 @@
     box-shadow: 0 2px 8px rgba(60, 40, 10, 0.08);
   }
 
-  .screen-table[data-chat-dock="left"] .chat-dock { justify-self: start; }
-  .screen-table[data-chat-dock="right"] .chat-dock { justify-self: end; }
+  .screen-table[data-chat-dock] .chat-dock[data-side="left"] { justify-self: start; }
+  .screen-table[data-chat-dock] .chat-dock[data-side="right"] { justify-self: end; }
 
   .screen-table[data-chat-dock] .tray {
     padding-left: calc(var(--dock-w) + 24px + var(--safe-left));

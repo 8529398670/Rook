@@ -1,22 +1,29 @@
-// Table chat and the game log, two tabs of one sheet. Chat lines are plain
-// text from other players and are only ever set with textContent. The log is
-// the game record, drawn by record.js; eventText below still turns single
-// events into sentences for the screen reader.
+// Table chat, the global chat and the game log, three tabs of one sheet.
+// Chat lines are plain text from other players and are only ever set with
+// textContent. The global chat's lines come from global.js; the log is the
+// game record, drawn by record.js; eventText below still turns single events
+// into sentences for the screen reader.
 const Chat = {
   tab: "chat",
   seenChat: 0,
   primed: false,
   handlers: null,
 
-  // The docked chat: a small chat window in the hand's row, left or right
-  // of your cards, on screens wide enough to spare the room. Chosen per
-  // device, so it lives in localStorage (wrapped, like the theme: blocked
-  // storage just means "off").
-  dockKey: "rook.chat_dock",
+  // The docked chats: small chat windows in the hand's row, left or right
+  // of your cards, on screens wide enough to spare the room -- one for the
+  // table and one for the global chat, never both on one side. Chosen per
+  // device, as is whether each chat shows at all, so they live in
+  // localStorage (wrapped, like the theme: blocked storage just means the
+  // choice lasts for this page view).
+  dockKeys: { table: "rook.chat_dock" , global: "rook.global_dock" },
+  shownKeys: { table: "rook.table_chat_shown" , global: "rook.global_chat_shown" },
   dockSides: [ "off" , "left" , "right" ],
   dockWide: window.matchMedia ? window.matchMedia( "(min-width: 1100px)" ) : null,
   dockControls: [],
   dockShown: null,
+  dockState: null,
+  unsavedPrefs: {},
+  unread: false,
 
   // Someone watching through a watch link without signing in chats under a
   // name they type, remembered per device like the dock side. editingName
@@ -79,52 +86,126 @@ const Chat = {
     Chat.handlers.send( text , name );
   },
 
-  dockSide() {
+  pref( key ) {
     try {
-      const side = window.localStorage.getItem( this.dockKey );
-      return side === "left" || side === "right" ? side : "off";
+      const value = window.localStorage.getItem( key );
+      if ( value !== null ) return value;
     } catch ( error ) {
-      return "off";
+      // Storage refused: fall back to this page view's choice.
     }
+    return this.unsavedPrefs[ key ] || null;
   },
 
-  setDockSide( side ) {
+  setPref( key , value ) {
+    this.unsavedPrefs[ key ] = value;
     try {
-      window.localStorage.setItem( this.dockKey , side );
+      window.localStorage.setItem( key , value );
     } catch ( error ) {
       // Storage refused: the choice still applies for this page view.
     }
-    this.applyDock();
+  },
+
+  // Whether this player wants a chat ("table" or "global") at all.
+  shown( kind ) {
+    return this.pref( this.shownKeys[ kind ] ) !== "off";
+  },
+
+  setShown( kind , flag ) {
+    this.setPref( this.shownKeys[ kind ] , flag ? "on" : "off" );
+    this.refresh();
+  },
+
+  // The table's chat shows unless this player hid it or an admin switched
+  // it off.
+  tableChatOn( view ) {
+    return Boolean( view ) && !view.chat_off && this.shown( "table" );
+  },
+
+  dockSide( kind ) {
+    const side = this.pref( this.dockKeys[ kind ] );
+    return side === "left" || side === "right" ? side : "off";
+  },
+
+  // Putting one chat on the side the other has moves the other across, so
+  // a wide screen can have one left of your cards and one right.
+  setDockSide( kind , side ) {
+    const other = kind === "table" ? "global" : "table";
+    if ( side !== "off" && this.dockSide( other ) === side ) {
+      this.setPref( this.dockKeys[ other ] , side === "left" ? "right" : "left" );
+    }
+    this.setPref( this.dockKeys[ kind ] , side );
+    this.refresh();
+  },
+
+  // Where a dock actually shows right now: nowhere on a narrow screen, or
+  // when its chat is hidden or switched off.
+  dockedSide( kind ) {
+    if ( !this.dockWide || !this.dockWide.matches ) return "off";
+    const on = kind === "table" ? this.tableChatOn( Table.view ) : Global.shown();
+    return on ? this.dockSide( kind ) : "off";
   },
 
   docked() {
-    return this.dockSide() !== "off" && Boolean( this.dockWide && this.dockWide.matches );
+    return this.dockedSide( "table" ) !== "off";
   },
 
-  // The stylesheet places the dock (and narrows the hand to make room) from
-  // this one attribute; the hand lays itself out again when its box changes.
+  // The stylesheet places each dock from its data-side, and narrows the
+  // hand to make room whenever the screen has data-chat-dock; the hand lays
+  // itself out again when its box changes. Only sets attributes -- refresh
+  // redraws.
   applyDock() {
-    const side = this.dockSide();
+    const table = this.dockedSide( "table" );
+    const global = this.dockedSide( "global" );
     const screen = Dom.get( "screen-table" );
-    if ( side === "off" ) {
+    if ( table === "off" && global === "off" ) {
       screen.removeAttribute( "data-chat-dock" );
     } else {
-      screen.setAttribute( "data-chat-dock" , side );
+      screen.setAttribute( "data-chat-dock" , "on" );
     }
+    Dom.show( Dom.get( "menu-table-dock" ) , !( Table.view && Table.view.chat_off ) );
+    Dom.show( Dom.get( "menu-global-dock" ) , Global.available() );
+    Dom.get( "chat-dock" ).setAttribute( "data-side" , table );
+    Dom.get( "global-dock" ).setAttribute( "data-side" , global );
     this.dockControls.forEach( function ( button ) {
-      button.setAttribute( "aria-checked" , String( button.getAttribute( "data-side" ) === side ) );
+      const kind = button.getAttribute( "data-kind" );
+      button.setAttribute( "aria-checked" , String( button.getAttribute( "data-side" ) === Chat.dockSide( kind ) ) );
     } );
-    this.dockShown = null;
-    if ( Table.view ) this.update( Table.view );
+    Dom.all( "[data-chat-shown]" ).forEach( function ( input ) {
+      input.checked = Chat.shown( input.getAttribute( "data-chat-shown" ) );
+    } );
+    const state = table + "|" + global;
+    if ( state !== this.dockState ) {
+      this.dockState = state;
+      this.dockShown = null;
+    }
   },
 
-  // Fill a [data-chat-dock-controls] group with Off / Left / Right.
+  // After any change to what shows where: place the docks, then redraw
+  // the table's chat and the global chat.
+  refresh() {
+    this.applyDock();
+    if ( Table.view ) this.update( Table.view );
+    if ( Sheet.isOpen( "sheet-chat" ) && Table.view ) this.render( Table.view );
+    Global.render();
+  },
+
+  // The dots on the menu button and the menu's chat row: anything new in
+  // either chat.
+  showUnread() {
+    const any = this.unread || Global.unread();
+    Dom.show( Dom.get( "chat-unread" ) , any );
+    Dom.show( Dom.get( "menu-chat-unread" ) , any );
+  },
+
+  // Fill a [data-chat-dock-controls] group with Off / Left / Right, for the
+  // chat its data-kind names (the table's by default).
   bindDock( container ) {
+    const kind = container.getAttribute( "data-kind" ) || "table";
     Chat.dockSides.forEach( function ( side ) {
       const button = Dom.el( "button" , {
         text: I18n.get( "chat_dock." + side ),
-        attrs: { type: "button" , role: "radio" , "data-side": side },
-        on: { click: function () { Chat.setDockSide( side ); } },
+        attrs: { type: "button" , role: "radio" , "data-side": side , "data-kind": kind },
+        on: { click: function () { Chat.setDockSide( kind , side ); } },
       } );
       container.appendChild( button );
       Chat.dockControls.push( button );
@@ -134,6 +215,11 @@ const Chat = {
   init( handlers ) {
     this.handlers = handlers;
     Dom.all( "[data-chat-dock-controls]" ).forEach( this.bindDock );
+    Dom.all( "[data-chat-shown]" ).forEach( function ( input ) {
+      input.addEventListener( "change" , function () {
+        Chat.setShown( input.getAttribute( "data-chat-shown" ) , input.checked );
+      } );
+    } );
     Dom.get( "chat-dock-form" ).addEventListener( "submit" , function ( event ) {
       event.preventDefault();
       Chat.submit( Dom.get( "chat-dock-input" ) );
@@ -147,7 +233,7 @@ const Chat = {
       } );
     } );
     if ( this.dockWide ) {
-      this.dockWide.addEventListener( "change" , function () { Chat.applyDock(); } );
+      this.dockWide.addEventListener( "change" , function () { Chat.refresh(); } );
     }
     this.applyDock();
     Dom.all( "[data-chat-tab]" ).forEach( function ( button ) {
@@ -184,25 +270,42 @@ const Chat = {
       this.seenChat = latest;
       this.primed = true;
     }
+    this.applyDock();
     this.renderGuest( view );
     if ( Sheet.isOpen( "sheet-chat" ) ) this.render( view );
     if ( this.docked() ) this.renderDock( view );
-    const unread = latest > this.seenChat;
-    Dom.show( Dom.get( "chat-unread" ) , unread );
-    Dom.show( Dom.get( "menu-chat-unread" ) , unread );
+    this.unread = this.tableChatOn( view ) && latest > this.seenChat;
+    this.showUnread();
+  },
+
+  // The sheet's tabs that apply: each chat unless hidden or switched off,
+  // and always the log.
+  tabs( view ) {
+    const tabs = [];
+    if ( this.tableChatOn( view ) ) tabs.push( "chat" );
+    if ( Global.shown() ) tabs.push( "global" );
+    tabs.push( "log" );
+    return tabs;
   },
 
   render( view ) {
     if ( !view ) return;
+    const tabs = this.tabs( view );
+    if ( tabs.indexOf( this.tab ) < 0 ) this.tab = tabs[ 0 ];
     Dom.all( "[data-chat-tab]" ).forEach( function ( button ) {
-      button.setAttribute( "aria-selected" , String( button.getAttribute( "data-chat-tab" ) === Chat.tab ) );
+      const tab = button.getAttribute( "data-chat-tab" );
+      button.hidden = tabs.indexOf( tab ) < 0;
+      button.setAttribute( "aria-selected" , String( tab === Chat.tab ) );
     } );
     const chatList = Dom.get( "chat-list" );
     const logList = Dom.get( "log-list" );
     chatList.hidden = this.tab !== "chat";
     logList.hidden = this.tab !== "log";
+    Dom.get( "global-list" ).hidden = this.tab !== "global";
     // Everyone at the table may chat: players, and anyone watching.
     Dom.show( Dom.get( "chat-form" ) , this.tab === "chat" );
+    Dom.show( Dom.get( "global-form" ) , this.tab === "global" );
+    if ( this.tab === "global" ) Global.render();
     Dom.all( "#sheet-chat [data-guest-as]" ).forEach( function ( line ) {
       if ( Chat.tab !== "chat" ) line.hidden = true;
     } );
@@ -214,9 +317,9 @@ const Chat = {
       view.chat.forEach( function ( line ) { chatList.appendChild( Chat.lineEl( view , line ) ); } );
       if ( view.chat.length ) this.seenChat = view.chat[ view.chat.length - 1 ].seq;
       chatList.scrollTop = chatList.scrollHeight;
-      Dom.show( Dom.get( "chat-unread" ) , false );
-      Dom.show( Dom.get( "menu-chat-unread" ) , false );
-    } else {
+      this.unread = false;
+      this.showUnread();
+    } else if ( this.tab === "log" ) {
       // The log is the game record (record.js): hands, then tricks.
       if ( logList.childElementCount === 0 || !Record.data ) Record.render( view , logList );
       Record.refresh( view , logList );

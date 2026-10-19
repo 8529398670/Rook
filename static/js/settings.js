@@ -184,12 +184,43 @@ const Settings = {
       const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
       Art.avatar( avatar , user );
 
+      // Any admin may promote or demote anyone, themselves included --
+      // except the superadmin, who always stays an admin.
+      const roleSelect = Dom.el( "select" , {
+        attrs: { "aria-label": I18n.format( "admin.role_label" , { name: user.display_name } ) },
+        children: [ "user" , "admin" ].map( function ( role ) {
+          return Dom.el( "option" , { text: I18n.get( "admin.role_" + role ) , attrs: { value: role } } );
+        } ),
+        on: { change: async function ( event ) {
+          const role = event.target.value;
+          try {
+            await Api.setRole( user.id , role );
+          } catch ( error ) {
+            event.target.value = user.role;
+            Toast.error( error );
+            return;
+          }
+          // Demoting yourself: start over as a player, without the admin
+          // screens this page has already drawn.
+          if ( user.id === Settings.me.id && role !== "admin" ) {
+            window.location.reload();
+            return;
+          }
+          Toast.show( I18n.format( role === "admin" ? "admin.promoted" : "admin.demoted" , { name: user.display_name } ) );
+          await Settings.refreshUsers();
+        } },
+      } );
+      roleSelect.value = user.role;
+      roleSelect.disabled = user.superadmin === true;
+      const roleCell = [ roleSelect ];
+      if ( user.superadmin ) roleCell.push( Dom.el( "span" , { class: "chip owner-chip" , text: I18n.get( "admin.superadmin_tag" ) , attrs: { title: I18n.get( "admin.superadmin_help" ) } } ) );
+
       // Built with createElement + textContent, never an HTML string: a
       // display name is user-controlled input.
       body.appendChild( Dom.el( "tr" , { children: [
         Dom.el( "td" , { children: [ avatar ] } ),
         Dom.el( "td" , { text: user.display_name } ),
-        Dom.el( "td" , { text: user.role } ),
+        Dom.el( "td" , { children: [ Dom.el( "div" , { class: "role-cell" , children: roleCell } ) ] } ),
         Dom.el( "td" , { text: I18n.get( statusKey ) } ),
         Dom.el( "td" , { children: [ inviteSwitch ] } ),
         Dom.el( "td" , { children: [ hintSwitch ] } ),
@@ -200,11 +231,11 @@ const Settings = {
               Settings.showLoginLink( issued.login_path );
             } ),
             action( "admin.edit_button" , async function () { await Settings.openEditUser( user ); } ),
-            action( user.disabled ? "admin.enable_button" : "admin.disable_button" , async function () {
+            user.superadmin && !user.disabled ? null : action( user.disabled ? "admin.enable_button" : "admin.disable_button" , async function () {
               await Api.setDisabled( user.id , !user.disabled );
               await Settings.refreshUsers();
             } ),
-            user.id === Settings.me.id ? null : Dom.el( "button" , {
+            user.id === Settings.me.id || user.superadmin ? null : Dom.el( "button" , {
               class: "secondary small danger-text",
               text: I18n.get( "admin.delete_button" ),
               on: { click: function () { Settings.confirmDeleteUser( user ); } },

@@ -27,6 +27,15 @@ type Hub struct {
 	lobby  map[ *Subscriber ]struct{}
 	closed bool
 	done   chan struct{}
+
+	// The global chat and who is online (see global.go), under their own
+	// lock so a busy chat never waits on the tables.
+	global_mu     sync.Mutex
+	global        map[ *Subscriber ]struct{}
+	global_chat   []models.GlobalChatLine
+	global_seq    int
+	presence      map[ uint64 ]int
+	presence_left map[ uint64 ]time.Time
 }
 
 func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
@@ -36,9 +45,15 @@ func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
 		tables: map[ string ]*Table{},
 		lobby:  map[ *Subscriber ]struct{}{},
 		done:   make( chan struct{} ),
+
+		global:        map[ *Subscriber ]struct{}{},
+		presence:      map[ uint64 ]int{},
+		presence_left: map[ uint64 ]time.Time{},
 	}
 
 	if hub.settings , err = models.LoadSettings( store ); err != nil { return }
+	if hub.global_chat , err = models.LoadGlobalChat( store ); err != nil { return }
+	if count := len( hub.global_chat ); count > 0 { hub.global_seq = hub.global_chat[ count-1 ].Seq }
 
 	stored , err := models.ListTables( store )
 	if err != nil { return }
@@ -240,7 +255,8 @@ func ( hub *Hub ) Settings() ( settings models.AppSettings ) {
 }
 
 // SetSettings saves new settings and redraws every table, since "observers
-// see all hands" changes what watchers are shown.
+// see all hands" changes what watchers are shown and either chat may have
+// been switched on or off.
 func ( hub *Hub ) SetSettings( settings models.AppSettings ) ( err error ) {
 	if err = models.SaveSettings( hub.store , settings ); err != nil { return }
 	hub.mu.Lock()
@@ -258,6 +274,7 @@ func ( hub *Hub ) SetSettings( settings models.AppSettings ) ( err error ) {
 			subscriber.ring()
 		}
 	}
+	hub.notifyGlobal()
 	return
 }
 
@@ -325,8 +342,10 @@ func ( hub *Hub ) Join( code string , user *models.User ) ( id string , err erro
 }
 
 // RefreshUser copies a renamed or re-iconed person onto every seat they
-// hold, so the change shows at their tables straight away.
+// hold, so the change shows at their tables straight away -- and on the
+// online list.
 func ( hub *Hub ) RefreshUser( user *models.User ) {
+	hub.notifyGlobal()
 	hub.mu.RLock()
 	ids := []string{}
 	for id , table := range hub.tables {

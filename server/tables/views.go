@@ -62,6 +62,8 @@ type TableView struct {
 	Seats     [4]SeatInfo  `json:"seats"`
 	Game      *game.View   `json:"game"`
 	Chat      []ChatLine   `json:"chat"`
+	// ChatOff: an admin has switched table chat off everywhere.
+	ChatOff   bool         `json:"chat_off"`
 
 	// Taking over a bot. Requests go to the host and admins only; MyRequest
 	// is the seat the viewer asked for, or -1.
@@ -177,6 +179,7 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 		IsAdmin:         viewer.Admin,
 		Held:            table.Held,
 		ObserversSeeAll: table.ObserversSeeAll,
+		ChatOff:         settings.TableChatOff,
 	}
 	if viewer.User != nil {
 		view.IsHost = table.HostID == viewer.User.ID

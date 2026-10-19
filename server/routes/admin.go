@@ -35,6 +35,11 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx ) ( err error ) {
 		err = serverError( c )
 		return
 	}
+	super_id , super_err := models.SuperAdminID( handlers.Store )
+	if super_err != nil {
+		err = serverError( c )
+		return
+	}
 	rows := []fiber.Map{}
 	for _ , user := range users {
 		rows = append( rows , fiber.Map{
@@ -46,6 +51,7 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx ) ( err error ) {
 			"can_hint":     user.CanHint,
 			"icon":         user.Icon,
 			"color":        user.Color,
+			"superadmin":   user.ID == super_id,
 		} )
 	}
 	err = c.JSON( rows )
@@ -158,6 +164,10 @@ func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "you cannot disable your own account" )
 		return
 	}
+	if body.Disabled && models.IsSuperAdmin( handlers.Store , user_id ) {
+		err = badRequest( c , "superadmin" )
+		return
+	}
 
 	if models.SetUserDisabled( handlers.Store , user_id , body.Disabled ) != nil {
 		err = serverError( c )
@@ -195,6 +205,39 @@ func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	if models.SetUserCanInvite( handlers.Store , user_id , body.CanInvite ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+type setRoleRequest struct {
+	Role      string `json:"role"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// AdminSetRole promotes someone to admin or makes them a plain user again.
+// Any admin may do it to anyone, themselves included, except that the
+// superadmin (see models/superadmin.go) always stays an admin. Nothing else
+// needs telling: every request reads the role fresh, and API keys are capped
+// at their owner's role on each use.
+func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx ) ( err error ) {
+	var body setRoleRequest
+	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
+	if ok == false {
+		err = target_err
+		return
+	}
+	if models.ValidRole( body.Role ) == false {
+		err = badRequest( c , "role must be admin or user" )
+		return
+	}
+	if body.Role != models.RoleAdmin && models.IsSuperAdmin( handlers.Store , user.ID ) {
+		err = badRequest( c , "superadmin" )
+		return
+	}
+	if models.SetUserRole( handlers.Store , user.ID , body.Role ) != nil {
 		err = serverError( c )
 		return
 	}
@@ -284,6 +327,10 @@ func ( handlers *Handlers ) DeleteUser( c fiber.Ctx ) ( err error ) {
 	}
 	if user.ID == security.UserFrom( c ).ID {
 		err = badRequest( c , "cannot_delete_self" )
+		return
+	}
+	if models.IsSuperAdmin( handlers.Store , user.ID ) {
+		err = badRequest( c , "superadmin" )
 		return
 	}
 	if user.IsAdmin() && user.Disabled() == false {

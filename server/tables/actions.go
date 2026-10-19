@@ -330,6 +330,10 @@ func ( hub *Hub ) Continue( id string , user *models.User ) ( err error ) {
 // player types can become markup. Someone signed in but not seated is
 // watching, and chats as a watcher under their own name.
 func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err error ) {
+	if hub.Settings().TableChatOff {
+		err = ErrChatOff
+		return
+	}
 	text , ok := validChat( text )
 	if ok == false {
 		err = ErrBadChat
@@ -352,6 +356,10 @@ func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err erro
 // signing in, under a name they typed. Their lines are marked as a guest's,
 // so a guest cannot pass for a player of the same name.
 func ( hub *Hub ) GuestChat( id string , name string , text string ) ( err error ) {
+	if hub.Settings().TableChatOff {
+		err = ErrChatOff
+		return
+	}
 	name , ok := validGuestName( name )
 	if ok == false {
 		err = ErrBadGuestName

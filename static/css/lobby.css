@@ -199,6 +199,84 @@ button.compass-seat.is-open:hover { background: var(--accent-soft); transform: n
   pointer-events: auto;
 }
 
+/* -------------------------------------------- online now + global chat */
+
+/* Under the tables on a phone; beside them, and pinned while the tables
+   scroll, on a wide screen. */
+.lobby-side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: 0 16px 1rem;
+}
+
+.online-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.online-person {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 3px 10px 3px 3px;
+  font-size: 0.88rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.online-person.is-you { border-color: var(--accent); }
+.online-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lobby-global-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.lobby-global-box .chat-list { height: 18rem; min-height: 0; }
+.lobby-global-box .chat-form { display: flex; gap: 6px; }
+.lobby-global-box .chat-form input { min-width: 0; }
+.lobby-global-box > p { margin: 0; padding: 0.5rem; }
+
+@media (min-width: 1100px) {
+  .lobby-body {
+    display: grid;
+    grid-template-columns: minmax(0, 46rem) minmax(18rem, 24rem);
+    justify-content: center;
+    align-items: start;
+    gap: 0 1.5rem;
+    padding: 0 16px;
+  }
+
+  .lobby-body .lobby-main { margin: 0; padding-left: 0; padding-right: 0; }
+
+  .lobby-side {
+    position: sticky;
+    top: 70px;
+    height: calc(100dvh - 70px - 96px - var(--safe-bottom));
+    margin: 0;
+    padding: 1rem 0;
+  }
+
+  .lobby-global { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+  .lobby-global-box { flex: 1 1 auto; min-height: 0; }
+  .lobby-global-box .chat-list { height: auto; flex: 1 1 auto; min-height: 10rem; }
+}
+
 /* ------------------------------------------------------- game history */
 
 .screen-games { min-height: 100dvh; }

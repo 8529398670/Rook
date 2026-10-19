@@ -16,6 +16,11 @@ type AppSettings struct {
 	AllowJoinSignup bool `json:"allow_join_signup"`
 	// ObserversSeeAll lets everyone watching any table see every hand.
 	ObserversSeeAll bool `json:"observers_see_all"`
+	// TableChatOff and GlobalChatOff switch off the chat at every table and
+	// the chat everyone shares. Named for "off" so that a database saved
+	// before they existed reads as both on.
+	TableChatOff  bool `json:"table_chat_off"`
+	GlobalChatOff bool `json:"global_chat_off"`
 }
 
 var settingsKey = []byte( "app_settings" )

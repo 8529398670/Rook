@@ -50,6 +50,7 @@ const App = {
       Settings.init( me );
       Profile.init( me );
       Lobby.init( me );
+      Global.start( me );
     }
     window.addEventListener( "hashchange" , this.route.bind( this ) );
     this.route();

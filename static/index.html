@@ -119,6 +119,7 @@
       </div>
     </header>
 
+    <div class="lobby-body">
     <main class="lobby-main">
       <section id="held-tables-section" class="lobby-section" hidden>
         <h2 data-i18n="lobby.held_tables"></h2>
@@ -139,6 +140,27 @@
         </div>
       </section>
     </main>
+
+    <!-- Who is online, and the chat everyone shares (global.js). Beside the
+         tables on a wide screen, under them on a phone. -->
+    <aside class="lobby-side">
+      <section class="lobby-section lobby-online">
+        <h2 id="online-heading"></h2>
+        <ul id="online-list" class="online-list"></ul>
+      </section>
+      <section id="lobby-global" class="lobby-section lobby-global">
+        <h2 data-i18n="global.heading"></h2>
+        <div class="lobby-global-box">
+          <ol id="lobby-global-list" class="chat-list" aria-live="polite"></ol>
+          <p id="lobby-global-off" class="muted" data-i18n="global.off" hidden></p>
+          <form id="lobby-global-form" class="chat-form" autocomplete="off">
+            <input id="lobby-global-input" maxlength="280" data-i18n-attr="placeholder:global.placeholder,aria-label:global.placeholder" />
+            <button type="submit" class="small" data-i18n="chat.send"></button>
+          </form>
+        </div>
+      </section>
+    </aside>
+    </div>
 
     <div class="fab-bar">
       <button id="new-table-button" type="button" class="fab" data-i18n="lobby.new_table"></button>
@@ -256,6 +278,15 @@
         <button type="submit" class="small" data-i18n="chat.send"></button>
       </form>
     </aside>
+    <!-- The global chat's dock: the other side of your cards. -->
+    <aside id="global-dock" class="chat-dock" data-i18n-attr="aria-label:global.heading">
+      <h3 class="chat-dock-title" data-i18n="global.heading"></h3>
+      <ol id="global-dock-list" class="chat-list chat-dock-list" aria-live="polite"></ol>
+      <form id="global-dock-form" class="chat-form chat-dock-form" autocomplete="off">
+        <input id="global-dock-input" maxlength="280" data-i18n-attr="placeholder:global.placeholder,aria-label:global.placeholder" />
+        <button type="submit" class="small" data-i18n="chat.send"></button>
+      </form>
+    </aside>
     <p id="game-live" class="visually-hidden" aria-live="polite"></p>
   </section>
 
@@ -333,9 +364,32 @@
       </div>
 
       <div class="card">
-        <h2 data-i18n="chat_dock.heading"></h2>
+        <h2 data-i18n="chat_settings.heading"></h2>
+        <p class="muted" data-i18n="chat_settings.description"></p>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="chat_settings.table_shown"></span>
+            <span class="switch-help" data-i18n="chat_settings.table_shown_help"></span>
+          </span>
+          <input type="checkbox" role="switch" data-chat-shown="table" />
+        </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="chat_settings.global_shown"></span>
+            <span class="switch-help" data-i18n="chat_settings.global_shown_help"></span>
+          </span>
+          <input type="checkbox" role="switch" data-chat-shown="global" />
+        </label>
+        <h3 data-i18n="chat_dock.heading"></h3>
         <p class="muted" data-i18n="chat_dock.description"></p>
-        <div class="segmented" role="radiogroup" data-chat-dock-controls data-i18n-attr="aria-label:chat_dock.heading"></div>
+        <div class="dock-choice">
+          <span class="switch-title" data-i18n="chat_dock.table"></span>
+          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="table" data-i18n-attr="aria-label:chat_dock.table"></div>
+        </div>
+        <div class="dock-choice">
+          <span class="switch-title" data-i18n="chat_dock.global"></span>
+          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="global" data-i18n-attr="aria-label:chat_dock.global"></div>
+        </div>
       </div>
 
       <div class="card">
@@ -464,6 +518,20 @@
             <span class="switch-help" data-i18n="game_settings.observers_all_help"></span>
           </span>
           <input id="setting-observers-all" type="checkbox" role="switch" />
+        </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="game_settings.table_chat"></span>
+            <span class="switch-help" data-i18n="game_settings.table_chat_help"></span>
+          </span>
+          <input id="setting-table-chat" type="checkbox" role="switch" />
+        </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="game_settings.global_chat"></span>
+            <span class="switch-help" data-i18n="game_settings.global_chat_help"></span>
+          </span>
+          <input id="setting-global-chat" type="checkbox" role="switch" />
         </label>
       </div>
 
@@ -666,9 +734,13 @@
           <summary data-i18n="zoom.heading"></summary>
           <div id="menu-zoom" class="zoom-controls" data-zoom-controls></div>
         </details>
-        <div class="menu-chat-dock">
-          <span class="switch-title" data-i18n="chat_dock.heading"></span>
-          <div class="segmented" role="radiogroup" data-chat-dock-controls data-i18n-attr="aria-label:chat_dock.heading"></div>
+        <div class="menu-chat-dock" id="menu-table-dock">
+          <span class="switch-title" data-i18n="chat_dock.table_heading"></span>
+          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="table" data-i18n-attr="aria-label:chat_dock.table_heading"></div>
+        </div>
+        <div class="menu-chat-dock" id="menu-global-dock">
+          <span class="switch-title" data-i18n="chat_dock.global_heading"></span>
+          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="global" data-i18n-attr="aria-label:chat_dock.global_heading"></div>
         </div>
         <label class="switch-row menu-switch">
           <span>
@@ -717,9 +789,11 @@
       <div class="sheet-grip" aria-hidden="true"></div>
       <div class="segmented" role="tablist">
         <button type="button" role="tab" data-chat-tab="chat" data-i18n="chat.tab_chat"></button>
+        <button type="button" role="tab" data-chat-tab="global" data-i18n="global.tab"></button>
         <button type="button" role="tab" data-chat-tab="log" data-i18n="chat.tab_log"></button>
       </div>
       <ol id="chat-list" class="chat-list"></ol>
+      <ol id="global-list" class="chat-list" hidden></ol>
       <ol id="log-list" class="chat-list log-list" hidden></ol>
       <p class="guest-chat-as" data-guest-as hidden>
         <span data-guest-as-text></span>
@@ -728,6 +802,10 @@
       <form id="chat-form" class="chat-form" autocomplete="off">
         <input data-guest-name class="guest-name" maxlength="24" hidden data-i18n-attr="placeholder:chat.guest_name_placeholder,aria-label:chat.guest_name_placeholder" />
         <input id="chat-input" maxlength="280" data-i18n-attr="placeholder:chat.placeholder,aria-label:chat.placeholder" />
+        <button type="submit" data-i18n="chat.send"></button>
+      </form>
+      <form id="global-form" class="chat-form" autocomplete="off" hidden>
+        <input id="global-input" maxlength="280" data-i18n-attr="placeholder:global.placeholder,aria-label:global.placeholder" />
         <button type="submit" data-i18n="chat.send"></button>
       </form>
     </div>
@@ -892,6 +970,7 @@
   <script src="/js/kitty.js"></script>
   <script src="/js/summary.js"></script>
   <script src="/js/chat.js"></script>
+  <script src="/js/global.js"></script>
   <script src="/js/hint.js"></script>
   <script src="/js/history.js"></script>
   <script src="/js/record.js"></script>

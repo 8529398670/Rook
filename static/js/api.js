@@ -69,6 +69,10 @@ const Api = {
     return this.post( "/api/admin/users/" + userId + "/avatar" , { icon: icon , color: color } );
   },
   deleteUser( userId )         { return this.post( "/api/admin/users/" + userId + "/delete" ); },
+  setRole( userId , role )     { return this.post( "/api/admin/users/" + userId + "/role" , { role: role } ); },
+
+  // The chat everyone shares, and who is online (global.js).
+  globalChat( text )           { return this.post( "/api/global/chat" , { text: text } ); },
 
   // The game history: finished and abandoned games, newest first.
   listGames( offset )          { return this.request( "/api/games?offset=" + ( offset || 0 ) ); },

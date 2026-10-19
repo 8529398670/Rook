@@ -42,6 +42,7 @@ const (
 	ErrTooManyTables  Error = "too_many_tables"
 	ErrBadName        Error = "bad_table_name"
 	ErrBadChat        Error = "bad_chat_message"
+	ErrChatOff        Error = "chat_off"
 	ErrCannotInvite   Error = "cannot_invite"
 	ErrNotABot        Error = "not_a_bot"
 	ErrHeld           Error = "game_held"

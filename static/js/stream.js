@@ -10,7 +10,7 @@
 //   - Tell the page when the connection is down, so it can say so instead of
 //     silently showing a table that has stopped moving.
 const Stream = {
-  // open( url, { table: fn, lobby: fn, gone: fn, status: fn( connected ) } )
+  // open( url, { table: fn, lobby: fn, global: fn, gone: fn, status: fn( connected ) } )
   open( url , handlers ) {
     let source = null;
     let closed = false;
@@ -34,7 +34,7 @@ const Stream = {
       if ( closed ) return;
       if ( source ) source.close();
       source = new EventSource( url , { withCredentials: true } );
-      [ "table" , "lobby" ].forEach( function ( name ) {
+      [ "table" , "lobby" , "global" ].forEach( function ( name ) {
         source.addEventListener( name , function ( event ) {
           status( true );
           let payload = null;

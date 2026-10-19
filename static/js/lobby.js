@@ -45,6 +45,9 @@ const Lobby = {
   },
 
   async enter() {
+    // Lines said while you were at a table count as read once you are back
+    // here, where the global chat is in view.
+    Global.render();
     try {
       this.render( await Api.listTables() );
     } catch ( error ) {

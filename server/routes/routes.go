@@ -82,6 +82,10 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Post( "/account/avatar" , handlers.SetAvatar )
 	account.Post( "/account/pin" , handlers.SetPin )
 	account.Post( "/join/:code" , handlers.JoinTable )
+	// The chat everyone shares, and who is online (see global.go).
+	account.Get( "/global" , handlers.GetGlobal )
+	account.Get( "/global/events" , handlers.GlobalEvents )
+	account.Post( "/global/chat" , handlers.GlobalChat )
 	// Guarded per route rather than by a group, for the prefix reason
 	// spelled out at the API keys group below.
 	account.Post( "/account/login-link" , handlers.Guard.RequireSession , handlers.CreateMyLoginLink )
@@ -117,6 +121,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/disabled" , handlers.SetUserDisabled )
 	admin.Post( "/users/:user_id/can-invite" , handlers.SetUserCanInvite )
 	admin.Post( "/users/:user_id/can-hint" , handlers.SetUserCanHint )
+	admin.Post( "/users/:user_id/role" , handlers.AdminSetRole )
 	admin.Post( "/users/:user_id/rename" , handlers.AdminRenameUser )
 	admin.Post( "/users/:user_id/avatar" , handlers.AdminSetAvatar )
 	admin.Post( "/users/:user_id/delete" , handlers.DeleteUser )

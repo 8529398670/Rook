@@ -372,10 +372,30 @@ appearance:
 
 chat_dock:
   heading: "Chat beside your cards"
-  description: "On a wide screen, keep a small chat window next to your hand. Remembered on this device."
+  description: "On a wide screen, keep a small chat window next to your hand — one on each side if you like. Remembered on this device."
+  table: "Table chat"
+  global: "Global chat"
+  table_heading: "Table chat beside your cards"
+  global_heading: "Global chat beside your cards"
   off: "Off"
   left: "Left"
   right: "Right"
+
+chat_settings:
+  heading: "Chat"
+  description: "Choose which chats you see. Remembered on this device."
+  table_shown: "Table chat"
+  table_shown_help: "Talk with the people at the table you're at."
+  global_shown: "Global chat"
+  global_shown_help: "One chat for everyone, at every table and on the home screen."
+
+global:
+  heading: "Global chat"
+  tab: "Everyone"
+  placeholder: "Say something to everyone"
+  empty: "Nobody has said anything yet."
+  off: "Global chat is switched off by an admin."
+  online_heading: "Online now · {count}"
 
 player_scores:
   heading: "Players' points in the top bar"
@@ -422,6 +442,11 @@ admin:
   delete_heading: "Delete this account?"
   delete_body: "{name} will be removed for good: their sign-in links, sessions and API keys stop working, and they leave any table they are sitting at. Games already played keep their name. Disabling is the undoable option."
   deleted: "{name} was deleted."
+  role_label: "Role for {name}"
+  promoted: "{name} is now an admin."
+  demoted: "{name} is now a player."
+  superadmin_tag: "owner"
+  superadmin_help: "The account this server was set up with. It always stays an admin and can't be disabled or deleted."
 
 api_keys:
   heading: "API keys"
@@ -466,6 +491,8 @@ errors:
   rate_limited: "Too many requests at once — give it a few seconds."
   signed_out: "You've been signed out. Ask for a new login link."
   forbidden: "That isn't allowed."
+  chat_off: "Chat is switched off."
+  superadmin: "The owner account always stays an admin, and can't be disabled or deleted."
   game_held: "The game is on hold while an admin reviews it."
   not_held: "The game isn't on hold."
   nothing_to_undo: "Nothing to undo."
@@ -654,6 +681,10 @@ game_settings:
   join_signup_help: "When on, someone without an account can open a table's join link, type a name, and play. When off, join links only work for people already signed in."
   observers_all: "Watchers see every hand, at every table"
   observers_all_help: "Only for people watching, never for players. You can also switch this on per table from its menu."
+  table_chat: "Table chat"
+  table_chat_help: "Players and watchers can chat at each table. When off, nobody can, at any table."
+  global_chat: "Global chat"
+  global_chat_help: "One chat shared by everyone signed in, on the home screen and at every table."
   saved: "Saved."
 
 signup_links:
