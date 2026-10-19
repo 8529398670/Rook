@@ -311,7 +311,7 @@ const Chat = {
     } );
     if ( this.tab === "chat" ) this.renderGuest( view );
 
-    if ( this.tab === "chat" ) {
+    if ( this.tab === "chat" && !this.busy( chatList ) ) {
       Dom.clear( chatList );
       if ( view.chat.length === 0 ) chatList.appendChild( Dom.el( "li" , { class: "chat-empty" , text: I18n.get( "chat.empty" ) } ) );
       view.chat.forEach( function ( line ) { chatList.appendChild( Chat.lineEl( view , line ) ); } );
@@ -319,6 +319,8 @@ const Chat = {
       chatList.scrollTop = chatList.scrollHeight;
       this.unread = false;
       this.showUnread();
+    } else if ( this.tab === "chat" ) {
+      // Someone is editing a line: leave the list be until they finish.
     } else if ( this.tab === "log" ) {
       // The log is the game record (record.js): hands, then tricks.
       if ( logList.childElementCount === 0 || !Record.data ) Record.render( view , logList );
@@ -326,13 +328,128 @@ const Chat = {
     }
   },
 
-  // Whether a line is the viewer's own: their seat's, or -- for someone
-  // watching -- one sent under their name from the rail.
+  // Whether a line is the viewer's own: sent from their account, or -- for
+  // a line from before lines recorded that -- their seat's, or one sent
+  // under their name from the rail.
   mine( view , line ) {
+    if ( line.user_id ) return this.editable( line );
     if ( line.seat >= 0 ) return line.seat === view.you;
     if ( !line.watcher || view.you >= 0 ) return false;
     if ( line.guest ) return !view.signed_in && line.name === this.guestName();
     return Boolean( view.signed_in && Table.me && line.name === Table.me.display_name );
+  },
+
+  // Only lines sent from your own account can be edited or deleted. A
+  // guest's have no account behind them, so they stay as written.
+  editable( line ) {
+    return Boolean( line.user_id && Table.me && line.user_id === Table.me.id );
+  },
+
+  // What a list shows, as a string: changes when a line is added, edited or
+  // deleted, so a redraw happens then and only then.
+  digest( lines ) {
+    return lines.map( function ( line ) { return line.seq + ( line.edited ? "*" : "" ) + ":" + line.text; } ).join( "\n" );
+  },
+
+  // A list where someone is editing a line or confirming a delete is left
+  // alone, so a snapshot arriving does not wipe what they are typing.
+  busy( list ) {
+    return Boolean( list && list.querySelector( ".chat-line.is-editing" ) );
+  },
+
+  // The line's words, with "(edited)" after them once they were changed.
+  textEl( line ) {
+    const text = Dom.el( "span" , { class: "chat-text" , text: line.text } );
+    if ( line.edited ) text.appendChild( Dom.el( "span" , { class: "chat-edited" , text: " " + I18n.get( "chat.edited" ) } ) );
+    return text;
+  },
+
+  // Edit and delete on a line of your own, for the table chat and the
+  // global chat alike. actions: save( seq , text ) and remove( seq ), which
+  // reject on failure, and redraw() to draw the list afresh afterwards.
+  ownActions( item , line , actions ) {
+    const bar = Dom.el( "span" , { class: "chat-actions" } );
+    const button = function ( key , text , run ) {
+      return Dom.el( "button" , {
+        class: "chat-action",
+        text: text,
+        attrs: { type: "button" , "aria-label": I18n.get( key ) , title: I18n.get( key ) },
+        on: { click: run },
+      } );
+    };
+    const settle = function () {
+      item.classList.remove( "is-editing" );
+      actions.redraw();
+    };
+    const attempt = async function ( run ) {
+      try {
+        await run();
+      } catch ( error ) {
+        Toast.error( error );
+      }
+      settle();
+    };
+
+    const startEdit = function () {
+      const text = item.querySelector( ".chat-text" );
+      const input = Dom.el( "input" , { class: "chat-edit-input" , attrs: { type: "text" , maxlength: "280" , enterkeyhint: "done" , "aria-label": I18n.get( "chat.edit_label" ) } } );
+      input.value = line.text;
+      let done = false;
+      const finish = function ( save ) {
+        if ( done ) return;
+        done = true;
+        const value = input.value.trim();
+        if ( save && value && value !== line.text ) {
+          attempt( function () { return actions.save( line.seq , value ); } );
+        } else {
+          settle();
+        }
+      };
+      input.addEventListener( "keydown" , function ( event ) {
+        if ( event.key === "Enter" ) {
+          event.preventDefault();
+          finish( true );
+        } else if ( event.key === "Escape" ) {
+          event.preventDefault();
+          event.stopPropagation();
+          finish( false );
+        }
+      } );
+      input.addEventListener( "blur" , function () { finish( false ); } );
+      item.classList.add( "is-editing" );
+      text.replaceWith( input );
+      bar.hidden = true;
+      input.focus();
+    };
+
+    // Deleting asks once, in the line itself. Left unanswered, the question
+    // goes away again rather than holding the list still for good.
+    const askDelete = function () {
+      item.classList.add( "is-editing" );
+      Dom.clear( bar );
+      const timer = window.setTimeout( settle , 6000 );
+      bar.appendChild( Dom.el( "span" , { class: "chat-confirm" , text: I18n.get( "chat.delete_confirm" ) } ) );
+      bar.appendChild( button( "chat.yes" , I18n.get( "chat.yes" ) , function () {
+        window.clearTimeout( timer );
+        attempt( function () { return actions.remove( line.seq ); } );
+      } ) );
+      bar.appendChild( button( "chat.no" , I18n.get( "chat.no" ) , function () {
+        window.clearTimeout( timer );
+        settle();
+      } ) );
+    };
+
+    bar.appendChild( button( "chat.edit" , "✎" , startEdit ) );
+    bar.appendChild( button( "chat.delete" , "🗑" , askDelete ) );
+    return bar;
+  },
+
+  // Redraw the table chat everywhere it shows, after an edit or delete.
+  redraw() {
+    this.dockShown = null;
+    if ( !Table.view ) return;
+    if ( Sheet.isOpen( "sheet-chat" ) ) this.render( Table.view );
+    if ( this.docked() ) this.renderDock( Table.view );
   },
 
   lineEl( view , line ) {
@@ -345,10 +462,18 @@ const Chat = {
         text: I18n.get( line.guest ? "chat.guest_tag" : "chat.watching_tag" ),
       } ) );
     }
-    return Dom.el( "li" , { class: "chat-line" + ( this.mine( view , line ) ? " is-mine" : "" ) + ( line.watcher ? " is-watcher" : "" ) , children: [
+    const item = Dom.el( "li" , { class: "chat-line" + ( this.mine( view , line ) ? " is-mine" : "" ) + ( line.watcher ? " is-watcher" : "" ) , children: [
       name,
-      Dom.el( "span" , { class: "chat-text" , text: line.text } ),
+      this.textEl( line ),
     ] } );
+    if ( this.editable( line ) ) {
+      item.appendChild( this.ownActions( item , line , {
+        save: async function ( seq , text ) { Table.apply( await Api.editChat( Table.id , seq , text ) ); },
+        remove: async function ( seq ) { Table.apply( await Api.deleteChat( Table.id , seq ) ); },
+        redraw: function () { Chat.redraw(); },
+      } ) );
+    }
+    return item;
   },
 
   // The docked window shows the same lines as the chat sheet. It is redrawn
@@ -356,12 +481,12 @@ const Chat = {
   // the list does not jump while you scroll back through it.
   renderDock( view ) {
     const latest = view.chat.length ? view.chat[ view.chat.length - 1 ].seq : 0;
-    const shown = latest + "|" + view.you + "|" + view.chat.length;
+    const shown = latest + "|" + view.you + "|" + this.digest( view.chat );
     Dom.show( Dom.get( "chat-dock-form" ) , true );
     this.seenChat = Math.max( this.seenChat , latest );
-    if ( this.dockShown === shown ) return;
-    this.dockShown = shown;
     const list = Dom.get( "chat-dock-list" );
+    if ( this.dockShown === shown || this.busy( list ) ) return;
+    this.dockShown = shown;
     Dom.clear( list );
     if ( view.chat.length === 0 ) list.appendChild( Dom.el( "li" , { class: "chat-empty" , text: I18n.get( "chat.empty" ) } ) );
     view.chat.forEach( function ( line ) { list.appendChild( Chat.lineEl( view , line ) ); } );

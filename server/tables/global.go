@@ -141,6 +141,65 @@ func ( hub *Hub ) GlobalChat( user *models.User , text string ) ( err error ) {
 	return
 }
 
+// changeGlobalChat runs change on the line seq, which must be user's own,
+// then saves the chat and rings every global stream -- the tail of
+// GlobalChat, for an edit or a delete.
+func ( hub *Hub ) changeGlobalChat( user *models.User , seq int , change func( index int ) ) ( err error ) {
+	hub.global_mu.Lock()
+	index := -1
+	for candidate , line := range hub.global_chat {
+		if line.Seq == seq {
+			index = candidate
+			break
+		}
+	}
+	switch {
+	case index < 0:
+		err = ErrNoSuchMessage
+	case hub.global_chat[ index ].UserID != user.ID:
+		err = ErrNotYourMessage
+	}
+	if err != nil {
+		hub.global_mu.Unlock()
+		return
+	}
+	change( index )
+	if save_err := models.SaveGlobalChat( hub.store , hub.global_chat ); save_err != nil {
+		log.Printf( "[tables] could not save the global chat: %v" , save_err )
+	}
+	others := hub.globalList()
+	hub.global_mu.Unlock()
+	for _ , other := range others {
+		other.ring()
+	}
+	return
+}
+
+// EditGlobalChat rewrites one of your own lines in the shared chat.
+func ( hub *Hub ) EditGlobalChat( user *models.User , seq int , text string ) ( err error ) {
+	if hub.Settings().GlobalChatOff {
+		err = ErrChatOff
+		return
+	}
+	text , ok := validChat( text )
+	if ok == false {
+		err = ErrBadChat
+		return
+	}
+	err = hub.changeGlobalChat( user , seq , func( index int ) {
+		hub.global_chat[ index ].Text , hub.global_chat[ index ].Edited = text , true
+	} )
+	return
+}
+
+// DeleteGlobalChat takes one of your own lines out of the shared chat.
+func ( hub *Hub ) DeleteGlobalChat( user *models.User , seq int ) ( err error ) {
+	err = hub.changeGlobalChat( user , seq , func( index int ) {
+		hub.global_chat = append( hub.global_chat[ :index:index ] , hub.global_chat[ index+1: ]... )
+	} )
+	return
+}
+
 // Global is the snapshot for a global stream. Names and avatars on the
 // online list are read fresh, so a rename shows at once; a disabled or
 // deleted account drops off.

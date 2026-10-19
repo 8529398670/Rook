@@ -168,7 +168,21 @@ const Lobby = {
       compass.appendChild( dot );
     } );
 
-    const names = table.seats.filter( function ( seat ) { return seat.kind !== ""; } ).map( Seats.name ).join( ", " );
+    // Who is playing, with computer players marked so they read as bots at
+    // a glance rather than as four people.
+    const names = Dom.el( "div" , { class: "table-card-names" } );
+    const seated = table.seats.filter( function ( seat ) { return seat.kind !== ""; } );
+    seated.forEach( function ( seat , index ) {
+      const bot = seat.kind === "bot";
+      // Commas between plain names; a pill is set apart by its own outline.
+      if ( index > 0 ) names.appendChild( document.createTextNode( bot || seated[ index - 1 ].kind === "bot" ? " " : ", " ) );
+      names.appendChild( Dom.el( "span" , {
+        class: "table-card-player" + ( bot ? " is-bot" : "" ),
+        text: bot ? I18n.get( "bots.badge" ) + " " + Seats.name( seat ) : Seats.name( seat ),
+        attrs: bot ? { title: I18n.get( "lobby.bot_label" ) } : {},
+      } ) );
+      if ( bot ) names.appendChild( Dom.el( "span" , { class: "visually-hidden" , text: " (" + I18n.get( "lobby.bot_label" ) + ")" } ) );
+    } );
 
     const main = Dom.el( "button" , {
       class: "table-card-main",
@@ -181,7 +195,7 @@ const Lobby = {
             Dom.el( "span" , { class: "status-chip status-" + table.status , text: I18n.get( "status." + table.status ) } ),
           ] } ),
           Dom.el( "div" , { class: "table-card-status" , text: this.statusText( table ) } ),
-          Dom.el( "div" , { class: "table-card-names" , text: names } ),
+          names,
           Dom.el( "ul" , { class: "chip-row" , children: this.ruleChips( table.options ) } ),
         ] } ),
       ],

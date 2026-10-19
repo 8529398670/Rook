@@ -102,6 +102,10 @@ const Table = {
         }
       } );
     } );
+    Dom.get( "menu-auto-play" ).addEventListener( "change" , async function ( event ) {
+      const toggle = event.target;
+      if ( !await Table.setAutoPlay( toggle.checked ) ) toggle.checked = !toggle.checked;
+    } );
     Dom.get( "menu-observers" ).addEventListener( "change" , function ( event ) {
       Table.act( Api.setObservers( Table.id , event.target.checked ) );
     } );
@@ -125,6 +129,12 @@ const Table = {
       toggle.checked = Table.showPlayerScores();
       toggle.addEventListener( "change" , function () { Table.setPlayerScores( toggle.checked ); } );
     } );
+  },
+
+  // Auto play: the server plays the bot's choice of card for you on each of
+  // your turns, for the rest of this hand. Turns itself off at the next deal.
+  setAutoPlay( on ) {
+    return this.act( Api.autoPlay( this.id , on ) );
   },
 
   showPlayerScores() {
@@ -459,6 +469,7 @@ const Table = {
       view.status , view.you , game.phase , game.turn , game.bid , game.high_bidder , game.hand_number ,
       game.trick_number , game.taken , game.trick.plays.length , this.seatNames( view ) ,
       view.perspective , view.all_hands , view.can_see_all , view.can_hint , view.watchers , view.hands_hidden ,
+      view.auto_play ,
     ] : [ view.status , view.observing , view.perspective ] ).concat( [ view.my_request ] );
     if ( signature === this.traySignature ) return;
     this.traySignature = signature;
@@ -498,6 +509,14 @@ const Table = {
       tray.appendChild( Dom.el( "div" , { class: "tray-panel" , children: [
         Dom.el( "button" , { class: "small secondary" , text: I18n.get( "table.show_results" ) , attrs: { type: "button" } , on: { click: function () { Summary.open( Table.view ); } } } ),
       ] } ) );
+    }
+    // While the server plays your cards, say so, with a way to stop it.
+    if ( view.auto_play && game.phase === "playing" ) {
+      tray.appendChild( Dom.el( "div" , { class: "tray-panel auto-play-panel" , children: [
+        Dom.el( "span" , { class: "auto-play-note" , text: I18n.get( "auto_play.on" ) } ),
+        Dom.el( "button" , { class: "small secondary" , text: I18n.get( "auto_play.stop" ) , attrs: { type: "button" } , on: { click: function () { Table.setAutoPlay( false ); } } } ),
+      ] } ) );
+      return;
     }
     withHint();
   },
@@ -539,13 +558,14 @@ const Table = {
     } );
   },
 
-  // The admin's controls, in the bar: undo, redo, and Resume while the
-  // table is held. The move count shows where there is room.
+  // The history controls, in the bar: undo, redo, and Resume while the
+  // table is held. The move count shows where there is room. For admins,
+  // and for players an admin let undo at their own tables (can_rewind).
   renderAdmin( view ) {
     const controls = Dom.get( "admin-controls" );
-    controls.hidden = !view.is_admin;
+    controls.hidden = !view.can_rewind;
     Dom.get( "screen-table" ).classList.toggle( "is-held" , Boolean( view.held ) );
-    if ( !view.is_admin ) return;
+    if ( !view.can_rewind ) return;
     Dom.get( "admin-undo" ).disabled = !view.can_undo;
     Dom.get( "admin-redo" ).disabled = !view.can_redo;
     Dom.show( Dom.get( "admin-resume" ) , view.held );
@@ -673,9 +693,15 @@ const Table = {
     Dom.text( Dom.get( "menu-title" ) , view ? view.name : "" );
     if ( view ) {
       Dom.show( document.querySelector( "[data-menu='share']" ) , Boolean( view.join_code ) );
-      Dom.show( document.querySelector( "[data-menu='history']" ) , view.is_admin );
+      Dom.show( document.querySelector( "[data-menu='history']" ) , view.can_rewind );
       Dom.show( Dom.get( "menu-observers-row" ) , view.is_admin );
       Dom.get( "menu-observers" ).checked = view.observers_see_all;
+      // Auto play: for a seated player, once the cards are being played.
+      const playing = Boolean( view.game ) && view.game.phase === "playing" && view.status === "playing";
+      Dom.show( Dom.get( "menu-auto-play-row" ) , view.you >= 0 && Boolean( view.game ) && view.status !== "waiting" );
+      Dom.get( "menu-auto-play" ).checked = Boolean( view.auto_play );
+      Dom.get( "menu-auto-play" ).disabled = !playing;
+      Dom.text( Dom.get( "menu-auto-play-help" ) , I18n.get( playing ? "auto_play.description" : "auto_play.only_playing" ) );
       Dom.show( document.querySelector( "[data-menu='leave']" ) , view.you >= 0 );
       // Restart and delete: the host's call, or an admin's.
       const manager = view.is_host || view.is_admin;

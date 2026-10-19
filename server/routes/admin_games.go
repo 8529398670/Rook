@@ -6,6 +6,7 @@ import (
 	fiber "github.com/gofiber/fiber/v3"
 
 	models "rook/server/models"
+	security "rook/server/security"
 )
 
 // Admin powers over games: step back and forth through a table's moves, put
@@ -25,6 +26,11 @@ type observersRequest struct {
 
 type settingsRequest struct {
 	models.AppSettings
+	CSRFToken string `json:"csrf_token"`
+}
+
+type setCanUndoRequest struct {
+	CanUndo   bool   `json:"can_undo"`
 	CSRFToken string `json:"csrf_token"`
 }
 
@@ -127,5 +133,56 @@ func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// SetUserCanUndo switches a player's power to step through the moves of the
+// games they sit in. Their open tables are refreshed so the controls appear
+// or go at once.
+func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx ) ( err error ) {
+	var body setCanUndoRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
+	if parse_err != nil {
+		err = badRequest( c , "invalid user id" )
+		return
+	}
+	if models.SetUserCanUndo( handlers.Store , user_id , body.CanUndo ) != nil {
+		err = notFound( c , "no such user" )
+		return
+	}
+	handlers.refreshTables( user_id )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// RequireOwner admits only the owner -- the account the server was set up
+// with -- acting with admin rights. The app-wide game settings and the list
+// of everyone's API keys are theirs alone, not every admin's.
+func ( handlers *Handlers ) RequireOwner( c fiber.Ctx ) ( err error ) {
+	actor := security.ActorFrom( c )
+	if actor == nil || actor.IsAdmin() == false || models.IsSuperAdmin( handlers.Store , actor.User.ID ) == false {
+		err = forbidden( c , "forbidden" )
+		return
+	}
+	err = c.Next()
+	return
+}
+
+// RequireRewind guards a table's move history: undo, redo, reset, resume.
+// Admins may use it at any table; a player an admin gave can_undo to, only
+// at a table they are sitting at.
+func ( handlers *Handlers ) RequireRewind( c fiber.Ctx ) ( err error ) {
+	actor := security.ActorFrom( c )
+	allowed := actor != nil && ( actor.IsAdmin() ||
+		( actor.User.CanUndo && handlers.Hub.IsSeated( c.Params( "table_id" ) , actor.User.ID ) ) )
+	if allowed == false {
+		err = forbidden( c , "forbidden" )
+		return
+	}
+	err = c.Next()
 	return
 }

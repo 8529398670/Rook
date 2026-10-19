@@ -86,9 +86,12 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Get( "/global" , handlers.GetGlobal )
 	account.Get( "/global/events" , handlers.GlobalEvents )
 	account.Post( "/global/chat" , handlers.GlobalChat )
+	account.Post( "/global/chat/:seq/edit" , handlers.EditGlobalChat )
+	account.Post( "/global/chat/:seq/delete" , handlers.DeleteGlobalChat )
 	// Guarded per route rather than by a group, for the prefix reason
 	// spelled out at the API keys group below.
 	account.Post( "/account/login-link" , handlers.Guard.RequireSession , handlers.CreateMyLoginLink )
+	account.Post( "/account/delete" , handlers.Guard.RequireSession , handlers.DeleteMyAccount )
 
 	// Sign-up links: anyone allowed to invite manages their own, admins
 	// everyone's (see signup_links.go).
@@ -121,17 +124,20 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/disabled" , handlers.SetUserDisabled )
 	admin.Post( "/users/:user_id/can-invite" , handlers.SetUserCanInvite )
 	admin.Post( "/users/:user_id/can-hint" , handlers.SetUserCanHint )
+	admin.Post( "/users/:user_id/can-undo" , handlers.SetUserCanUndo )
 	admin.Post( "/users/:user_id/role" , handlers.AdminSetRole )
 	admin.Post( "/users/:user_id/rename" , handlers.AdminRenameUser )
 	admin.Post( "/users/:user_id/avatar" , handlers.AdminSetAvatar )
 	admin.Post( "/users/:user_id/delete" , handlers.DeleteUser )
-	admin.Get( "/settings" , handlers.GetSettings )
-	admin.Post( "/settings" , handlers.SaveSettings )
+	// The app-wide game settings: the owner's, not every admin's.
+	admin.Get( "/settings" , handlers.RequireOwner , handlers.GetSettings )
+	admin.Post( "/settings" , handlers.RequireOwner , handlers.SaveSettings )
 
 	// Admin view of every key in the app -- "who has standing access" -- and
 	// the ability to revoke someone else's. Its own prefix for the same reason
 	// as above: mounted on "/api/admin" it would gate the account routes too.
-	admin_keys := app.Group( "/api/admin/keys" , handlers.RequireAPIKeys , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession )
+	// Owner only, like the game settings.
+	admin_keys := app.Group( "/api/admin/keys" , handlers.RequireAPIKeys , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
 	admin_keys.Get( "" , handlers.ListAllAPIKeys )
 	admin_keys.Post( "/:key_id/revoke" , handlers.RevokeAnyAPIKey )
 
@@ -160,21 +166,25 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/bury" , handlers.Bury )
 	game_tables.Post( "/:table_id/play" , handlers.PlayCard )
 	game_tables.Post( "/:table_id/continue" , handlers.ContinueHand )
+	game_tables.Post( "/:table_id/auto-play" , handlers.SetAutoPlay )
 	game_tables.Post( "/:table_id/chat" , handlers.ChatAtTable )
+	game_tables.Post( "/:table_id/chat/:seq/edit" , handlers.EditChatAtTable )
+	game_tables.Post( "/:table_id/chat/:seq/delete" , handlers.DeleteChatAtTable )
 	game_tables.Get( "/:table_id/hint" , handlers.GetHint )
 	game_tables.Get( "/:table_id/record" , handlers.GetRecord )
 	game_tables.Post( "/:table_id/takeover" , handlers.RequestTakeover )
 	game_tables.Post( "/:table_id/takeover/cancel" , handlers.CancelTakeover )
 	game_tables.Post( "/:table_id/takeover/answer" , handlers.AnswerTakeover )
 
-	// Admin-only table controls: the move history, undo / redo / reset,
-	// resuming a held game, and whether watchers see every hand. Guarded per
-	// route, since the group only requires a login.
-	game_tables.Get( "/:table_id/history" , handlers.Guard.RequireAdmin , handlers.GetHistory )
-	game_tables.Post( "/:table_id/undo" , handlers.Guard.RequireAdmin , handlers.Undo )
-	game_tables.Post( "/:table_id/redo" , handlers.Guard.RequireAdmin , handlers.Redo )
-	game_tables.Post( "/:table_id/reset" , handlers.Guard.RequireAdmin , handlers.ResetTo )
-	game_tables.Post( "/:table_id/resume" , handlers.Guard.RequireAdmin , handlers.Resume )
+	// The move history: undo / redo / reset and resuming a held game. Admins
+	// anywhere; players given can_undo at their own tables (RequireRewind).
+	// Whether watchers see every hand stays admin-only. Guarded per route,
+	// since the group only requires a login.
+	game_tables.Get( "/:table_id/history" , handlers.RequireRewind , handlers.GetHistory )
+	game_tables.Post( "/:table_id/undo" , handlers.RequireRewind , handlers.Undo )
+	game_tables.Post( "/:table_id/redo" , handlers.RequireRewind , handlers.Redo )
+	game_tables.Post( "/:table_id/reset" , handlers.RequireRewind , handlers.ResetTo )
+	game_tables.Post( "/:table_id/resume" , handlers.RequireRewind , handlers.Resume )
 	game_tables.Post( "/:table_id/observers" , handlers.Guard.RequireAdmin , handlers.SetTableObservers )
 
 	// The game history: every finished or abandoned game, for anyone

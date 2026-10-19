@@ -1,5 +1,5 @@
 // Settings panels about how people get in and what watchers see: the
-// app-wide game settings (admins only), and multi-use sign-up links, which
+// app-wide game settings (the owner only), and multi-use sign-up links, which
 // anyone allowed to invite may make. An admin sees everyone's links, with
 // who made each; anyone else only their own.
 const Links = {

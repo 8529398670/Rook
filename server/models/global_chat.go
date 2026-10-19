@@ -18,6 +18,7 @@ type GlobalChatLine struct {
 	Color  string    `json:"color,omitempty"`
 	Text   string    `json:"text"`
 	At     time.Time `json:"at"`
+	Edited bool      `json:"edited,omitempty"`
 }
 
 // The recent lines are kept as one record, rewritten on every message. The

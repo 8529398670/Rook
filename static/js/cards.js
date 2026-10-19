@@ -29,6 +29,21 @@ const Cards = {
 
   init() {
     if ( document.getElementById( "card-sprite" ) ) return;
+    this.build();
+    // The corner index is laid out from the numbers' measured widths, which
+    // depend on the font actually used. Once it has loaded, measure again
+    // and redraw the deck; every <use> on screen follows the new sprite.
+    if ( document.fonts && document.fonts.load ) {
+      document.fonts.load( "700 58px " + Cards.fontFamily , "0123456789" ).then( function () {
+        return document.fonts.ready;
+      } ).then( function () {
+        Cards.inkWidths = {};
+        Cards.build();
+      } , function () { /* no font API: keep the first layout */ } );
+    }
+  },
+
+  build() {
     const defs = Dom.svg( "defs" , {} , [
       // Interlocking circles, after the ornament on the original card back.
       Dom.svg( "pattern" , { id: "back-pattern" , width: 96 , height: 96 , patternUnits: "userSpaceOnUse" , x: 29 , y: 31 } , [
@@ -46,7 +61,12 @@ const Cards = {
     } );
 
     const sprite = Dom.svg( "svg" , { id: "card-sprite" , width: 0 , height: 0 , "aria-hidden": "true" , class: "sprite" } , [ defs ].concat( symbols ) );
-    document.body.insertBefore( sprite , document.body.firstChild );
+    const existing = document.getElementById( "card-sprite" );
+    if ( existing ) {
+      existing.replaceWith( sprite );
+    } else {
+      document.body.insertBefore( sprite , document.body.firstChild );
+    }
   },
 
   back: { teal: "#40aab8" , ornament: "#56bac6" , edge: "#2b2b2e" },
@@ -64,12 +84,14 @@ const Cards = {
 
   // The numerals are in Comic Sans (see --font-number in style.css; an SVG
   // attribute cannot read a CSS variable, so the list is repeated here).
+  fontFamily: "'Comic Sans MS', 'Comic Sans', 'Comic Neue', system-ui, sans-serif",
+
   // weight thickens the strokes past the font's bold with an outline in the
   // same ink.
   text( value , x , y , size , fill , anchor , weight ) {
     const node = Dom.svg( "text" , {
       x: x , y: y , fill: fill ,
-      "font-family": "'Comic Sans MS', 'Comic Sans', 'Comic Neue', system-ui, sans-serif" ,
+      "font-family": Cards.fontFamily ,
       "font-weight": 700 , "font-size": size , "text-anchor": anchor || "middle" ,
       stroke: weight ? fill : null , "stroke-width": weight || null , "stroke-linejoin": weight ? "round" : null ,
     } );
@@ -87,6 +109,40 @@ const Cards = {
     ] );
   },
 
+  // The corner number: 58 units of Comic Sans, two-digit numbers drawn 5
+  // units tighter per gap, thickened by a 2-unit outline.
+  indexSize: 58,
+  indexTight: 5,
+  indexStroke: 2,
+  // The space between the number's ink and the color name beside it, the
+  // same on every card.
+  indexGap: 9,
+  inkWidths: {},
+
+  // How far right of its x the corner number's ink reaches. Measured
+  // rather than assumed, because digits differ in width -- a "1" is far
+  // narrower than an "8" -- and a fixed position left an uneven gap.
+  numberInk( number ) {
+    if ( this.inkWidths[ number ] !== undefined ) return this.inkWidths[ number ];
+    const text = String( number );
+    let width = null;
+    try {
+      const context = document.createElement( "canvas" ).getContext( "2d" );
+      context.font = "700 " + this.indexSize + "px " + this.fontFamily;
+      const metrics = context.measureText( text );
+      if ( metrics.actualBoundingBoxRight > 0 ) {
+        width = metrics.actualBoundingBoxRight - this.indexTight * ( text.length - 1 ) + this.indexStroke / 2;
+      }
+    } catch ( error ) {
+      // No canvas: fall back below.
+    }
+    // The layout the deck had before it was measured: roughly a digit's
+    // width per digit.
+    if ( width === null ) width = text.length > 1 ? 73 : 33;
+    this.inkWidths[ number ] = width;
+    return width;
+  },
+
   faceSymbol( id ) {
     const card = this.parse( id );
     const ink = Art.palette[ card.color ];
@@ -97,11 +153,11 @@ const Cards = {
     // The number sits in the left-most strip, which is all that shows of a
     // card overlapped in a hand.
     // Comic Sans digits are wide, so a two-digit number is drawn a little
-    // tighter and the name moves over to make room.
-    const nameX = wide ? 94 : 54;
+    // tighter. The name and points sit a fixed gap after the number's ink.
+    const nameX = Math.round( ( 12 + this.numberInk( card.number ) + this.indexGap ) * 10 ) / 10;
     const index = function ( transform ) {
-      const number = Cards.text( card.number , 12 , 62 , 58 , ink.text , "start" , 2 );
-      if ( wide ) number.setAttribute( "letter-spacing" , "-5" );
+      const number = Cards.text( card.number , 12 , 62 , Cards.indexSize , ink.text , "start" , Cards.indexStroke );
+      if ( wide ) number.setAttribute( "letter-spacing" , String( -Cards.indexTight ) );
       const parts = [
         number,
         Cards.text( I18n.get( "colors." + card.color ).toUpperCase() , nameX , 33 , 15 , ink.text , "start" , 0.4 ),

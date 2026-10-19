@@ -70,6 +70,28 @@ func ( hub *Hub ) Leave( id string , user *models.User ) ( err error ) {
 	return
 }
 
+// SetAutoPlay switches auto play on or off for the user's seat: while on,
+// the server plays the bot's choice of card for them on each of their turns
+// until the hand ends. Only while cards are being played -- bidding and the
+// kitty are real decisions.
+func ( hub *Hub ) SetAutoPlay( id string , user *models.User , on bool ) ( err error ) {
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if _ , fn_err = table.seated( user ); fn_err != nil { return }
+		if table.Game == nil || table.Game.Phase != game.PhasePlaying {
+			fn_err = ErrNotPlaying
+			return
+		}
+		if on == false {
+			delete( table.AutoPlay , user.ID )
+			return
+		}
+		if table.AutoPlay == nil { table.AutoPlay = map[ uint64 ]int{} }
+		table.AutoPlay[ user.ID ] = table.Game.HandNumber
+		return
+	} )
+	return
+}
+
 // AddBot fills an empty seat with a computer player. Anyone seated may do it,
 // before a game or to unpause one.
 func ( hub *Hub ) AddBot( id string , user *models.User , seat int ) ( err error ) {
@@ -341,12 +363,62 @@ func ( hub *Hub ) Chat( id string , user *models.User , text string ) ( err erro
 	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		if table.seatOf( user.ID ) < 0 {
-			table.addChat( ChatLine{ Seat: -1 , Name: user.DisplayName , Text: text , Watcher: true } )
+			table.addChat( ChatLine{ Seat: -1 , Name: user.DisplayName , Text: text , Watcher: true , UserID: user.ID } )
 			return
 		}
 		seat , fn_err := table.seated( user )
 		if fn_err != nil { return }
-		table.addChat( ChatLine{ Seat: seat , Name: table.Seats[ seat ].shownName() , Text: text } )
+		table.addChat( ChatLine{ Seat: seat , Name: table.Seats[ seat ].shownName() , Text: text , UserID: user.ID } )
+		return
+	} )
+	return
+}
+
+// chatLineOf finds line seq and checks it is user's own. Called with the
+// table locked.
+func ( table *Table ) chatLineOf( user *models.User , seq int ) ( index int , err error ) {
+	index = -1
+	for candidate , line := range table.Chat {
+		if line.Seq == seq {
+			index = candidate
+			break
+		}
+	}
+	switch {
+	case index < 0:
+		err = ErrNoSuchMessage
+	case table.Chat[ index ].UserID == 0 || table.Chat[ index ].UserID != user.ID:
+		err = ErrNotYourMessage
+	}
+	return
+}
+
+// EditChat rewrites one of your own lines, marking it edited.
+func ( hub *Hub ) EditChat( id string , user *models.User , seq int , text string ) ( err error ) {
+	if hub.Settings().TableChatOff {
+		err = ErrChatOff
+		return
+	}
+	text , ok := validChat( text )
+	if ok == false {
+		err = ErrBadChat
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		index , fn_err := table.chatLineOf( user , seq )
+		if fn_err != nil { return }
+		table.Chat[ index ].Text , table.Chat[ index ].Edited = text , true
+		return
+	} )
+	return
+}
+
+// DeleteChat takes one of your own lines away for everyone.
+func ( hub *Hub ) DeleteChat( id string , user *models.User , seq int ) ( err error ) {
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		index , fn_err := table.chatLineOf( user , seq )
+		if fn_err != nil { return }
+		table.Chat = append( table.Chat[ :index:index ] , table.Chat[ index+1: ]... )
 		return
 	} )
 	return

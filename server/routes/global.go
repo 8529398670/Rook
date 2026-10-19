@@ -2,6 +2,7 @@ package routes
 
 import (
 	bufio "bufio"
+	strconv "strconv"
 
 	fiber "github.com/gofiber/fiber/v3"
 
@@ -46,6 +47,52 @@ func ( handlers *Handlers ) GlobalChat( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	if chat_err := handlers.Hub.GlobalChat( security.UserFrom( c ) , body.Text ); chat_err != nil {
+		err = handlers.tableError( c , chat_err )
+		return
+	}
+	err = c.JSON( handlers.Hub.Global() )
+	return
+}
+
+// chatSeq reads the :seq of a chat line from the path.
+func chatSeq( c fiber.Ctx ) ( seq int , ok bool ) {
+	seq , parse_err := strconv.Atoi( c.Params( "seq" ) )
+	ok = parse_err == nil && seq > 0
+	return
+}
+
+// EditGlobalChat and DeleteGlobalChat change one of the caller's own lines.
+func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx ) ( err error ) {
+	var body globalChatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	seq , ok := chatSeq( c )
+	if ok == false {
+		err = badRequest( c , "no_such_message" )
+		return
+	}
+	if chat_err := handlers.Hub.EditGlobalChat( security.UserFrom( c ) , seq , body.Text ); chat_err != nil {
+		err = handlers.tableError( c , chat_err )
+		return
+	}
+	err = c.JSON( handlers.Hub.Global() )
+	return
+}
+
+func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	seq , ok := chatSeq( c )
+	if ok == false {
+		err = badRequest( c , "no_such_message" )
+		return
+	}
+	if chat_err := handlers.Hub.DeleteGlobalChat( security.UserFrom( c ) , seq ); chat_err != nil {
 		err = handlers.tableError( c , chat_err )
 		return
 	}

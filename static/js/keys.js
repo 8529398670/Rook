@@ -5,7 +5,7 @@
 // second one. app.js calls Keys.init( me ) once it knows who is signed in.
 //
 // Two sections, and the difference matters: "my keys" is for every signed-in
-// user, and the all-keys table is the admin's answer to "who and what can get
+// user, and the all-keys table is the owner's answer to "who and what can get
 // in". A key created here carries a role from the same set users have, and can
 // never be given more than the account that owns it.
 const Keys = {
@@ -27,7 +27,8 @@ const Keys = {
     Dom.get( "copy-key-button" ).addEventListener( "click" , this.onCopy.bind( this ) );
     await this.refresh();
 
-    if ( me.role !== "admin" ) return;
+    // Everyone's keys: the owner's view alone.
+    if ( !me.owner ) return;
     Dom.show( Dom.get( "admin-keys-panel" ) , true );
     await this.refreshAll();
   },

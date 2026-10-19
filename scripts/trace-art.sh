@@ -37,17 +37,32 @@ for tone in light:80% mid:50% dark:22%; do
 done
 for layer in cream light mid dark; do trace "crow_$layer" 6 2; done
 
-# The ROOK logo: a grey halo, a black outline, and cream letters.
+# The ROOK logo: a grey halo, a black outline, and cream letters. Only the
+# letters are taken from the scan; the scan's own outline is ragged (the K
+# most of all), so the outline and halo are grown from the cleaned letters
+# instead -- an even, tight band that joins where letters touch -- and their
+# insides are filled, so the counters of the R and Os stay solid black.
 magick "$IMAGES/rooktext.jpg" -alpha set -fuzz 5% -fill none \
   -draw "color 0,0 floodfill" -draw "color 387,0 floodfill" \
   -draw "color 0,214 floodfill" -draw "color 387,214 floodfill" "$WORK/logo.png"
-magick "$WORK/logo.png" -alpha extract -negate -resize 200% -blur 0x1 -threshold 50% "$WORK/logo_halo.pbm"
-magick "$IMAGES/rooktext.jpg" -colorspace gray -resize 200% -blur 0x1 -threshold 30% "$WORK/logo_ink.pbm"
-# Cream is whatever is light and inside the outline.
+# Cream is whatever is light and inside the scan's outline, smoothed.
 magick "$IMAGES/rooktext.jpg" -colorspace gray -resize 200% -blur 0x1 -threshold 75% \
   \( "$WORK/logo.png" -alpha extract -resize 200% -blur 0x1 -threshold 50% \) \
-  -compose multiply -composite -negate "$WORK/logo_cream.pbm"
-for layer in halo ink cream; do trace "logo_$layer" 6 2; done
+  -compose multiply -composite \
+  -morphology Open Disk:3 -morphology Close Disk:5 -blur 0x2 -threshold 50% "$WORK/logo_letters.png"
+fill_holes() {
+  magick "$1" -bordercolor black -border 2 -fill red -draw "color 0,0 floodfill" -shave 2 \
+    -fill white +opaque red -fill black -opaque red "$2"
+}
+magick "$WORK/logo_letters.png" -morphology Dilate Disk:15 -morphology Close Disk:10 "$WORK/logo_outline.png"
+fill_holes "$WORK/logo_outline.png" "$WORK/logo_ink.png"
+magick "$WORK/logo_outline.png" -morphology Dilate Disk:5 "$WORK/logo_grown.png"
+fill_holes "$WORK/logo_grown.png" "$WORK/logo_halo.png"
+for layer in halo ink letters; do magick "$WORK/logo_$layer.png" -negate "$WORK/logo_$layer.pbm"; done
+mv "$WORK/logo_letters.pbm" "$WORK/logo_cream.pbm"
+for layer in halo ink cream; do
+  potrace -s -t 6 -a 1.2 -O 0.6 -u 2 "$WORK/logo_$layer.pbm" -o "$WORK/logo_$layer.svg"
+done
 
 # The face of the Rook card: the teal crow perched on the 20, ROOK down two
 # corners and the little crows, traced as one ink layer from everything

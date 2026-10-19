@@ -100,6 +100,15 @@
 .table-card-name { font-weight: 750; font-size: 1.02rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .table-card-status { font-size: 0.88rem; color: var(--fg-muted); }
 .table-card-names { font-size: 0.82rem; color: var(--fg-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Computer players: a small 🤖 pill, so bots never read as people. */
+.table-card-player.is-bot {
+  display: inline-block;
+  padding: 0 0.45em;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  line-height: 1.45;
+}
 
 .status-chip {
   flex: 0 0 auto;

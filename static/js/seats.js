@@ -134,7 +134,11 @@ const Seats = {
         avatar.classList.remove( "has-icon" );
       }
 
-      Dom.text( element.querySelector( ".seat-name" ) , seat === view.you ? I18n.format( "seats.you" , { name: this.name( info ) } ) : this.name( info ) );
+      // A ⏩ after the name while auto play is playing that person's cards.
+      const nameLine = element.querySelector( ".seat-name" );
+      const shown = seat === view.you ? I18n.format( "seats.you" , { name: this.name( info ) } ) : this.name( info );
+      Dom.text( nameLine , info.auto_play ? shown + " ⏩" : shown );
+      if ( info.auto_play ) nameLine.setAttribute( "title" , I18n.get( "auto_play.seat" ) ); else nameLine.removeAttribute( "title" );
       Dom.text( element.querySelector( ".seat-note" ) , this.note( view , seat , info ) );
       // Who dealt shows on their seat while the hand is bid for; after
       // that it moves up into the bar, beside trump.

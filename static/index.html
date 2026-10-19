@@ -313,6 +313,9 @@
         </form>
         <p id="rename-saved" class="notice notice-ok" data-i18n="account.saved_notice" hidden></p>
         <button id="logout-button" type="button" class="secondary" data-i18n="account.logout_button"></button>
+        <div id="delete-me-row" class="delete-me-row" hidden>
+          <button id="delete-me-button" type="button" class="ghost danger-text" data-i18n="account.delete_button"></button>
+        </div>
       </div>
 
       <!-- Signing in somewhere else: a one-time link to yourself. -->
@@ -495,6 +498,7 @@
                 <th data-i18n="admin.table_status"></th>
                 <th data-i18n="admin.table_can_invite"></th>
                 <th data-i18n="admin.table_can_hint"></th>
+                <th data-i18n="admin.table_can_undo"></th>
                 <th data-i18n="admin.table_actions"></th>
               </tr>
             </thead>
@@ -723,6 +727,13 @@
         <button type="button" data-menu="share" data-i18n="menu.share"></button>
         <button type="button" class="menu-fullscreen" data-fullscreen><span data-fullscreen-label data-i18n="menu.fullscreen"></span></button>
         <button type="button" data-menu="history" data-i18n="admin_game.history"></button>
+        <label class="switch-row menu-switch" id="menu-auto-play-row">
+          <span>
+            <span class="switch-title" data-i18n="auto_play.heading"></span>
+            <span class="switch-help" id="menu-auto-play-help"></span>
+          </span>
+          <input id="menu-auto-play" type="checkbox" role="switch" />
+        </label>
         <label class="switch-row menu-switch" id="menu-observers-row">
           <span>
             <span class="switch-title" data-i18n="admin_game.observers_all"></span>
@@ -782,6 +793,16 @@
       <div class="sheet-actions">
         <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
         <button id="delete-user-confirm" type="button" class="danger" data-i18n="admin.delete_button"></button>
+      </div>
+    </div>
+
+    <div id="sheet-confirm-delete-me" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="account.delete_heading"></h2>
+      <p data-i18n="account.delete_body"></p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button id="delete-me-confirm" type="button" class="danger" data-i18n="account.delete_confirm"></button>
       </div>
     </div>
 

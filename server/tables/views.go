@@ -19,6 +19,8 @@ type SeatInfo struct {
 	Host    bool   `json:"host"`
 	Icon    string `json:"icon"`
 	Color   string `json:"color"`
+	// AutoPlay: this person has the server playing their cards this hand.
+	AutoPlay bool `json:"auto_play"`
 }
 
 // RequestInfo is one pending "let me take over this bot" request, shown to
@@ -59,6 +61,8 @@ type TableView struct {
 	IsHost    bool         `json:"is_host"`
 	CanInvite bool         `json:"can_invite"`
 	CanHint   bool         `json:"can_hint"`
+	// AutoPlay: the viewer switched auto play on for this hand.
+	AutoPlay  bool         `json:"auto_play"`
 	Seats     [4]SeatInfo  `json:"seats"`
 	Game      *game.View   `json:"game"`
 	Chat      []ChatLine   `json:"chat"`
@@ -84,6 +88,9 @@ type TableView struct {
 
 	// Admin tools.
 	IsAdmin         bool `json:"is_admin"`
+	// CanRewind: may use the move history here -- an admin, or a player
+	// given can_undo who sits at this table.
+	CanRewind       bool `json:"can_rewind"`
 	Held            bool `json:"held"`
 	Cursor          int  `json:"cursor"`
 	Moves           int  `json:"moves"`
@@ -123,6 +130,7 @@ func ( table *Table ) seatInfo() ( seats [4]SeatInfo ) {
 			Color:   seat.Color,
 			Host:    seat.Kind == KindHuman && seat.UserID == table.HostID,
 			Online:  seat.Kind == KindBot || ( seat.Kind == KindHuman && table.online( seat.UserID ) ),
+			AutoPlay: table.autoPlays( index ),
 		}
 	}
 	return
@@ -172,6 +180,7 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 		Perspective:     perspective,
 		Observing:       observing,
 		Signed:          viewer.User != nil,
+		AutoPlay:        table.autoPlays( you ),
 		CanSeeAll:       can_see_all,
 		AllHands:        can_see_all && options.AllHands,
 		HandsHidden:     hands_hidden,
@@ -196,7 +205,8 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 			} )
 		}
 	}
-	if viewer.Admin {
+	view.CanRewind = viewer.Admin || ( viewer.User != nil && viewer.User.CanUndo && you >= 0 )
+	if view.CanRewind {
 		view.Cursor = table.Cursor
 		view.Moves = len( table.Log )
 		view.CanUndo = table.Cursor > 0

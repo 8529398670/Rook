@@ -743,6 +743,15 @@ td .row-actions { display: flex; gap: 0.4rem; }
   margin-bottom: 0.75rem;
 }
 
+/* There are well over a hundred icons: show a few rows and scroll the
+   rest, rather than pushing everything below a long way down. */
+.icon-grid {
+  max-height: 248px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 3px;
+}
+
 .icon-choice {
   min-height: 44px;
   padding: 0;
@@ -865,6 +874,9 @@ td .row-actions { display: flex; gap: 0.4rem; }
 .link-button:hover, .link-button:active:not(:disabled) { background: none; transform: none; }
 
 button.danger-text { color: var(--danger); }
+
+/* Deleting your account: set apart below the everyday account buttons. */
+.delete-me-row { margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border); }
 
 .pin-state { font-weight: 650; }
 

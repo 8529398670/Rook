@@ -341,6 +341,16 @@ func ( hub *Hub ) Join( code string , user *models.User ) ( id string , err erro
 	return
 }
 
+// IsSeated reports whether user_id has a seat at table id.
+func ( hub *Hub ) IsSeated( id string , user_id uint64 ) ( result bool ) {
+	table := hub.table( id )
+	if table == nil { return }
+	table.mu.Lock()
+	result = table.seatOf( user_id ) >= 0
+	table.mu.Unlock()
+	return
+}
+
 // RefreshUser copies a renamed or re-iconed person onto every seat they
 // hold, so the change shows at their tables straight away -- and on the
 // online list.

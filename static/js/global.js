@@ -119,8 +119,8 @@ const Global = {
   // changed, so it does not jump while you scroll back through it.
   fill( list ) {
     const chat = this.view.chat;
-    const shown = this.latest() + "|" + chat.length;
-    if ( list.getAttribute( "data-shown" ) === shown ) return;
+    const shown = this.latest() + "|" + Chat.digest( chat );
+    if ( list.getAttribute( "data-shown" ) === shown || Chat.busy( list ) ) return;
     list.setAttribute( "data-shown" , shown );
     Dom.clear( list );
     if ( chat.length === 0 ) list.appendChild( Dom.el( "li" , { class: "chat-empty" , text: I18n.get( "global.empty" ) } ) );
@@ -130,9 +130,24 @@ const Global = {
 
   lineEl( line ) {
     const mine = Boolean( this.me && line.user_id === this.me.id );
-    return Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [
+    const item = Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [
       Dom.el( "span" , { class: "chat-name" , text: line.name } ),
-      Dom.el( "span" , { class: "chat-text" , text: line.text } ),
+      Chat.textEl( line ),
     ] } );
+    // Your own lines can be edited or deleted, the same way as at a table.
+    if ( mine ) {
+      item.appendChild( Chat.ownActions( item , line , {
+        save: async function ( seq , text ) { Global.update( await Api.editGlobalChat( seq , text ) ); },
+        remove: async function ( seq ) { Global.update( await Api.deleteGlobalChat( seq ) ); },
+        redraw: function () { Global.redraw(); },
+      } ) );
+    }
+    return item;
+  },
+
+  // Draw every global list afresh, after an edit or delete.
+  redraw() {
+    Dom.all( "#lobby-global-list, #global-dock-list, #global-list" ).forEach( function ( list ) { list.removeAttribute( "data-shown" ); } );
+    this.render();
   },
 };

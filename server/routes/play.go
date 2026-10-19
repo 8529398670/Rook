@@ -78,6 +78,25 @@ func ( handlers *Handlers ) ContinueHand( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+type autoPlayRequest struct {
+	On        bool   `json:"on"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// SetAutoPlay switches auto play on or off for the caller's seat for the rest
+// of this hand. Open to every player, unlike hints: it only plays cards once
+// the hand's real decisions are made.
+func ( handlers *Handlers ) SetAutoPlay( c fiber.Ctx ) ( err error ) {
+	var body autoPlayRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.SetAutoPlay( id , security.UserFrom( c ) , body.On ) )
+	return
+}
+
 // GetHint is the hint button: the move a bot would make in your seat, for
 // players an admin has given hints to. It suggests; the player decides --
 // the page shows it, then highlights it, then plays it only if asked.

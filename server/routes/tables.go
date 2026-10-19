@@ -341,6 +341,40 @@ func ( handlers *Handlers ) ChatAtTable( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// EditChatAtTable and DeleteChatAtTable change one of the caller's own
+// lines in a table's chat.
+func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx ) ( err error ) {
+	var body chatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	seq , ok := chatSeq( c )
+	if ok == false {
+		err = badRequest( c , "no_such_message" )
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.EditChat( id , security.UserFrom( c ) , seq , body.Text ) )
+	return
+}
+
+func ( handlers *Handlers ) DeleteChatAtTable( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	seq , ok := chatSeq( c )
+	if ok == false {
+		err = badRequest( c , "no_such_message" )
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.DeleteChat( id , security.UserFrom( c ) , seq ) )
+	return
+}
+
 // InviteToSeat is the admin "create user" flow aimed at one empty chair:
 // create the account, mint its one-time login link, and hold the seat for
 // it. Admins can always do it; anyone else only if an admin switched on

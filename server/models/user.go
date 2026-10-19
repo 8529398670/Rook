@@ -33,6 +33,10 @@ type User struct {
 	// CanHint shows the hint button to this player. Off by default; an
 	// admin decides who gets help.
 	CanHint bool `json:"can_hint,omitempty"`
+	// CanUndo lets a player step back and forth through the moves of a game
+	// they are sitting in -- undo, redo, reset to a move, resume -- as an
+	// admin can at any table. Off by default.
+	CanUndo bool `json:"can_undo,omitempty"`
 	// Icon and Color are the avatar a player chose (see profile.go).
 	Icon  string `json:"icon,omitempty"`
 	Color string `json:"color,omitempty"`

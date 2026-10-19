@@ -39,6 +39,11 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		"icon":             user.Icon,
 		"color":            user.Color,
 		"has_pin":          user.HasPin(),
+		// owner: the account this server was set up with (see
+		// models/superadmin.go), and only when acting with admin rights, so
+		// a user-scoped key of the owner's is not the owner.
+		"owner":            actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
+		"can_undo":         user.CanUndo,
 	}
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see
@@ -115,5 +120,42 @@ func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx ) ( err error ) {
 		"login_path":         "/login/" + credential,
 		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
 	} )
+	return
+}
+
+// DeleteMyAccount is DeleteUser for yourself: the account, every way to
+// sign in as it, and its seats at open tables, gone for good. The same two
+// accounts are protected as from an admin: the owner, and the last admin
+// standing. Session only, like CreateMyLoginLink -- an API key must not be
+// able to delete the account it belongs to.
+func ( handlers *Handlers ) DeleteMyAccount( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	user := security.UserFrom( c )
+	if models.IsSuperAdmin( handlers.Store , user.ID ) {
+		err = badRequest( c , "superadmin" )
+		return
+	}
+	if user.IsAdmin() && user.Disabled() == false {
+		admins , count_err := models.CountActiveAdmins( handlers.Store )
+		if count_err != nil {
+			err = serverError( c )
+			return
+		}
+		if admins <= 1 {
+			err = badRequest( c , "last_admin" )
+			return
+		}
+	}
+	if models.DeleteUser( handlers.Store , user.ID ) != nil {
+		err = serverError( c )
+		return
+	}
+	handlers.Hub.ForgetUser( user.ID )
+	handlers.Guard.ClearSessionCookie( c )
+	err = c.JSON( fiber.Map{ "ok": true } )
 	return
 }

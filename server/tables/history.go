@@ -117,6 +117,7 @@ func ( table *Table ) perform( action Action ) ( err error ) {
 		action.Deck = nil
 	}
 	table.Game = next
+	if dealt { table.AutoPlay = nil }
 	table.Log = append( table.Log[ :table.Cursor ] , action )
 	table.Cursor = len( table.Log )
 	return

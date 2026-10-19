@@ -73,6 +73,8 @@ const Api = {
 
   // The chat everyone shares, and who is online (global.js).
   globalChat( text )           { return this.post( "/api/global/chat" , { text: text } ); },
+  editGlobalChat( seq , text ) { return this.post( "/api/global/chat/" + seq + "/edit" , { text: text } ); },
+  deleteGlobalChat( seq )      { return this.post( "/api/global/chat/" + seq + "/delete" ); },
 
   // The game history: finished and abandoned games, newest first.
   listGames( offset )          { return this.request( "/api/games?offset=" + ( offset || 0 ) ); },
@@ -91,6 +93,7 @@ const Api = {
   setCanInvite( userId , flag ) { return this.post( "/api/admin/users/" + userId + "/can-invite" , { can_invite: flag } ); },
 
   setCanHint( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-hint" , { can_hint: flag } ); },
+  setCanUndo( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-undo" , { can_undo: flag } ); },
   getSettings()                { return this.request( "/api/admin/settings" ); },
   saveSettings( settings )     { return this.post( "/api/admin/settings" , settings ); },
   // Sign-up links: anyone who may invite manages their own; admins see all.
@@ -102,6 +105,7 @@ const Api = {
 
   // A one-time link that signs another device in as you.
   myLoginLink()                { return this.post( "/api/account/login-link" ); },
+  deleteMe()                   { return this.post( "/api/account/delete" ); },
 
   // Your own look and PIN.
   profileOptions()             { return this.request( "/api/profile/options" ); },
@@ -134,6 +138,7 @@ const Api = {
   getTable( id )               { return this.request( this.tablePath( id ) ); },
   getWatch( code )             { return this.request( this.watchPath( code ) ); },
   hint( id )                   { return this.request( this.tablePath( id , "hint" ) ); },
+  autoPlay( id , on )          { return this.post( this.tablePath( id , "auto-play" ) , { on: on } ); },
   history( id )                { return this.request( this.tablePath( id , "history" ) ); },
   undo( id )                   { return this.post( this.tablePath( id , "undo" ) ); },
   redo( id )                   { return this.post( this.tablePath( id , "redo" ) ); },
@@ -162,6 +167,8 @@ const Api = {
   play( id , card )            { return this.post( this.tablePath( id , "play" ) , { card: card } ); },
   continueHand( id )           { return this.post( this.tablePath( id , "continue" ) ); },
   chat( id , text )            { return this.post( this.tablePath( id , "chat" ) , { text: text } ); },
+  editChat( id , seq , text )  { return this.post( this.tablePath( id , "chat/" + seq + "/edit" ) , { text: text } ); },
+  deleteChat( id , seq )       { return this.post( this.tablePath( id , "chat/" + seq + "/delete" ) ); },
   watchChat( code , name , text ) {
     return this.post( "/api/watch/" + encodeURIComponent( code ) + "/chat" + this.tableQuery , { name: name , text: text } );
   },

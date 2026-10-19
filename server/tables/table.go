@@ -60,6 +60,9 @@ const (
 	ErrBadSeatName    Error = "bad_seat_name"
 	ErrNoSuchGame     Error = "no_such_game"
 	ErrBadGuestName   Error = "bad_guest_name"
+	ErrNotPlaying     Error = "not_playing"
+	ErrNotYourMessage Error = "not_your_message"
+	ErrNoSuchMessage  Error = "no_such_message"
 
 	// errStale is internal: a delayed bot move found the table had moved on.
 	errStale Error = "stale"
@@ -134,6 +137,10 @@ type ChatLine struct {
 	At      time.Time `json:"at"`
 	Watcher bool      `json:"watcher,omitempty"`
 	Guest   bool      `json:"guest,omitempty"`
+	// UserID is who said it, when they were signed in: only they may edit
+	// or delete it. A guest's line has none, so it stays as written.
+	UserID uint64 `json:"user_id,omitempty"`
+	Edited bool   `json:"edited,omitempty"`
 }
 
 // Table is saved whole, as JSON, after every change. The unexported fields
@@ -170,6 +177,10 @@ type Table struct {
 	// Archives maps each game played here (by where it starts in Log) to
 	// its row in the game history. See archive.go.
 	Archives map[ string ]ArchiveRef `json:"archives,omitempty"`
+	// AutoPlay is who asked the server to play their cards for them, mapped
+	// to the hand they asked in. Keyed by person and hand, so it ends by
+	// itself at the next deal and never passes to whoever sits there next.
+	AutoPlay map[ uint64 ]int `json:"auto_play,omitempty"`
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 
@@ -183,6 +194,17 @@ type Table struct {
 func validTableName( name string ) ( result string , ok bool ) {
 	result = strings.TrimSpace( name )
 	ok = result != "" && utf8.RuneCountInString( result ) <= maxNameLength
+	return
+}
+
+// autoPlays reports whether the person in seat has the server playing their
+// cards: they switched auto play on in this hand, and cards are being
+// played. Called with the table locked.
+func ( table *Table ) autoPlays( seat int ) ( result bool ) {
+	if validSeat( seat ) == false || table.Game == nil || table.Game.Phase != game.PhasePlaying { return }
+	if table.Seats[ seat ].Kind != KindHuman { return }
+	hand , ok := table.AutoPlay[ table.Seats[ seat ].UserID ]
+	result = ok && hand == table.Game.HandNumber
 	return
 }
 

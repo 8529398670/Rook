@@ -34,6 +34,7 @@ common:
   done: "Done"
 
 lobby:
+  bot_label: "bot"
   restart: "Restart"
   delete: "Delete"
   your_tables: "Your tables"
@@ -44,7 +45,7 @@ lobby:
   status_waiting: "{seated} of 4 seats taken"
   status_paused: "Paused — a seat is empty"
   status_over: "Game over"
-  status_held: "On hold — an admin is reviewing"
+  status_held: "On hold — someone is stepping through the moves"
   status_playing: "Hand {hand} · {a} – {b}"
   held_tables: "Seats saved for you"
   held_note: "{seat} is saved for you."
@@ -146,7 +147,7 @@ table:
   game_over: "Game over"
   show_results: "Results"
   held: "On hold"
-  held_detail: "An admin is stepping through the game. Play carries on when they resume."
+  held_detail: "Someone is stepping back through the moves. Play carries on when they resume."
 
 hand:
   label: "Your hand"
@@ -234,6 +235,13 @@ chat:
   change_name: "Change"
   guest_tag: "guest"
   watching_tag: "watching"
+  edit: "Edit"
+  delete: "Delete"
+  delete_confirm: "Delete?"
+  yes: "Yes"
+  no: "No"
+  edited: "(edited)"
+  edit_label: "Edit your message"
 
 record:
   loading: "Loading the game so far…"
@@ -355,6 +363,10 @@ account:
   save_button: "Save"
   saved_notice: "Saved."
   logout_button: "Log out"
+  delete_button: "Delete my account"
+  delete_heading: "Delete your account?"
+  delete_body: "This can't be undone. Your sign-in links, sessions and API keys stop working, and you leave any table you are sitting at. Games already played keep your name."
+  delete_confirm: "Delete my account"
 
 device_link:
   heading: "Sign in on another device"
@@ -397,6 +409,14 @@ global:
   off: "Global chat is switched off by an admin."
   online_heading: "Online now · {count}"
 
+auto_play:
+  heading: "⏩ Auto play"
+  description: "Plays the best card for you on each of your turns for the rest of this hand. Turns itself off when the next hand is dealt."
+  only_playing: "Available once the cards are being played. Turns itself off when the next hand is dealt."
+  on: "⏩ Auto play is playing your cards this hand."
+  stop: "Stop"
+  seat: "Auto play is on"
+
 player_scores:
   heading: "Players' points in the top bar"
   description: "Under each team's score, show the points each player has taken this hand. Remembered on this device."
@@ -429,6 +449,8 @@ admin:
   can_invite_label: "{name} can invite new players"
   table_can_hint: "Hints"
   can_hint_label: "Show {name} the hint button"
+  table_can_undo: "Undo"
+  can_undo_label: "Let {name} undo and redo moves at their own tables"
   status_active: "active"
   status_disabled: "disabled"
   reissue_button: "New link"
@@ -493,7 +515,7 @@ errors:
   forbidden: "That isn't allowed."
   chat_off: "Chat is switched off."
   superadmin: "The owner account always stays an admin, and can't be disabled or deleted."
-  game_held: "The game is on hold while an admin reviews it."
+  game_held: "The game is on hold while someone steps through the moves."
   not_held: "The game isn't on hold."
   nothing_to_undo: "Nothing to undo."
   nothing_to_redo: "Nothing to redo."
@@ -551,6 +573,9 @@ errors:
   no_such_user: "That person can't be seated."
   bad_seat_name: "A name here is at most 40 characters."
   not_a_bot: "That seat isn't a bot."
+  not_playing: "Auto play can only be switched on while the cards are being played."
+  not_your_message: "You can only change your own messages."
+  no_such_message: "That message isn't there any more."
 
 join:
   kicker: "You're invited to a table"

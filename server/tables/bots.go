@@ -51,6 +51,13 @@ func ( hub *Hub ) settleBots( table *Table ) {
 	}
 }
 
+// computerMoves reports whether the server makes seat's moves: a computer
+// player, or a person who switched auto play on for this hand's cards.
+func ( table *Table ) computerMoves( seat int ) ( result bool ) {
+	result = table.Seats[ seat ].Kind == KindBot || table.autoPlays( seat )
+	return
+}
+
 // scheduleBot arms a timer if a computer player is now up. The timer carries
 // the version it was armed at: if anything changes before it fires -- someone
 // leaves, the bot is swapped for a person, an admin steps back through the
@@ -68,7 +75,7 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	default:
 		return
 	}
-	if state.Turn < 0 || table.Seats[ state.Turn ].Kind != KindBot { return }
+	if state.Turn < 0 || table.computerMoves( state.Turn ) == false { return }
 
 	delay := hub.cfg.BotDelay
 	if state.Phase == game.PhasePlaying && len( state.Trick.Plays ) == 0 && len( state.Completed ) > 0 {
@@ -79,7 +86,7 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	id , version , seat := table.ID , table.Version , state.Turn
 	table.bot_timer = time.AfterFunc( delay , func() {
 		hub.mutate( id , func( table *Table ) ( fn_err error ) {
-			if table.Version != version || table.Game == nil || table.Game.Turn != seat || table.Seats[ seat ].Kind != KindBot {
+			if table.Version != version || table.Game == nil || table.Game.Turn != seat || table.computerMoves( seat ) == false {
 				fn_err = errStale
 				return
 			}

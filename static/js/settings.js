@@ -12,6 +12,11 @@ const Settings = {
     Dom.get( "rename-form" ).addEventListener( "submit" , this.onRename.bind( this ) );
     Dom.get( "logout-button" ).addEventListener( "click" , this.onLogout.bind( this ) );
     Dom.get( "device-link-button" ).addEventListener( "click" , this.onDeviceLink.bind( this ) );
+    // Anyone may delete their own account -- except the owner, whom the
+    // server keeps (see models/superadmin.go), so they are not offered it.
+    Dom.show( Dom.get( "delete-me-row" ) , !me.owner && me.auth !== "api_key" );
+    Dom.get( "delete-me-button" ).addEventListener( "click" , function () { Sheet.open( "sheet-confirm-delete-me" ); } );
+    Dom.get( "delete-me-confirm" ).addEventListener( "click" , this.onDeleteMe.bind( this ) );
     Dom.get( "device-link-copy" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "device-link-value" ) , Dom.get( "device-link-copied" ) );
     } );
@@ -39,7 +44,8 @@ const Settings = {
 
     if ( this.me.role !== "admin" ) return;
     Dom.show( Dom.get( "admin-panel" ) , true );
-    Links.initGameSettings();
+    // The app-wide game settings are the owner's alone.
+    if ( this.me.owner ) Links.initGameSettings();
     Dom.get( "create-user-form" ).addEventListener( "submit" , this.onCreateUser.bind( this ) );
     Dom.get( "copy-link-button" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "login-link-value" ) , Dom.get( "copied-notice" ) );
@@ -83,6 +89,18 @@ const Settings = {
     } catch ( error ) {
       // Even if the call failed, reloading lands on the signed-out page,
       // which is the honest state to show.
+    }
+    window.location.href = "/";
+  },
+
+  // Deleting your own account. Afterwards there is nobody signed in, so the
+  // page starts over at the front door.
+  async onDeleteMe() {
+    try {
+      await Api.deleteMe();
+    } catch ( error ) {
+      Toast.error( error );
+      return;
     }
     window.location.href = "/";
   },
@@ -181,6 +199,22 @@ const Settings = {
       } );
       hintSwitch.checked = user.can_hint === true;
 
+      // Undo / redo, at the tables they sit at. Admins can always, so for
+      // an admin it is shown on and disabled, like Can invite.
+      const undoSwitch = Dom.el( "input" , {
+        attrs: { type: "checkbox" , role: "switch" , "aria-label": I18n.format( "admin.can_undo_label" , { name: user.display_name } ) },
+        on: { change: async function ( event ) {
+          try {
+            await Api.setCanUndo( user.id , event.target.checked );
+          } catch ( error ) {
+            event.target.checked = !event.target.checked;
+            App.showError( error.message );
+          }
+        } },
+      } );
+      undoSwitch.checked = user.role === "admin" || user.can_undo === true;
+      undoSwitch.disabled = user.role === "admin";
+
       const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
       Art.avatar( avatar , user );
 
@@ -213,7 +247,8 @@ const Settings = {
       roleSelect.value = user.role;
       roleSelect.disabled = user.superadmin === true;
       const roleCell = [ roleSelect ];
-      if ( user.superadmin ) roleCell.push( Dom.el( "span" , { class: "chip owner-chip" , text: I18n.get( "admin.superadmin_tag" ) , attrs: { title: I18n.get( "admin.superadmin_help" ) } } ) );
+      // Only the owner sees which account is the owner.
+      if ( user.superadmin && Settings.me.owner ) roleCell.push( Dom.el( "span" , { class: "chip owner-chip" , text: I18n.get( "admin.superadmin_tag" ) , attrs: { title: I18n.get( "admin.superadmin_help" ) } } ) );
 
       // Built with createElement + textContent, never an HTML string: a
       // display name is user-controlled input.
@@ -224,6 +259,7 @@ const Settings = {
         Dom.el( "td" , { text: I18n.get( statusKey ) } ),
         Dom.el( "td" , { children: [ inviteSwitch ] } ),
         Dom.el( "td" , { children: [ hintSwitch ] } ),
+        Dom.el( "td" , { children: [ undoSwitch ] } ),
         Dom.el( "td" , { children: [
           Dom.el( "div" , { class: "row-actions" , children: [
             action( "admin.reissue_button" , async function () {
