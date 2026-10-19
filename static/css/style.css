@@ -77,6 +77,13 @@
   --safe-right: env(safe-area-inset-right, 0px);
 }
 
+/* A Home Screen web app on an iPad or iPhone (theme.js sets the class): the
+   system blurs a band under the clock about 24 points taller than
+   safe-area-inset-top, which would blur the top row of every header. Every
+   header already pads by --safe-top, so growing it here moves them all
+   clear of the blur at once. */
+:root.ios-app { --safe-top: calc(env(safe-area-inset-top, 0px) + 24px); }
+
 :root[data-theme="dark"] {
   color-scheme: dark;
 
