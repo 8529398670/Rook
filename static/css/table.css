@@ -234,7 +234,7 @@
      squeezes into that room, its top and bottom cards overlapping the side
      ones like a real pile -- down to 2.24 cards tall, never less. */
   container-type: size;
-  --trick-gap-top: 64px;
+  --trick-gap-top: 72px;
   --trick-gap-bottom: 60px;
   --trick-gap-x: 100px;
   --trick-fit: min(calc((100cqh - var(--trick-gap-top) - var(--trick-gap-bottom)) / 2.24), calc((100cqw - var(--trick-gap-x)) / 2.9));
@@ -263,7 +263,10 @@
 
 .seat.team-them { --team: var(--them); }
 
-.seat.pos-top    { top: 8px; left: 50%; transform: translateX(-50%); }
+/* Your partner sits far enough down that the turn ring (it reaches about
+   12px past the avatar, see .is-turn below) stays on the felt instead of
+   running into the bar above. */
+.seat.pos-top    { top: 16px; left: 50%; transform: translateX(-50%); }
 /* On a phone the side seats sit high, beside the top of the pile rather
    than its middle, so the pile can use more of the width. */
 .seat.pos-left   { left: calc(6px + var(--safe-left)); top: 22%; }
@@ -1142,7 +1145,7 @@
     --trick-base: clamp(84px, min(10vw, 15dvh), 150px);
   }
 
-  .felt { --trick-gap-top: 76px; --trick-gap-bottom: 64px; --trick-gap-x: 280px; }
+  .felt { --trick-gap-top: 84px; --trick-gap-bottom: 64px; --trick-gap-x: 280px; }
 
   .seat.pos-left  { left: calc(16px + var(--safe-left)); top: 38%; }
   .seat.pos-right { right: calc(16px + var(--safe-right)); top: 38%; }
@@ -1169,7 +1172,7 @@
   /* Width to spare, height scarce: your partner moves to the top-left
      corner, the seats lose their card fans, and the trick flattens so its
      top and bottom cards overlap like a real pile. */
-  .seat.pos-top { top: 6px; left: calc(12px + var(--safe-left)); transform: none; }
+  .seat.pos-top { top: 14px; left: calc(12px + var(--safe-left)); transform: none; }
   .seat.pos-left { top: 46%; }
   .seat.pos-right { top: 18%; }
   .seat-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
