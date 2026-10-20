@@ -985,6 +985,15 @@
 
 .summary-team dt { color: var(--fg-muted); }
 .summary-team dd { margin: 0; font-family: var(--font-number); font-weight: 700; text-align: right; }
+/* The new total closes the sum: before, plus this hand, equals this. */
+.summary-team .summary-new-total {
+  margin-top: 2px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  color: inherit;
+  font-weight: 700;
+}
+.summary-team dd.summary-new-total { font-size: 1.05rem; }
 .summary-waiting { margin: 0; text-align: center; }
 
 .score-table td { vertical-align: middle; }

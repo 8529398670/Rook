@@ -1,5 +1,5 @@
 // The end-of-hand and end-of-game sheet: who bid what, whether they made it,
-// both teams' counters and totals, and the buried kitty -- revealed now and
+// both teams' counters, their total before the hand and the new one, and the buried kitty -- revealed now and
 // only now. It waits for the last trick's animation before opening, so the
 // hand ends on the table and not under a sheet.
 const Summary = {
@@ -83,7 +83,17 @@ const Summary = {
     [ [ "us" , us ] , [ "them" , them ] ].forEach( function ( pair ) {
       const prefix = "summary-" + pair[ 0 ] + "-";
       Dom.text( Dom.get( prefix + "name" ) , Summary.teamName( view , pair[ 1 ] ) );
-      Dom.text( Dom.get( prefix + "taken" ) , String( result.taken[ pair[ 1 ] ] ) );
+      // Points taken only says something new for a team that went set: it
+      // took 80 but scores -120. Otherwise it is the same number as "This
+      // hand", so it is left out.
+      const taken = result.taken[ pair[ 1 ] ];
+      const differs = taken !== result.scored[ pair[ 1 ] ];
+      Dom.text( Dom.get( prefix + "taken" ) , String( taken ) );
+      Dom.show( Dom.get( prefix + "taken" ) , differs );
+      Dom.show( Dom.get( prefix + "taken-label" ) , differs );
+      // The total going into this hand: what it is now, less what this hand
+      // added (scoring.go adds scored to the running total, nothing else).
+      Dom.text( Dom.get( prefix + "previous" ) , String( result.totals[ pair[ 1 ] ] - result.scored[ pair[ 1 ] ] ) );
       Dom.text( Dom.get( prefix + "scored" ) , signed( result.scored[ pair[ 1 ] ] ) );
       Dom.text( Dom.get( prefix + "total" ) , String( result.totals[ pair[ 1 ] ] ) );
     } );

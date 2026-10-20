@@ -679,6 +679,72 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .settings-main .segmented { max-width: 20rem; }
+
+/* ------------------------------------------------- rules & strategy */
+
+.guide-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--gap);
+  width: 100%;
+  max-width: 46rem;
+  margin: 0 auto;
+  padding: var(--gap) 16px calc(2rem + var(--safe-bottom));
+}
+
+/* The header is back button, tabs, and a spacer as wide as the back button
+   so the tabs sit centred. The title is there for screen readers only. */
+.guide-tabs { flex: 1 1 auto; max-width: 22rem; margin: 0 auto; }
+.guide-tabs button { font-size: 1rem; font-weight: 700; }
+.guide-header-spacer { flex: 0 0 44px; }
+
+.guide-contents { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
+.guide-contents-label { font-size: 0.8rem; font-weight: 650; color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+button.guide-jump {
+  min-height: 30px;
+  padding: 2px 11px;
+  cursor: pointer;
+  border-radius: 999px;
+}
+button.guide-jump:hover { color: var(--accent-strong); border-color: var(--accent); }
+
+.guide-body { display: flex; flex-direction: column; gap: 12px; }
+
+/* Clear of the sticky header when a jump chip scrolls a section up. */
+.guide-section { scroll-margin-top: calc(70px + var(--safe-top)); padding: 1.1rem 1.2rem; }
+.guide-section h2 { margin-bottom: 0.5rem; font-size: 1.15rem; }
+.guide-lead { margin: 0 0 0.6rem; }
+
+.guide-points { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; line-height: 1.45; }
+.guide-points li::marker { color: var(--accent); }
+
+.guide-highlight { background: var(--accent-soft); border-color: var(--accent); }
+.guide-highlight .guide-points li { font-weight: 600; }
+
+.guide-tip {
+  margin: 0.85rem 0 0;
+  padding: 0.6rem 0.8rem;
+  line-height: 1.45;
+  background: var(--surface-2);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+}
+.guide-tip strong { display: block; margin-bottom: 2px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
+
+/* A row of real card faces, with what each one means under it. */
+.guide-cards { display: flex; flex-wrap: wrap; gap: 8px; margin: 0.4rem 0 0.8rem; }
+.guide-cards figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* Five to a row on a 375px phone. */
+.guide-cards .guide-card { --card-w: 50px; }
+.guide-cards figcaption { font-family: var(--font-number); font-weight: 700; font-size: 0.82rem; color: var(--fg-muted); white-space: nowrap; }
+
+@media (min-width: 40rem) {
+  .guide-cards { gap: 12px; }
+  .guide-cards .guide-card { --card-w: 72px; }
+}
+
+.guide-link { color: var(--accent); font-weight: 650; }
+.rules-full-guide { margin: 0.6rem 0 0; }
 .switch-row + h3 { margin-top: 0.9rem; }
 .dock-choice { display: flex; flex-direction: column; gap: 4px; margin-top: 0.5rem; }
 

@@ -303,8 +303,9 @@ summary:
   set: "{name} went set on {bid}."
   subtitle: "Hand {hand} · {name} bid {bid} · {trump} trump"
   taken: "Points taken"
+  previous: "Total before"
   scored: "This hand"
-  total: "Total"
+  total: "New total"
   kitty: "The kitty held {points} points and went to {team}."
   next_hand: "Next hand"
   waiting_for: "Waiting for {names}…"
@@ -374,7 +375,201 @@ rules:
   play: "Follow the color led if you can; otherwise play anything. The Rook is the top trump (unless this table says otherwise). Highest trump wins the trick, or else the highest card of the color led."
   scoring: "Count the points in your tricks; the kitty goes to whoever takes the last trick. Make your bid and you score what you took; fall short and you lose the bid. The other team always scores what it took."
   keyboard: "Keyboard: type a card — a color letter and its number, like r1, g10 or y14, or R for the Rook — then Enter to play it. Just the number does when only one card you could play has it. Tab or the arrow keys move through your playable cards, Shift on its own clears the choice, Ctrl+A turns auto play on or off, and F is full screen."
+  full_guide: "Full rules & strategy ↗"
   keyboard_kitty: "Burying: type each card (r1 g10 R) or ring one with Tab or the arrows and press Space to put it in or out of the five; t and a color letter names trump (tr is red). Enter then asks to confirm, and Enter again buries."
+
+# The Rules and Strategy pages (guide.js), opened from the lobby's top row
+# at #/rules and #/strategy. Each page is a list of sections, drawn in order:
+#
+#   heading   the section title (a section without one is skipped)
+#   lead      an opening sentence
+#   points    a bulleted list
+#   cards     a row of card faces: R1, G14, B10, Y5, ROOK ...
+#   labels    one caption under each card, in the same order
+#   tip       a highlighted "rule of thumb" at the bottom
+#   style     "highlight" draws the whole section as a callout
+#
+# Delete a section, or a line from it, and it is gone from the page.
+guide:
+  heading: "Rules & strategy"
+  rules_button: "Rules & strategy"
+  rules_tab: "Rules"
+  strategy_tab: "Strategy"
+  tabs_label: "Rules or strategy"
+  contents: "Jump to"
+  rule_of_thumb: "Rule of thumb"
+  rules:
+    - id: goal
+      heading: "The goal"
+      lead: "Rook is played by four people in two teams. Partners sit across from each other."
+      points:
+        - "Win tricks that hold point cards. Tricks with no point cards are worth nothing."
+        - "The first team to reach the table's target wins. The target is 500 unless the table was set up for 100, 300, a custom number or a single hand."
+    - id: cards
+      heading: "The cards"
+      lead: "57 cards: red, black, yellow and green, each numbered 1 to 14, plus the Rook."
+      points:
+        - "The 1 is the highest card of every color. Then come 14, 13, 12 and so on down to 2."
+        - "The Rook has no color of its own. Once trump is named, it is a trump card."
+      cards: [ "R1" , "R14" , "R13" , "R12" , "R2" ]
+      labels: [ "Highest" , "2nd" , "3rd" , "4th" , "Lowest" ]
+    - id: points
+      heading: "Point cards"
+      lead: "Only these cards score. Every other card is worth nothing, but can still win a trick."
+      cards: [ "Y1" , "R14" , "B10" , "G5" , "ROOK" ]
+      labels: [ "1 = 15" , "14 = 10" , "10 = 10" , "5 = 5" , "Rook = 20" ]
+      points:
+        - "Each color holds 40 points (1 + 14 + 10 + 5). Four colors and the Rook make 180 in all."
+    - id: deal
+      heading: "The deal"
+      points:
+        - "Everyone gets 13 cards. Five more go face down in the middle: the kitty."
+        - "The deal moves one seat to the left each hand."
+    - id: bidding
+      heading: "Bidding"
+      lead: "The bid is a promise: how many of the 180 points your team will take this hand."
+      points:
+        - "The player to the dealer's left starts, and bidding goes around the table."
+        - "Bids go up in fives, from 70 to 180. On your turn, raise the bid or pass."
+        - "A pass is final. You're out of the bidding for the rest of the hand."
+        - "When three players have passed, the fourth wins the bid. If nobody bid at all, that player is stuck with it at 65."
+        - "A bid of 180, every point in the deck, can't be beaten and ends the bidding on the spot."
+    - id: kitty
+      heading: "The kitty and trump"
+      points:
+        - "Whoever wins the bid picks up the kitty, so they have 18 cards."
+        - "They bury any five, face down. Point cards may be buried."
+        - "Then they name trump (red, black, yellow or green) and lead the first trick."
+        - "The buried cards still count. Their points go to whichever team wins the last trick."
+    - id: tricks
+      heading: "Playing a trick"
+      points:
+        - "Everyone plays one card, in turn."
+        - "Follow the color that was led if you can. If you can't, play anything, trump included."
+        - "The highest trump wins the trick. If no trump was played, the highest card of the color led wins."
+        - "The winner takes the trick and leads the next one."
+        - "The Rook counts as a trump. Leading it leads trump. When trump is led, the Rook follows like any other trump."
+      tip: "You never have to play trump. Playing trump when you can't follow is a choice, not a rule."
+    - id: scoring
+      heading: "Scoring a hand"
+      points:
+        - "After 13 tricks each team counts the points it took. The kitty goes to whoever took the last trick."
+        - "If the bidding team took at least its bid, it made it, and scores everything it took."
+        - "If it took less, it is set: it scores nothing and loses the amount of its bid."
+        - "The other team always scores whatever it took, whether the bid was made or not."
+      tip: "Example: a bid of 120. The bidders take 110 and lose 120. The other team took the other 70 and scores 70."
+    - id: winning
+      heading: "Winning the game"
+      points:
+        - "The game ends after the hand in which either team reaches the target."
+        - "If both teams get there on the same hand, the higher score wins. A tie goes to the team that took the bid."
+        - "Scores can go below zero."
+    - id: options
+      heading: "Table options"
+      lead: "Whoever creates a table can change a few rules. They show as tags on the table."
+      points:
+        - "Rook rank: Highest (above the 1, the default), 10½ (beats the 10, loses to the 11) or Lowest (below the 2)."
+        - "Rook anytime: the Rook may be played on any trick, even when you could follow the color led."
+        - "No Rook on trick 1: the Rook can't be played on the first trick of a hand."
+        - "Play to: the points needed to win, or a single hand."
+    - id: differences
+      heading: "If you learned it differently"
+      lead: "Rook has many house rules. This table plays it like this:"
+      points:
+        - "The 1 is the highest card and worth 15. Some boxes put the 1 at the bottom and give it nothing."
+        - "All 57 cards are used, so there are 180 points, not 120."
+        - "The kitty belongs to whoever takes the last trick, not always to the bidder."
+        - "The Rook is the top trump unless the table says otherwise."
+    - id: controls
+      heading: "At the table"
+      points:
+        - "To play a card, drag it to the middle of the table, or tap it twice."
+        - "Cards you can't play are dimmed, so you can't break the rules by mistake."
+        - "The table menu has the last trick, the score sheet, chat and the game log."
+        - "On a keyboard, type a card (a color letter and a number, like r1 or g10, or R for the Rook), then Enter."
+  strategy:
+    - id: quick
+      heading: "Quick tips"
+      style: highlight
+      points:
+        - "Count the 1s and the Rook. Know which are still out."
+        - "A 14 is only safe once that color's 1 has been played."
+        - "When you take the bid, draw out trump early."
+        - "Throw points onto a trick your partner is winning. Throw a card worth nothing onto one the other team is winning."
+        - "Never trump a trick your partner is already winning."
+        - "Keep a trump for the last trick. It carries the kitty."
+        - "To set a bid, the defenders need 185 minus the bid."
+    - id: points_not_tricks
+      heading: "Think in points, not tricks"
+      points:
+        - "180 points are spread over 13 tricks. One trick with a 1 and a 14 is worth more than three tricks of low cards."
+        - "Keep track of three numbers: what your team has, what's still out, and how much you can afford to lose."
+        - "Making and missing a bid are often only 5 points apart. One 5 thrown onto the right trick decides hands."
+    - id: hand
+      heading: "Sizing up your hand"
+      lead: "These make a hand worth bidding:"
+      points:
+        - "The Rook. With Rook high, it's a sure winner worth 20."
+        - "1s in any color. Each is a trick you'll win."
+        - "A long color for trump: five or more cards with two of the top three (1, 14, 13). The longer it is, the fewer high cards it needs."
+        - "Short colors, with one or two cards. With the kitty you can empty them and trump in later."
+        - "Lone 10s and 5s are a weakness for the bidder, who has to protect them. In your partner's hand, they're welcome."
+    - id: bidding
+      heading: "Bidding"
+      points:
+        - "To open, count your strengths: a good trump color, a 1, the Rook, two 14s, a short color. With two, open at 70. Add 5 for each one more."
+        - "The kitty averages about 16 points. Count on it to fill a gap, not to save a weak hand."
+        - "90 is half the deck. With the kitty, a solid hand and an average partner usually make 90 to 100. Most hands that are fought over end around 105 to 130."
+        - "Don't let the other team win the bid cheaply. Unless your hand is poor, push it to about 100."
+        - "Think twice before bidding over your partner. Do it only when your hand is clearly the stronger one."
+        - "The bid is the only fair way to tell your partner about your hand. No hints across the table."
+      tip: "Going set costs your whole bid, while the other team still scores. Bid one step less than you hope for, and count on your partner for about 20 to 30 points."
+    - id: kitty
+      heading: "The kitty and naming trump"
+      points:
+        - "Usually make your longest color trump. Seven or more cards is almost automatic. A long color of middling cards beats four high ones."
+        - "Bury to empty a color or two. With a color gone, you can trump the other team's points when they lead it."
+        - "Bury point cards you can't protect: a lone 14 (someone's 1 will take it), a lone 10, or a 5 in a short color."
+        - "Keep 1s in other colors. They win tricks."
+        - "Don't bury trump unless you have no choice."
+      tip: "Buried points go to whoever takes the last trick. Bury points only if you hold enough trump to win that trick."
+    - id: bidder
+      heading: "Playing as the bidder"
+      points:
+        - "Draw out trump: lead high trump until the other team has none left. There are 15 trump including the Rook, so count them as they fall."
+        - "Then win tricks with your 1s in other colors, and run your long color."
+        - "Keep one trump for the end. The last trick brings the kitty with it."
+        - "Once you've made your bid, play safe. Don't risk points you no longer need."
+    - id: partner
+      heading: "Playing with your partner"
+      points:
+        - "If your partner is winning the trick, throw on points: a 10, a 14 or a 5. If the other team is winning it, throw a low card with no points."
+        - "Don't trump a trick your partner is already winning."
+        - "Lead a color's 1 before its 14. Once the 1 is gone, the 14 is the top card."
+        - "Playing last to a trick, win it with the cheapest card that does the job."
+        - "Watch what your partner throws away. It shows you which colors they're short in."
+    - id: defending
+      heading: "Defending: setting the bid"
+      points:
+        - "To set the bid, your team needs 185 minus the bid. Against 120, you need 65."
+        - "Don't lead trump for the bidder. They want trump drawn out."
+        - "Lead your long colors to make the bidder trump. The more they trump, the sooner they lose control of the last trick."
+        - "Hold on to a trump for the last trick if you can. The kitty is often worth 15 points or more."
+        - "Every point you take counts for your team, even when the bid is made."
+    - id: rook
+      heading: "Playing the Rook"
+      points:
+        - "Rook highest: nothing beats it. Use it to win a trick full of points, or to draw out trump."
+        - "Rook 10½: the 11 and higher beat it. Play it when those are gone, or when your partner is winning the trick."
+        - "Rook lowest: 20 points that are easy to lose. Bury it, or throw it onto a trick your partner is winning."
+        - "Rook anytime: you can play it to grab a trick full of points, even when you could follow the color."
+    - id: score
+      heading: "Playing to the score"
+      points:
+        - "You can win the game without ever bidding. The defending team's points count too."
+        - "When you're close to the target, don't risk a big bid. Going set can cost you the game."
+        - "When the other team is close, you may have to bid more boldly to stop them."
+        - "In a single-hand game, simply take as many points as you can."
 
 settings:
   heading: "Settings"

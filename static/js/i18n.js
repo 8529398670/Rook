@@ -30,6 +30,18 @@ const I18n = {
     return typeof cursor === "string" ? cursor : "";
   },
 
+  // A list under a key, like the guide's sections -- or [] if there is none,
+  // so a deleted list draws nothing rather than breaking the page.
+  list( key ) {
+    let cursor = this.data;
+    const parts = String( key ).split( "." );
+    for ( let index = 0; index < parts.length; index += 1 ) {
+      if ( cursor == null || typeof cursor !== "object" ) return [];
+      cursor = cursor[ parts[ index ] ];
+    }
+    return Array.isArray( cursor ) ? cursor : [];
+  },
+
   // format( "events.bid", { name: "Ana", amount: 85 } ) fills {name} and
   // {amount} in the template. Values are inserted as plain text by whoever
   // displays the result (always textContent), so a player called "<b>" stays

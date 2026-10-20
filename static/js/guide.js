@@ -1,0 +1,110 @@
+// The Rules and Strategy pages, opened from the lobby's top row: #/rules and
+// #/strategy. Both are drawn from language.yaml (guide.rules and
+// guide.strategy), a list of sections each with a heading, an optional lead,
+// bullet points, a row of card faces and a "rule of thumb" -- so the whole
+// guide is reworded, reordered or trimmed there, never here.
+//
+// The tabs swap pages with replaceState rather than a new history entry, so
+// Back always returns to wherever the guide was opened from. Nothing here
+// talks to the server, which is why the guide is open to signed-out visitors
+// too.
+const Guide = {
+  screenId: "screen-guide",
+  tabs: [ "rules" , "strategy" ],
+  bound: false,
+  tab: "rules",
+
+  bind() {
+    if ( this.bound ) return;
+    this.bound = true;
+    Dom.get( "guide-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
+    Dom.all( "[data-guide-tab]" ).forEach( function ( button ) {
+      button.addEventListener( "click" , function () {
+        const tab = button.getAttribute( "data-guide-tab" );
+        if ( tab === Guide.tab ) return;
+        window.history.replaceState( null , "" , "#/" + tab );
+        Guide.show( tab );
+      } );
+    } );
+  },
+
+  enter( tab ) {
+    this.bind();
+    this.show( tab );
+  },
+
+  leave() {},
+
+  show( tab ) {
+    this.tab = this.tabs.indexOf( tab ) >= 0 ? tab : "rules";
+    Dom.all( "[data-guide-tab]" ).forEach( function ( button ) {
+      button.setAttribute( "aria-selected" , String( button.getAttribute( "data-guide-tab" ) === Guide.tab ) );
+    } );
+    document.title = I18n.get( "guide." + this.tab + "_tab" ) + " · " + I18n.get( "app.title" );
+    this.render();
+    window.scrollTo( 0 , 0 );
+  },
+
+  render() {
+    const body = Dom.get( "guide-body" );
+    const jumps = Dom.get( "guide-jumps" );
+    Dom.clear( body );
+    Dom.clear( jumps );
+    const tab = this.tab;
+    I18n.list( "guide." + tab ).forEach( function ( section , index ) {
+      if ( !section || typeof section.heading !== "string" || section.heading === "" ) return;
+      const id = "guide-" + tab + "-" + ( section.id || index );
+      const node = Guide.section( section , id );
+      body.appendChild( node );
+      jumps.appendChild( Dom.el( "li" , { children: [
+        Dom.el( "button" , { class: "chip guide-jump" , text: section.heading , attrs: { type: "button" } , on: { click: function () { Guide.jump( node ); } } } ),
+      ] } ) );
+    } );
+    Dom.show( Dom.get( "guide-contents" ) , jumps.childElementCount > 1 );
+  },
+
+  section( section , id ) {
+    const strings = function ( value ) {
+      return Array.isArray( value ) ? value.filter( function ( item ) { return typeof item === "string" && item !== ""; } ) : [];
+    };
+    const children = [ Dom.el( "h2" , { text: section.heading } ) ];
+    if ( typeof section.lead === "string" && section.lead !== "" ) {
+      children.push( Dom.el( "p" , { class: "guide-lead" , text: section.lead } ) );
+    }
+
+    const cards = strings( section.cards );
+    const labels = Array.isArray( section.labels ) ? section.labels : [];
+    if ( cards.length > 0 ) {
+      children.push( Dom.el( "div" , { class: "guide-cards" , children: cards.map( function ( card , at ) {
+        const parts = [ Cards.el( card , { class: "guide-card" } ) ];
+        if ( typeof labels[ at ] === "string" && labels[ at ] !== "" ) {
+          parts.push( Dom.el( "figcaption" , { text: labels[ at ] } ) );
+        }
+        return Dom.el( "figure" , { children: parts } );
+      } ) } ) );
+    }
+
+    const points = strings( section.points );
+    if ( points.length > 0 ) {
+      children.push( Dom.el( "ul" , { class: "guide-points" , children: points.map( function ( point ) {
+        return Dom.el( "li" , { text: point } );
+      } ) } ) );
+    }
+
+    if ( typeof section.tip === "string" && section.tip !== "" ) {
+      const label = I18n.get( "guide.rule_of_thumb" );
+      children.push( Dom.el( "p" , { class: "guide-tip" , children: [
+        label !== "" ? Dom.el( "strong" , { text: label } ) : null,
+        Dom.el( "span" , { text: section.tip } ),
+      ].filter( Boolean ) } ) );
+    }
+
+    const highlight = section.style === "highlight" ? " guide-highlight" : "";
+    return Dom.el( "section" , { class: "card guide-section" + highlight , attrs: { id: id } , children: children } );
+  },
+
+  jump( node ) {
+    const still = window.matchMedia && window.matchMedia( "(prefers-reduced-motion: reduce)" ).matches;
+    node.scrollIntoView( { behavior: still ? "auto" : "smooth" , block: "start" } );
+  },
+};
