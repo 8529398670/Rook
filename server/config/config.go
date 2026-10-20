@@ -10,6 +10,7 @@ package config
 
 import (
 	fmt "fmt"
+	net "net"
 	os "os"
 	filepath "path/filepath"
 	strconv "strconv"
@@ -125,11 +126,15 @@ type Config struct {
 	RateLimitWindow time.Duration
 	BodyLimit       int
 
-	// TrustProxy tells fiber to believe X-Forwarded-For. Only turn this on
-	// when something you control (nginx, Caddy) is actually in front, or
-	// clients can forge their own IP and walk straight past the rate limiter.
-	TrustProxy  bool
-	ProxyHeader string
+	// TrustProxy tells fiber to believe ProxyHeader -- but only on a
+	// connection whose peer address is in TrustedProxies. Fiber with
+	// TrustProxy on and no allowlist trusts nobody, so every visitor behind
+	// the proxy shares the proxy's one rate-limit budget; with the allowlist
+	// and nothing else, any client could still name its own IP. Both halves
+	// are required, and Load refuses one without the other.
+	TrustProxy     bool
+	TrustedProxies []string
+	ProxyHeader    string
 
 	// EventStreamLifetime is how long one live-update stream stays open
 	// before the server ends it and the browser's EventSource reconnects. It
@@ -278,6 +283,33 @@ func ( r *resolver ) boolean( env_name string , file_key string , fallback bool 
 	return
 }
 
+// list reads a comma-separated environment variable, or a YAML list (or a
+// single comma-separated string) from the file.
+func ( r *resolver ) list( env_name string , file_key string ) ( result []string ) {
+	raw := os.Getenv( env_name )
+	if strings.TrimSpace( raw ) == "" {
+		if value , ok := r.file.lookup( file_key ); ok {
+			switch typed := value.( type ) {
+			case string:
+				raw = typed
+			case []any:
+				parts := []string{}
+				for _ , entry := range typed {
+					parts = append( parts , fmt.Sprint( entry ) )
+				}
+				raw = strings.Join( parts , "," )
+			}
+		}
+	}
+	result = []string{}
+	for _ , entry := range strings.Split( raw , "," ) {
+		if trimmed := strings.TrimSpace( entry ); trimmed != "" {
+			result = append( result , trimmed )
+		}
+	}
+	return
+}
+
 func ( r *resolver ) seconds( env_name string , file_key string , fallback time.Duration ) ( result time.Duration ) {
 	if seconds := r.integer( env_name , file_key , 0 ); seconds > 0 {
 		result = time.Duration( seconds ) * time.Second
@@ -382,7 +414,13 @@ func Load() ( cfg *Config , err error ) {
 		StaticDir:    r.str( "STATIC_DIR" , "static_dir" , "./static" ),
 		LanguageFile: r.str( "LANGUAGE_FILE" , "language_file" , language_file ),
 
-		Host: r.str( "HOST" , "host" , "0.0.0.0" ),
+		// 127.0.0.1 answers only this machine, which is what a development
+		// run and a server behind a reverse proxy on the same host both want.
+		// Set HOST / host: 0.0.0.0 to listen on every interface -- and then
+		// put TLS in front, because login links, cookies, and API keys all
+		// cross the wire. The Docker image sets HOST=0.0.0.0 itself; what is
+		// reachable from outside there is the port dockerRun.sh publishes.
+		Host: r.str( "HOST" , "host" , "127.0.0.1" ),
 		Port: r.integer( "PORT" , "port" , 8080 ),
 
 		SecureCookies: r.boolean( "SECURE_COOKIES" , "secure_cookies" , true ),
@@ -404,8 +442,9 @@ func Load() ( cfg *Config , err error ) {
 		RateLimitWindow: r.seconds( "RATE_LIMIT_WINDOW_SECONDS" , "rate_limit_window_seconds" , time.Minute ),
 		BodyLimit:       r.integer( "BODY_LIMIT_BYTES" , "body_limit_bytes" , 1*1024*1024 ),
 
-		TrustProxy:  r.boolean( "TRUST_PROXY" , "trust_proxy" , false ),
-		ProxyHeader: r.str( "PROXY_HEADER" , "proxy_header" , "X-Forwarded-For" ),
+		TrustProxy:     r.boolean( "TRUST_PROXY" , "trust_proxy" , false ),
+		TrustedProxies: r.list( "TRUSTED_PROXIES" , "trusted_proxies" ),
+		ProxyHeader:    r.str( "PROXY_HEADER" , "proxy_header" , "X-Forwarded-For" ),
 
 		EventStreamLifetime: r.seconds( "EVENT_STREAM_SECONDS" , "event_stream_seconds" , 20*time.Second ),
 		BotDelay:            time.Duration( r.integer( "BOT_DELAY_MS" , "bot_delay_ms" , 900 ) ) * time.Millisecond,
@@ -417,6 +456,11 @@ func Load() ( cfg *Config , err error ) {
 	}
 	if cfg.BotDelay < 0 {
 		cfg.BotDelay = 0
+	}
+
+	if err = validateProxies( cfg ); err != nil {
+		cfg = nil
+		return
 	}
 
 	cfg.SecretKey , cfg.SecretKeySource , cfg.SecretKeyOnDisk , err = resolveSecretKey( r , cfg.SecretKeyFile )
@@ -431,5 +475,39 @@ func Load() ( cfg *Config , err error ) {
 
 func ( cfg *Config ) ListenAddress() ( result string ) {
 	result = fmt.Sprintf( "%s:%d" , cfg.Host , cfg.Port )
+	return
+}
+
+// validateProxies refuses a proxy setup that would either do nothing or let
+// clients forge their address. proxy_header is believed only on connections
+// from an address in trusted_proxies -- the address the proxy connects
+// *from*, as this server sees it -- so trust_proxy with an empty list is a
+// mistake, and an entry covering every address is the forgery this exists to
+// stop.
+func validateProxies( cfg *Config ) ( err error ) {
+	if cfg.TrustProxy && len( cfg.TrustedProxies ) == 0 {
+		err = fmt.Errorf( "trust_proxy is on but trusted_proxies (TRUSTED_PROXIES) is empty -- list the address or CIDR range your reverse proxy connects from" )
+		return
+	}
+	for _ , entry := range cfg.TrustedProxies {
+		if validProxyEntry( entry ) == false {
+			err = fmt.Errorf( "trusted_proxies entry %q must be an IP address or a CIDR range like 10.0.0.0/8" , entry )
+			return
+		}
+		if entry == "0.0.0.0/0" || entry == "::/0" {
+			err = fmt.Errorf( "trusted_proxies entry %q trusts every address, which lets any client forge its own IP" , entry )
+			return
+		}
+	}
+	return
+}
+
+func validProxyEntry( value string ) ( result bool ) {
+	if strings.Contains( value , "/" ) {
+		_ , _ , err := net.ParseCIDR( value )
+		result = err == nil
+		return
+	}
+	result = net.ParseIP( value ) != nil
 	return
 }

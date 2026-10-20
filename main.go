@@ -126,8 +126,13 @@ func run() ( err error ) {
 		ReadTimeout:  15 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  75 * time.Second,
-		TrustProxy:   cfg.TrustProxy,
-		ProxyHeader:  proxyHeader( cfg ),
+		// Forwarded headers are believed only from the configured proxies,
+		// and only once validated as IP addresses -- see trusted_proxies in
+		// config.example.yaml. Without the allowlist fiber trusts no proxy.
+		TrustProxy:         cfg.TrustProxy,
+		TrustProxyConfig:   fiber.TrustProxyConfig{ Proxies: cfg.TrustedProxies },
+		EnableIPValidation: true,
+		ProxyHeader:        proxyHeader( cfg ),
 		ErrorHandler: func( c fiber.Ctx , handler_err error ) ( response_err error ) {
 			// Never hand an internal error message to a client. The detail
 			// goes to the log, where the operator can see it.

@@ -113,7 +113,7 @@ func ( handlers *Handlers ) tableError( c fiber.Ctx , action_err error ) ( err e
 // decode binds the body and checks its CSRF token in one step, since every
 // state-changing table route needs both.
 func ( handlers *Handlers ) decode( c fiber.Ctx , body any , csrf func() string ) ( ok bool , err error ) {
-	if c.Bind().Body( body ) != nil {
+	if c.Bind().JSON( body ) != nil {
 		err = badRequest( c , "malformed request body" )
 		return
 	}

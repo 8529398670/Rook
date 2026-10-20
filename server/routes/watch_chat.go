@@ -64,7 +64,7 @@ func ( handlers *Handlers ) WatchChat( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	var body watchChatRequest
-	if c.Bind().Body( &body ) != nil {
+	if c.Bind().JSON( &body ) != nil {
 		err = badRequest( c , "malformed request body" )
 		return
 	}

@@ -53,6 +53,7 @@ const Settings = {
     } );
     Dom.get( "edit-user-form" ).addEventListener( "submit" , this.onEditName.bind( this ) );
     Dom.get( "delete-user-confirm" ).addEventListener( "click" , this.onDeleteUser.bind( this ) );
+    Dom.get( "revoke-user-confirm" ).addEventListener( "click" , this.onRevokeUser.bind( this ) );
     await this.refreshUsers();
   },
 
@@ -268,6 +269,15 @@ const Settings = {
               Settings.showLoginLink( issued.login_path );
             } ),
             action( "admin.edit_button" , async function () { await Settings.openEditUser( user ); } ),
+            // For "someone else may have this account's credentials": ends
+            // every session, unused login link and API key, and leaves the
+            // account enabled. Not on your own row -- the server refuses
+            // that, since it would sign you out with no way back in.
+            user.id === Settings.me.id ? null : Dom.el( "button" , {
+              class: "secondary small",
+              text: I18n.get( "admin.revoke_button" ),
+              on: { click: function () { Settings.confirmRevokeUser( user ); } },
+            } ),
             user.superadmin && !user.disabled ? null : action( user.disabled ? "admin.enable_button" : "admin.disable_button" , async function () {
               await Api.setDisabled( user.id , !user.disabled );
               await Settings.refreshUsers();
@@ -335,6 +345,28 @@ const Settings = {
     this.renderWho();
     Profile.renderPreview();
     if ( Profile.mine ) Profile.mine.mark();
+  },
+
+  revoking: null,
+
+  confirmRevokeUser( user ) {
+    this.revoking = user;
+    Dom.text( Dom.get( "revoke-user-body" ) , I18n.format( "admin.revoke_body" , { name: user.display_name } ) );
+    Sheet.open( "sheet-confirm-revoke-user" );
+  },
+
+  async onRevokeUser() {
+    const user = this.revoking;
+    if ( !user ) return;
+    try {
+      await Api.revokeAccess( user.id );
+      Sheet.close();
+      Toast.show( I18n.format( "admin.revoked" , { name: user.display_name } ) );
+      if ( Keys.me && Keys.me.api_keys_enabled !== false && Keys.me.owner ) await Keys.refreshAll();
+    } catch ( error ) {
+      Toast.error( error );
+    }
+    this.revoking = null;
   },
 
   deleting: null,

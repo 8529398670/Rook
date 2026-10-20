@@ -30,6 +30,7 @@
 # rate_limit_window_seconds RATE_LIMIT_WINDOW_SECONDS
 # body_limit_bytes          BODY_LIMIT_BYTES
 # trust_proxy               TRUST_PROXY
+# trusted_proxies           TRUSTED_PROXIES  (comma-separated in the env var)
 # proxy_header              PROXY_HEADER
 # project_name              PROJECT_NAME
 # static_dir                STATIC_DIR
@@ -40,15 +41,34 @@
 # table_retention_hours     TABLE_RETENTION_HOURS
 # max_tables                MAX_TABLES
 
+# 127.0.0.1 answers only this machine, which is what a development run and a
+# server behind a reverse proxy on the same host both want. Use 0.0.0.0 to
+# listen on every interface -- phones on the home network, say -- and then put
+# TLS in front, because login links, cookies, and API keys all cross the wire.
+# The Docker image sets HOST=0.0.0.0 itself.
+#host: 127.0.0.1
 port: 8080
 
 # false ONLY for plain http://localhost. A Secure cookie is silently dropped
 # over http, so login appears to succeed and then does nothing.
 secure_cookies: true
 
-# Turn on only when a reverse proxy you control is actually in front --
-# otherwise clients can forge X-Forwarded-For and evade the rate limiter.
+# Turn on when a reverse proxy you control is in front, so the rate limiter
+# sees each visitor's address instead of the proxy's. proxy_header is then
+# believed only on connections from an address in trusted_proxies -- the
+# address your proxy connects *from*, as this server sees it -- and read right
+# to left, skipping trusted hops, so whatever a client wrote further left is
+# ignored. trust_proxy without trusted_proxies is refused at startup.
+#
+#   proxy on the same host, bare binary:  [127.0.0.1, "::1"]
+#   proxy on the host, app in Docker:     [172.16.0.0/12] (the bridge gateway;
+#                                         check `docker network inspect bridge`)
+#
+# This only holds if clients cannot reach this server except through the
+# proxy. With a single-value header (X-Real-IP, CF-Connecting-IP) the proxy
+# must also overwrite whatever the client sent rather than pass it on.
 trust_proxy: false
+trusted_proxies: []
 
 session_ttl_seconds: 7776000     # 90 days -- signing back in needs an admin's link
 login_token_ttl_seconds: 259200  # 3 days -- invites are often opened hours later

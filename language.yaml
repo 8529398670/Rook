@@ -28,6 +28,15 @@ signed_out:
   body: "There is no sign-up here. Ask whoever runs this game for an invite link — it signs you in on this device."
   invalid_link: "That link is invalid, expired, or has already been used. Ask for a new one."
 
+# What a one-time login link opens. Opening the link spends nothing -- a chat
+# app's link preview cannot use it up -- until the button is pressed.
+login_confirm:
+  heading: "Sign in"
+  body: "This is a one-time sign-in link. It stops working once you use it."
+  # {name} is replaced with the account currently signed in.
+  switch_warning: "You are signed in as {name}. Continuing signs you out of that account and into the one this link is for."
+  button: "Sign in"
+
 common:
   cancel: "Cancel"
   close: "Close"
@@ -372,7 +381,7 @@ device_link:
   heading: "Sign in on another device"
   description: "Get a one-time link to yourself. Open it on your phone or another computer and it signs you in there as you."
   button: "Make a sign-in link"
-  notice: "Open this on the other device. It works once, within {hours} hours. Don't share it: whoever opens it is signed in as you."
+  notice: "Open this on the other device. It works once, within {hours} hours, and making another link cancels this one. Don't share it: whoever opens it is signed in as you."
   copy: "Copy"
   copied: "Copied."
 
@@ -438,7 +447,7 @@ admin:
   role_user: "player"
   role_admin: "admin"
   create_button: "Create login link"
-  link_notice: "Send this one-time link. It is shown once and cannot be recovered."
+  link_notice: "Send this one-time link. It is shown once and cannot be recovered, and any earlier unused link for this person has stopped working."
   copy_button: "Copy"
   copied_notice: "Copied."
   table_name: "Name"
@@ -456,6 +465,11 @@ admin:
   reissue_button: "New link"
   disable_button: "Disable"
   enable_button: "Enable"
+  revoke_button: "Sign out everywhere"
+  revoke_heading: "Sign them out everywhere?"
+  # {name} is replaced with the account's display name.
+  revoke_body: "Every device {name} is signed in on, every unused sign-in link, and every API key they have stop working now. The account stays enabled: send them a New link to let them back in."
+  revoked: "{name} was signed out everywhere."
   table_avatar: "Icon"
   edit_button: "Edit"
   edit_name_label: "Name"

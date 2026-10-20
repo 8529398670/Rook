@@ -67,7 +67,7 @@ func ( handlers *Handlers ) signupLink( c fiber.Ctx , body *signupRequest ) ( li
 		err = forbidden( c , "cross-site request" )
 		return
 	}
-	if c.Bind().Body( body ) != nil {
+	if c.Bind().JSON( body ) != nil {
 		err = badRequest( c , "malformed request body" )
 		return
 	}

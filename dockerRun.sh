@@ -66,7 +66,7 @@ docker run --rm --user 0:0 -v "${APP_DIR_HOST}:/data" \
   --entrypoint sh "$IMAGE_NAME" -c "chown -R ${APP_UID}:${APP_GID} /data" >/dev/null 2>&1 || true
 
 if ! docker run --rm --user "${APP_UID}:${APP_GID}" -v "${APP_DIR_HOST}:/data" \
-     --entrypoint sh "$IMAGE_NAME" -c 'touch /data/.probe && rm -f /data/.probe' >/dev/null 2>&1; then
+     --entrypoint sh "$IMAGE_NAME" -c 'touch /data/.probe' >/dev/null 2>&1; then
   echo "" >&2
   echo "ERROR: the container runs as uid ${APP_UID}, which cannot write to" >&2
   echo "       ${APP_DIR_HOST}" >&2
@@ -74,6 +74,28 @@ if ! docker run --rm --user "${APP_UID}:${APP_GID}" -v "${APP_DIR_HOST}:/data" \
   echo "       Without this the container will crash-loop on 'permission denied'." >&2
   echo "       Grant it on the host and re-run:" >&2
   echo "         sudo chown -R ${APP_UID}:${APP_GID} \"${APP_DIR_HOST}\"" >&2
+  echo "" >&2
+  exit 1
+fi
+
+# The probe the container just wrote must be visible here. Docker Desktop,
+# colima, and friends run the daemon in a VM that shares only some host paths
+# with it (colima: your home directory). Mount a path outside those and Docker
+# quietly mounts an empty directory from inside the VM instead -- the database
+# would land there, where no backup of this host will ever find it.
+DATA_SHARED=false
+[ -f "${APP_DIR_HOST}/.probe" ] && DATA_SHARED=true
+docker run --rm --user "${APP_UID}:${APP_GID}" -v "${APP_DIR_HOST}:/data" \
+  --entrypoint sh "$IMAGE_NAME" -c 'rm -f /data/.probe' >/dev/null 2>&1 || true
+if [ "$DATA_SHARED" != "true" ]; then
+  echo "" >&2
+  echo "ERROR: Docker cannot see ${APP_DIR_HOST}" >&2
+  echo "" >&2
+  echo "       A file written there from inside the container did not appear on" >&2
+  echo "       this host, so the directory is outside the paths your Docker VM" >&2
+  echo "       shares (colima shares your home directory; Docker Desktop:" >&2
+  echo "       Settings > Resources > File sharing). Point APP_DIR_HOST under a" >&2
+  echo "       shared path, or share this one, and re-run." >&2
   echo "" >&2
   exit 1
 fi
@@ -93,6 +115,7 @@ docker run -d \
   -e "SECRET_KEY=${SECRET_KEY}" \
   -e "SECURE_COOKIES=${SECURE_COOKIES:-true}" \
   -e "TRUST_PROXY=${TRUST_PROXY:-true}" \
+  -e "TRUSTED_PROXIES=${TRUSTED_PROXIES:-172.16.0.0/12}" \
   -e "ENCRYPT_AT_REST=${ENCRYPT_AT_REST:-true}" \
   --read-only \
   --tmpfs /tmp:rw,noexec,nosuid,size=16m \
@@ -122,6 +145,12 @@ What the flags above are doing:
                      because that proxy is serving https; set it to false ONLY
                      for a plain-http local run, or the browser will drop the
                      session cookie and login will appear to do nothing.
+  TRUST_PROXY        On by default, since a proxy is assumed in front. The
+                     client address it forwards is believed only from
+                     TRUSTED_PROXIES (default 172.16.0.0/12, Docker's bridge
+                     gateway range -- check with \`docker network inspect
+                     bridge\`); from anywhere else it is ignored, so a client
+                     cannot name its own IP to dodge the rate limiter.
   --read-only        The container cannot write to its own filesystem. Only
                      the mounted app directory and the tmpfs are writable.
   --cap-drop ALL     No Linux capabilities at all.

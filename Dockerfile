@@ -59,7 +59,11 @@ COPY --from=builder /out/server ./
 # used. Mounting over either path overrides it -- that is the supported way to
 # run the shipped UI with different wording:
 #   -v ./language.yaml:/app/data/language.yaml:ro
+# HOST=0.0.0.0 because the server's own default (127.0.0.1) would answer
+# nothing from outside the container; what is reachable from the host is
+# decided by the port dockerRun.sh publishes, which binds 127.0.0.1.
 ENV APP_DIR=/app/data \
+    HOST=0.0.0.0 \
     PORT=8080
 
 # Only the data directory is writable, and only by the app user. Everything

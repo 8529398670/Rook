@@ -49,9 +49,12 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// Resolve the session once, before anything else looks at the request.
 	app.Use( handlers.Guard.LoadUser )
 
-	// Public: the login link itself, and the UI's text (needed to render the
-	// signed-out page at all).
-	app.Get( "/login/*" , handlers.RedeemLoginLink )
+	// Public: the login link's page and the call it makes, and the UI's text
+	// (needed to render the signed-out page at all). Opening a login link
+	// only shows a page; the link is spent by the POST that page sends when
+	// the person confirms. See auth.go.
+	app.Get( "/login/*" , handlers.ShowLoginPage )
+	app.Post( "/api/login" , handlers.RedeemLoginLink )
 	app.Get( "/api/language" , handlers.GetLanguage )
 	app.Get( "/api/health" , handlers.GetHealth )
 
@@ -119,11 +122,20 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// RequireOwner is added per route rather than on the group, for the
 	// prefix reason spelled out at the API keys group above. See
 	// architecture.md on defaulting new features to "any signed-in user".
+	//
+	// The two routes that hand out a login link also require a browser
+	// session. A login link becomes a session, and a session can mint API
+	// keys -- so if an admin-scoped key could create accounts or reissue
+	// links, a leaked key could turn itself into a fresh session and a fresh
+	// key, and revoking the leaked one would not end the compromise. The
+	// rule is: an API key may use what an account can do, but it never
+	// creates credentials. (The seat invite under /api/tables follows it too.)
 	admin := app.Group( "/api/admin" , handlers.Guard.RequireAdmin )
 	admin.Get( "/users" , handlers.RequireOwner , handlers.ListUsers )
-	admin.Post( "/users" , handlers.RequireOwner , handlers.CreateUser )
-	admin.Post( "/users/:user_id/reissue-login" , handlers.RequireOwner , handlers.ReissueLogin )
+	admin.Post( "/users" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.CreateUser )
+	admin.Post( "/users/:user_id/reissue-login" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.ReissueLogin )
 	admin.Post( "/users/:user_id/disabled" , handlers.RequireOwner , handlers.SetUserDisabled )
+	admin.Post( "/users/:user_id/revoke-access" , handlers.RequireOwner , handlers.RevokeAccess )
 	admin.Post( "/users/:user_id/can-invite" , handlers.RequireOwner , handlers.SetUserCanInvite )
 	admin.Post( "/users/:user_id/can-hint" , handlers.RequireOwner , handlers.SetUserCanHint )
 	admin.Post( "/users/:user_id/can-undo" , handlers.RequireOwner , handlers.SetUserCanUndo )
@@ -158,7 +170,9 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/leave" , handlers.LeaveTable )
 	game_tables.Post( "/:table_id/bot" , handlers.AddBot )
 	game_tables.Post( "/:table_id/bot/remove" , handlers.RemoveBot )
-	game_tables.Post( "/:table_id/invite" , handlers.InviteToSeat )
+	// An invite creates an account and its login link, so like every route
+	// that creates a credential it is browser-only (see the admin group).
+	game_tables.Post( "/:table_id/invite" , handlers.Guard.RequireSession , handlers.InviteToSeat )
 	game_tables.Post( "/:table_id/assign" , handlers.AssignSeat )
 	game_tables.Post( "/:table_id/seat/remove" , handlers.RemovePlayer )
 	game_tables.Post( "/:table_id/seat/rename" , handlers.RenameSeat )

@@ -1,12 +1,15 @@
 package models
 
 import (
+	errors "errors"
 	strings "strings"
 	time "time"
 
 	db "rook/server/db"
 	encryption "rook/server/encryption"
 )
+
+var ErrAccountDisabled = errors.New( "account is disabled" )
 
 // Session is the server side of a login. The cookie never carries the user id
 // or the role -- only an opaque reference -- so revoking access is a matter of
@@ -30,8 +33,12 @@ func splitCredential( raw string ) ( id string , secret string , ok bool ) {
 	return
 }
 
-func CreateSession( store *db.Store , user_id uint64 , ttl time.Duration ) ( credential string , session *Session , err error ) {
-	session_id := encryption.GenerateURLToken( 16 )
+// newSession builds a session without storing it. Callers store it inside a
+// transaction that also checks the account is enabled -- RedeemLoginToken
+// and CreateSession -- so a session can never be written for an account that
+// was disabled a moment earlier.
+func newSession( user_id uint64 , ttl time.Duration ) ( session_id string , credential string , session *Session ) {
+	session_id = encryption.GenerateURLToken( 16 )
 	secret := encryption.GenerateURLToken( 32 )
 	now := time.Now().UTC()
 	session = &Session{
@@ -41,12 +48,34 @@ func CreateSession( store *db.Store , user_id uint64 , ttl time.Duration ) ( cre
 		CreatedAt:  now,
 		ExpiresAt:  now.Add( ttl ),
 	}
-	err = store.Put( db.BucketSessions , []byte( session_id ) , session )
-	if err != nil {
-		session = nil
-		return
-	}
 	credential = session_id + "." + secret
+	return
+}
+
+// CreateSession signs an account in directly, for the ways in that are not a
+// one-time login link: signing up or back in through a join or sign-up link.
+// A login link goes through RedeemLoginToken instead, which spends the link
+// in the same transaction.
+//
+// The account is re-read inside the transaction that stores the session, for
+// the same reason as there: a sign-in racing SetUserDisabled either lands
+// first (and is deleted with the rest) or second (and is refused).
+func CreateSession( store *db.Store , user_id uint64 , ttl time.Duration ) ( credential string , session *Session , err error ) {
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		owner := &User{}
+		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , owner ); tx_err != nil { return }
+		if owner.Disabled() {
+			tx_err = ErrAccountDisabled
+			return
+		}
+		session_id , new_credential , new_session := newSession( user_id , ttl )
+		if tx_err = tx.Put( db.BucketSessions , []byte( session_id ) , new_session ); tx_err != nil { return }
+		credential , session = new_credential , new_session
+		return
+	} )
+	if err != nil {
+		credential , session = "" , nil
+	}
 	return
 }
 
@@ -81,13 +110,14 @@ func DestroySession( store *db.Store , credential string ) ( err error ) {
 	return
 }
 
-// DestroyAllSessionsForUser is what makes disabling an account take effect
-// immediately instead of whenever the cookie happens to expire. It runs as a
-// single transaction on purpose: a scan that collects keys and then deletes
-// them one at a time would let a session created mid-sweep survive the
-// revocation it was meant to be caught by.
-func DestroyAllSessionsForUser( store *db.Store , user_id uint64 ) ( err error ) {
-	_ , err = store.DeleteWhere( db.BucketSessions ,
+// destroySessionsForUser deletes every session an account holds, inside the
+// caller's transaction. It is not exported because deleting sessions is only
+// ever half of a revocation: SetUserDisabled, RevokeAllCredentials and
+// DeleteUser run it together with the account change in one transaction, so
+// a sign-in at the same moment either lands before (and its session is
+// deleted here) or after (and sees the change).
+func destroySessionsForUser( tx *db.Tx , user_id uint64 ) ( removed int , err error ) {
+	removed , err = tx.DeleteWhere( db.BucketSessions ,
 		func() any { return &Session{} } ,
 		func( key []byte , item any ) bool {
 			return item.( *Session ).UserID == user_id

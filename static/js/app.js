@@ -9,7 +9,9 @@
 //   #/watch/<code>     a table's watch link
 //   #/signup/<cred>    a multi-use sign-up link
 //
-// The last three also work signed out: they are how people get in.
+// The last three also work signed out: they are how people get in. So does
+// a one-time login link, /login/<credential> -- a path, not a hash, because
+// the server answers it with this page (see showLoginConfirm).
 //
 // Do not re-check the session anywhere else -- the server is the authority,
 // and a second client-side notion of "am I logged in" is how the two drift
@@ -43,6 +45,10 @@ const App = {
     }
 
     this.me = me.authenticated ? me : null;
+    if ( this.loginCredential() !== "" ) {
+      this.showLoginConfirm();
+      return;
+    }
     Join.init();
     Signup.init();
     Table.init( this.me );
@@ -58,12 +64,66 @@ const App = {
 
   showSignedOut() {
     this.show( "screen-signed-out" );
-    // The login route redirects here with ?login=invalid rather than
+    // An old-style login redirect lands here with ?login=invalid rather than
     // explaining what was wrong with the link -- see routes/auth.go.
     const params = new URLSearchParams( window.location.search );
     if ( params.get( "login" ) === "invalid" && I18n.get( "signed_out.invalid_link" ) !== "" ) {
       Dom.show( Dom.get( "invalid-link" ) , true );
     }
+  },
+
+  // A login link is /login/<credential>, and the server answers it with this
+  // page. Nothing has been redeemed at that point.
+  loginCredential() {
+    const prefix = "/login/";
+    const path = window.location.pathname;
+    if ( path.indexOf( prefix ) !== 0 ) return "";
+    try {
+      return decodeURIComponent( path.slice( prefix.length ) ).replace( /\/+$/ , "" );
+    } catch ( error ) {
+      return "";
+    }
+  },
+
+  // Opening a login link only shows this. The link is spent by the POST the
+  // button sends, so a chat app's link preview or a mail scanner fetching the
+  // URL cannot use it up, and someone already signed in is told they are
+  // about to switch accounts rather than being switched silently.
+  showLoginConfirm() {
+    this.show( "screen-login" );
+    if ( this.me ) {
+      const warning = I18n.format( "login_confirm.switch_warning" , { name: this.me.display_name } );
+      if ( warning !== "" ) {
+        const box = Dom.get( "login-switch-warning" );
+        Dom.text( box , warning );
+        Dom.show( box , true );
+      }
+    }
+
+    const button = Dom.get( "login-confirm-button" );
+    button.addEventListener( "click" , async () => {
+      button.disabled = true;
+      try {
+        await Api.login( this.loginCredential() );
+        // replace, not assign: the link should not stay in the back button.
+        window.location.replace( "/" );
+      } catch ( error ) {
+        if ( error.status === 400 ) {
+          // Spent, expired, or never valid. Say so here, and take the dead
+          // link out of the address bar so a refresh does not ask again.
+          window.history.replaceState( null , "" , "/" );
+          Dom.show( button , false );
+          Dom.show( Dom.get( "login-body" ) , false );
+          Dom.show( Dom.get( "login-switch-warning" ) , false );
+          Dom.show( Dom.get( "login-invalid" ) , true );
+          return;
+        }
+        // Anything else (rate limited, network) leaves the link unspent,
+        // so let them try again.
+        button.disabled = false;
+        Toast.error( error );
+      }
+    } );
   },
 
   // Fill every [data-art] slot with its drawing.

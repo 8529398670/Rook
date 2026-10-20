@@ -80,7 +80,7 @@ func ( handlers *Handlers ) JoinSignup( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	var body joinSignupRequest
-	if c.Bind().Body( &body ) != nil || models.ValidDisplayName( body.DisplayName ) == false {
+	if c.Bind().JSON( &body ) != nil || models.ValidDisplayName( body.DisplayName ) == false {
 		err = badRequest( c , "bad_name" )
 		return
 	}
