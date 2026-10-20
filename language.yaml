@@ -179,6 +179,21 @@ bidding:
   log_turn: "{name} to bid…"
   log_won: "{name} won the bid at {bid}"
 
+# Typing cards at the table (cardkeys.js). {typed} is what was typed so far.
+card_keys:
+  typing: "{typed}…"
+  preview: "{typed} → {card}"
+  preview_missing: "{typed} → {card} (not in your hand)"
+  unknown: "“{typed}” isn't a card. Type a color letter and a number, like r1 or g10, or R for the Rook."
+  not_in_hand: "You don't have {card}."
+  trump_prompt: "Trump: r, g, y or b"
+  # A bare number ("13") that could be more than one card. {cards} is a
+  # list built with "list" below.
+  which: "{typed} → {cards}? Add the color."
+  list: "{first} or {last}"
+  no_number_play: "You have no {number} you can play."
+  no_number: "You have no {number}."
+
 kitty:
   choose: "Pick 5 cards to bury ({count} of 5), then name trump."
   count: "{count} of 5"
@@ -358,6 +373,8 @@ rules:
   kitty: "The winner adds the kitty to their hand, buries any five cards, names trump, and leads."
   play: "Follow the color led if you can; otherwise play anything. The Rook is the top trump (unless this table says otherwise). Highest trump wins the trick, or else the highest card of the color led."
   scoring: "Count the points in your tricks; the kitty goes to whoever takes the last trick. Make your bid and you score what you took; fall short and you lose the bid. The other team always scores what it took."
+  keyboard: "Keyboard: type a card — a color letter and its number, like r1, g10 or y14, or R for the Rook — then Enter to play it. Just the number does when only one card you could play has it. Tab or the arrow keys move through your playable cards, Shift on its own clears the choice, Ctrl+A turns auto play on or off, and F is full screen."
+  keyboard_kitty: "Burying: type each card (r1 g10 R) or ring one with Tab or the arrows and press Space to put it in or out of the five; t and a color letter names trump (tr is red). Enter then asks to confirm, and Enter again buries."
 
 settings:
   heading: "Settings"

@@ -22,6 +22,8 @@ const Hand = {
   nodes: new Map(),
   order: [],
   selected: null,
+  // While burying: the card the keyboard's ring is on (cardkeys.js).
+  cursor: null,
   bury: new Set(),
   legal: new Set(),
   mode: "idle",
@@ -65,6 +67,7 @@ const Hand = {
     this.nodes = new Map();
     this.order = [];
     this.selected = null;
+    this.cursor = null;
     this.bury = new Set();
     this.launching = new Set();
     this.handNumber = 0;
@@ -89,7 +92,10 @@ const Hand = {
     } else {
       this.mode = "idle";
     }
-    if ( this.mode !== "bury" ) this.bury = new Set();
+    if ( this.mode !== "bury" ) {
+      this.bury = new Set();
+      this.cursor = null;
+    }
     this.legal = new Set( game ? game.legal : [] );
     const pickedUp = new Set( game ? game.picked_up : [] );
 
@@ -103,6 +109,7 @@ const Hand = {
     this.bury.forEach( function ( id ) { if ( !keep.has( id ) ) Hand.bury.delete( id ); } );
     this.launching.forEach( function ( id ) { if ( !keep.has( id ) ) Hand.launching.delete( id ); } );
     if ( this.selected && ( !keep.has( this.selected ) || this.mode !== "play" || !this.legal.has( this.selected ) ) ) this.selected = null;
+    if ( this.cursor && !keep.has( this.cursor ) ) this.cursor = null;
 
     ids.forEach( function ( id , index ) {
       let node = Hand.nodes.get( id );
@@ -134,6 +141,7 @@ const Hand = {
       node.classList.toggle( "is-blocked" , mode === "play" && !Hand.legal.has( id ) );
       node.classList.toggle( "is-selected" , mode === "play" && Hand.selected === id );
       node.classList.toggle( "is-buried" , mode === "bury" && Hand.bury.has( id ) );
+      node.classList.toggle( "is-cursor" , mode === "bury" && Hand.cursor === id );
       node.classList.toggle( "is-picked-up" , mode === "bury" && pickedUp.has( id ) );
       node.classList.toggle( "is-launched" , Hand.launching.has( id ) );
       node.setAttribute( "aria-pressed" , String( Hand.selected === id || Hand.bury.has( id ) ) );

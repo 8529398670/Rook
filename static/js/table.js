@@ -106,6 +106,7 @@ const Table = {
       const toggle = event.target;
       if ( !await Table.setAutoPlay( toggle.checked ) ) toggle.checked = !toggle.checked;
     } );
+    CardKeys.init();
     // Ctrl+A toggles auto play while you are seated at this table. Not in a
     // text field, where Ctrl+A keeps its usual meaning (select all / start of
     // line), and not with Cmd, so Cmd+A still selects all on a Mac.

@@ -1,7 +1,7 @@
 // Full screen: hands the whole display to the page, so a small laptop gets
 // back the rows the browser's tabs and toolbars take. Every control marked
 // data-fullscreen toggles it; data-fullscreen-label holds the text to swap
-// on a labelled one (the table menu's row).
+// on a labelled one (the table menu's row). The F key toggles it too.
 //
 // Where the browser cannot do it (an iPhone, or a page in a frame that does
 // not allow it) the controls are hidden rather than left to do nothing.
@@ -31,6 +31,15 @@ const Fullscreen = {
       } );
     } );
     if ( !supported ) return;
+    // F toggles it from anywhere, except while typing in a text field.
+    document.addEventListener( "keydown" , function ( event ) {
+      if ( event.ctrlKey || event.metaKey || event.altKey || event.repeat ) return;
+      if ( event.key !== "f" && event.key !== "F" ) return;
+      const target = event.target;
+      if ( target && ( target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test( target.tagName ) ) ) return;
+      event.preventDefault();
+      Fullscreen.toggle();
+    } );
     document.addEventListener( "fullscreenchange" , this.sync.bind( this ) );
     document.addEventListener( "webkitfullscreenchange" , this.sync.bind( this ) );
     this.sync();

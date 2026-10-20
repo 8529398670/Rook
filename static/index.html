@@ -262,6 +262,7 @@
       <!-- The bids so far, while the hand is bid for (bidding.js). -->
       <div id="auction" class="auction" hidden></div>
       <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
+      <div id="card-entry" class="card-entry" aria-live="polite" hidden></div>
       <div id="waiting-room" class="waiting-room" hidden>
         <h2 id="waiting-title" class="waiting-title"></h2>
         <ul id="waiting-rules" class="chip-row"></ul>
@@ -911,6 +912,8 @@
         <p data-i18n="rules.kitty"></p>
         <p data-i18n="rules.play"></p>
         <p data-i18n="rules.scoring"></p>
+        <p data-i18n="rules.keyboard"></p>
+        <p data-i18n="rules.keyboard_kitty"></p>
       </div>
       <button type="button" class="secondary" data-sheet-close data-i18n="common.close"></button>
     </div>
@@ -1036,6 +1039,7 @@
   <script src="/js/history.js"></script>
   <script src="/js/record.js"></script>
   <script src="/js/observe.js"></script>
+  <script src="/js/cardkeys.js"></script>
   <script src="/js/table.js"></script>
   <script src="/js/games.js"></script>
   <script src="/js/app.js"></script>
