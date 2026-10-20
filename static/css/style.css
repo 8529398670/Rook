@@ -541,7 +541,7 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .menu-list button.danger { color: var(--danger); background: transparent; }
-/* The level picked last time, in the Add bot sheet. */
+/* The player's default level, in the Add bot sheet. */
 .bot-levels button[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .menu-list .badge-dot { top: 50%; right: 16px; margin-top: -5px; }
 
@@ -681,6 +681,10 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .settings-main .segmented { max-width: 20rem; }
+.settings-main #bot-default-levels { max-width: 26rem; }
+/* Six bot levels: two rows of three, so each name fits on a phone. */
+.segmented.level-choices { display: grid; grid-template-columns: repeat(3, 1fr); }
+.bot-default-help { margin: 0.5rem 0 0; font-size: 0.85rem; }
 
 /* ------------------------------------------------- rules & strategy */
 

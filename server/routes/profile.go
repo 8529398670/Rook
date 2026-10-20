@@ -3,11 +3,12 @@ package routes
 import (
 	fiber "github.com/gofiber/fiber/v3"
 
+	game "rook/server/game"
 	models "rook/server/models"
 	security "rook/server/security"
 )
 
-// A player's own look and sign-in PIN.
+// A player's own look, sign-in PIN, and the level of the bots they add.
 
 type avatarRequest struct {
 	Icon      string `json:"icon"`
@@ -47,6 +48,38 @@ func ( handlers *Handlers ) SetAvatar( c fiber.Ctx ) ( err error ) {
 	}
 	handlers.refreshTables( user.ID )
 	err = c.JSON( fiber.Map{ "ok": true , "icon": body.Icon , "color": body.Color } )
+	return
+}
+
+type botLevelRequest struct {
+	Level     string `json:"level"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// botLevelOf is the level the Add bot picker starts on for user.
+func botLevelOf( user *models.User ) ( level string ) {
+	parsed , _ := game.ParseLevel( user.BotLevel )
+	level = string( parsed )
+	return
+}
+
+// SetBotLevel saves the player's default level for the bots they add.
+func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
+	var body botLevelRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	if _ , ok := game.ParseLevel( body.Level ); ok == false || body.Level == "" {
+		err = badRequest( c , string( game.ErrBadLevel ) )
+		return
+	}
+	user := security.UserFrom( c )
+	if models.SetUserBotLevel( handlers.Store , user.ID , body.Level ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true , "bot_level": body.Level } )
 	return
 }
 

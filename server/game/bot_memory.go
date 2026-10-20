@@ -45,7 +45,19 @@ func colorIndex( color Color ) ( index int ) {
 	return
 }
 
+// remember is what seat knows from watching the whole hand: the card
+// counting Hard and Expert do.
 func ( state *State ) remember( seat int ) ( memory botMemory ) {
+	memory = state.recall( seat , true )
+	return
+}
+
+// recall builds the memory. Without counting, a seat keeps only what is in
+// front of it -- its own hand, the buried kitty if it buried it, and the
+// trick on the table -- and forgets every finished trick: it does not know
+// which top cards are gone, or who ran out of a color earlier. That is how
+// Skilled plays the guide without counting cards.
+func ( state *State ) recall( seat int , counting bool ) ( memory botMemory ) {
 	memory = botMemory{ state: state , seat: seat }
 	for index := range memory.unseen {
 		memory.unseen[ index ] = true
@@ -59,7 +71,9 @@ func ( state *State ) remember( seat int ) ( memory botMemory ) {
 			seen( card )
 		}
 	}
-	for number := 0; number <= len( state.Completed ); number++ {
+	first := 0
+	if counting == false { first = len( state.Completed ) }
+	for number := first; number <= len( state.Completed ); number++ {
 		plays := state.Trick.Plays
 		if number < len( state.Completed ) { plays = state.Completed[ number ].Plays }
 		if len( plays ) == 0 { continue }

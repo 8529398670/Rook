@@ -497,9 +497,11 @@ func TestViewHidesOtherHandsAndTheKitty( t *testing.T ) {
 // bots across every option combination and every mix of levels, checking
 // after every single action that no card was created or lost, that only
 // legal moves were accepted, and that every hand's counters add up to 180.
-// Expert searches, so only the first expert_games games seat it.
+// Expert and Master search, so only the first expert_games games seat them.
 func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 	games , expert_games := 2000 , 12
+	// The levels that do not search, for the games past expert_games.
+	cheap := []Level{ LevelEasy , LevelNormal , LevelSkilled , LevelHard }
 	if testing.Short() { games , expert_games = 200 , 4 }
 
 	rook_ranks := []RookRank{ RookHigh , RookTenHalf , RookLow }
@@ -523,7 +525,7 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 			if game_index < expert_games {
 				levels[ seat ] = Levels[ ( game_index+seat )%len( Levels ) ]
 			} else {
-				levels[ seat ] = Levels[ ( game_index/3+seat )%( len( Levels )-1 ) ]
+				levels[ seat ] = cheap[ ( game_index/3+seat )%len( cheap ) ]
 			}
 		}
 

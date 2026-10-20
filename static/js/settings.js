@@ -27,6 +27,7 @@ const Settings = {
       } );
     } );
     this.renderWho();
+    this.renderBotLevel();
     Zoom.bind( Dom.get( "settings-zoom" ) );
   },
 
@@ -63,6 +64,33 @@ const Settings = {
     const roleKey = this.me.role === "admin" ? "account.role_admin" : "account.role_user";
     Dom.text( Dom.get( "who-am-i" ) , I18n.format( "account.signed_in_as" , { name: this.me.display_name , role: I18n.get( roleKey ) } ) );
     Art.avatar( Dom.get( "open-settings" ) , this.me );
+  },
+
+  // The level the Add bot picker starts on, saved to the account so it
+  // follows the player to every device.
+  renderBotLevel() {
+    const group = Dom.get( "bot-default-levels" );
+    const current = Table.defaultBotLevel();
+    Dom.clear( group );
+    Table.botLevels.forEach( function ( level ) {
+      group.appendChild( Dom.el( "button" , {
+        text: I18n.get( "bots.level_" + level ),
+        attrs: { type: "button" , role: "radio" , "aria-checked": String( level === current ) },
+        on: { click: function () { Settings.setBotLevel( level ); } },
+      } ) );
+    } );
+    Dom.text( Dom.get( "bot-default-help" ) , I18n.get( "bots.level_" + current + "_help" ) );
+  },
+
+  async setBotLevel( level ) {
+    if ( level === Table.defaultBotLevel() ) return;
+    try {
+      await Api.setDefaultBotLevel( level );
+      this.me.bot_level = level;
+      this.renderBotLevel();
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
   renderTheme() {

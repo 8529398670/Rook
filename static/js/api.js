@@ -122,6 +122,7 @@ const Api = {
   profileOptions()             { return this.request( "/api/profile/options" ); },
   setAvatar( icon , color )    { return this.post( "/api/account/avatar" , { icon: icon , color: color } ); },
   setPin( pin )                { return this.post( "/api/account/pin" , { pin: pin } ); },
+  setDefaultBotLevel( level )  { return this.post( "/api/account/bot-level" , { level: level } ); },
 
   // Join links and multi-use sign-up links. The sign-up credential goes in
   // the body, never the URL, so it stays out of server logs.

@@ -11,8 +11,8 @@ import (
 // botAction is what a bot of the given level would do for seat right now:
 // the move a computer player makes, and -- at game.BestLevel -- the
 // suggestion behind a person's hint button and the move auto play makes.
-// Expert searches, which takes tens of milliseconds, so callers hand it a
-// clone of the game and call it without the table locked.
+// Expert and Master search, which takes tens of milliseconds, so callers
+// hand it a clone of the game and call it without the table locked.
 func botAction( state *game.State , seat int , level game.Level ) ( action Action , ok bool ) {
 	if state == nil || state.Turn != seat { return }
 	action.Seat = seat
@@ -100,7 +100,7 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	}
 	id , version , seat := table.ID , table.Version , state.Turn
 	table.bot_timer = time.AfterFunc( delay , func() {
-		// Think first, on a copy, with the table unlocked: an Expert move
+		// Think first, on a copy, with the table unlocked: an Expert or Master move
 		// takes tens of milliseconds, and nobody else at the table should
 		// wait on it. Then make the move only if nothing changed meanwhile.
 		current := func( table *Table ) ( result bool ) {

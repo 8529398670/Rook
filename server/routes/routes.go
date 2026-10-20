@@ -84,6 +84,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Get( "/profile/options" , handlers.GetProfileOptions )
 	account.Post( "/account/avatar" , handlers.SetAvatar )
 	account.Post( "/account/pin" , handlers.SetPin )
+	account.Post( "/account/bot-level" , handlers.SetBotLevel )
 	account.Post( "/join/:code" , handlers.JoinTable )
 	// The chat everyone shares, and who is online (see global.go).
 	account.Get( "/global" , handlers.GetGlobal )
@@ -170,7 +171,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/leave" , handlers.LeaveTable )
 	game_tables.Post( "/:table_id/bot" , handlers.AddBot )
 	game_tables.Post( "/:table_id/bot/remove" , handlers.RemoveBot )
-	game_tables.Post( "/:table_id/bot/level" , handlers.SetBotLevel )
+	game_tables.Post( "/:table_id/bot/level" , handlers.SetSeatBotLevel )
 	// An invite creates an account and its login link, so like every route
 	// that creates a credential it is browser-only (see the admin group).
 	game_tables.Post( "/:table_id/invite" , handlers.Guard.RequireSession , handlers.InviteToSeat )

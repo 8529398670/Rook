@@ -44,6 +44,7 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		// a user-scoped key of the owner's is not the owner.
 		"owner":            actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
 		"can_undo":         user.CanUndo,
+		"bot_level":        botLevelOf( user ),
 	}
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see

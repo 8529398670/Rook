@@ -130,16 +130,20 @@ bots:
   name_3: "Poe"
   name_4: "Hugin"
   add_heading: "Add a bot"
-  add_description: "How well should it play? The host can change this later by tapping the bot."
+  add_description: "How well should it play? Your default from Settings is picked — press Enter for it. The host can change a bot later by tapping it."
   # How well a bot plays. The short names show under each bot's name.
   level_easy: "Easy"
   level_easy_help: "Still learning. Bids timidly, wastes high cards, and sometimes plays the wrong one."
   level_normal: "Normal"
-  level_normal_help: "Plays sensibly, but doesn't count cards."
+  level_normal_help: "Plays sensibly by simple rules, without the strategy guide."
+  level_skilled: "Skilled"
+  level_skilled_help: "Plays by the strategy guide, but doesn't count cards."
   level_hard: "Hard"
-  level_hard_help: "Plays by the strategy guide. Counts cards and plays with its partner."
+  level_hard_help: "Plays by the strategy guide and counts cards: knows which top cards are gone and who is out of a color."
   level_expert: "Expert"
-  level_expert_help: "Thinks ahead through many ways the cards could lie. The hint button uses it."
+  level_expert_help: "Imagines 100 ways the cards could lie and plays each one out."
+  level_master: "Master"
+  level_master_help: "Expert that reads the table: guesses who holds what from the bids, the passes and the trump call. The hint button uses it."
 
 waiting:
   deal: "Deal"
@@ -656,6 +660,10 @@ device_link:
   copy: "Copy"
   copied: "Copied."
 
+bot_default:
+  heading: "Bots you add"
+  description: "How well a bot plays when you add one to a table. Saved to your account. You can still pick another level each time."
+
 appearance:
   heading: "Appearance"
   description: "Light is the default. Your choice is remembered on this device."
@@ -814,7 +822,7 @@ errors:
   no_such_link: "That link doesn't lead to an open table any more."
   seats_full: "Every seat is taken."
   hints_off: "Hints aren't switched on for you."
-  bad_bot_level: "Pick Easy, Normal, Hard or Expert."
+  bad_bot_level: "Pick Easy, Normal, Skilled, Hard, Expert or Master."
   bad_avatar: "Pick an icon and color from the list."
   bad_pin: "A PIN is 4 to 8 digits."
   bad_name: "Names are 1 to 80 characters."

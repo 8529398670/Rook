@@ -13,23 +13,31 @@ const (
 	LevelEasy Level = "easy"
 	// LevelNormal is the original bot, kept exactly as it was.
 	LevelNormal Level = "normal"
-	// LevelHard plays the strategy guide: it counts cards, knows which are
-	// still out, draws trump as the bidder and feeds a partner's sure
-	// tricks.
+	// LevelSkilled plays the strategy guide -- draws trump as the bidder,
+	// never leads trump defending, feeds a partner's tricks -- but does not
+	// count cards: it judges from its own hand and the trick in front of it.
+	LevelSkilled Level = "skilled"
+	// LevelHard plays the same guide and counts cards: it knows which top
+	// cards are still out and who has run out of a color.
 	LevelHard Level = "hard"
-	// LevelExpert plays Hard's rules forward through many possible deals of
+	// LevelExpert plays Hard's rules forward through 100 imagined deals of
 	// the cards it cannot see, and picks what does best on average.
 	LevelExpert Level = "expert"
+	// LevelMaster is Expert reading the table: it imagines the deals that
+	// best explain the bids, the passes and the trump call (bot_reading.go).
+	LevelMaster Level = "master"
 )
 
-// Levels is every level, weakest first. Each beats the one below it by a
-// clear margin. Measured by the duplicate league in bot_league_test.go
-// (ROOK_BOT_LEAGUE=1), points a hand: Normal over Easy +20, Hard over
-// Normal +43 (3000 deals each), Expert over Hard +26 (300 deals).
-var Levels = []Level{ LevelEasy , LevelNormal , LevelHard , LevelExpert }
+// Levels is every level, weakest first. Each beats the one below it.
+// Measured by the duplicate league in bot_league_test.go (ROOK_BOT_LEAGUE=1),
+// points a hand: Normal over Easy +20, Skilled over Normal +22, Hard over
+// Skilled +14 (3000 deals each), Expert over Hard +26 and Master over Expert
+// +9 (300 deals each, where results move by about 5 from one set to the
+// next).
+var Levels = []Level{ LevelEasy , LevelNormal , LevelSkilled , LevelHard , LevelExpert , LevelMaster }
 
 // BestLevel is what hints and auto play use.
-const BestLevel = LevelExpert
+const BestLevel = LevelMaster
 
 const ErrBadLevel Error = "bad_bot_level"
 

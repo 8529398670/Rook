@@ -198,11 +198,23 @@ func ( memory *botMemory ) cheapest( cards []Card ) ( result Card ) {
 }
 
 func ( state *State ) hardPlay( seat int ) ( card Card ) {
+	card = state.guidePlay( seat , true )
+	return
+}
+
+// skilledPlay is Hard's play without the card counting: the same rules from
+// the guide, judged only from its own hand and the trick in front of it.
+func ( state *State ) skilledPlay( seat int ) ( card Card ) {
+	card = state.guidePlay( seat , false )
+	return
+}
+
+func ( state *State ) guidePlay( seat int , counting bool ) ( card Card ) {
 	legal := state.LegalCards( seat )
 	if len( legal ) == 0 { return }
 	card = legal[ 0 ]
 	if len( legal ) == 1 { return }
-	memory := state.remember( seat )
+	memory := state.recall( seat , counting )
 	if len( state.Trick.Plays ) == 0 {
 		card = memory.hardLead( legal )
 		return

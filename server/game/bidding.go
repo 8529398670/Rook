@@ -57,6 +57,7 @@ func ( state *State ) Pass( seat int ) ( err error ) {
 	}
 
 	state.Passed[ seat ] = true
+	state.PassedAt[ seat ] = state.Bid
 	state.log( Event{ Kind: "pass" , Seat: seat , Team: TeamOf( seat ) } )
 
 	passed := 0

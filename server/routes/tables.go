@@ -198,9 +198,9 @@ func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-// SetBotLevel changes how well a computer player plays: the host's or an
+// SetSeatBotLevel changes how well a computer player plays: the host's or an
 // admin's call.
-func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
+func ( handlers *Handlers ) SetSeatBotLevel( c fiber.Ctx ) ( err error ) {
 	var body addBotRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err

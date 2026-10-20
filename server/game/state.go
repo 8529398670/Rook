@@ -91,6 +91,10 @@ type State struct {
 	HighBidder int       `json:"high_bidder"` // -1 while nobody has bid
 	Passed     [4]bool   `json:"passed"`
 	LastBid    [4]int    `json:"last_bid"` // 0 = has not bid this hand
+	// PassedAt is the bid that stood when each seat passed (0 = has not
+	// passed), which says roughly how strong a hand it was not. Master
+	// reads it, with LastBid, to guess at the hands it cannot see.
+	PassedAt [4]int `json:"passed_at,omitempty"`
 	Bidder     int       `json:"bidder"`   // who won the auction; -1 during it
 	Trump      Color     `json:"trump"`
 
@@ -153,6 +157,7 @@ func ( state *State ) deal( deck []Card ) {
 	state.HighBidder = -1
 	state.Passed = [4]bool{}
 	state.LastBid = [4]int{}
+	state.PassedAt = [4]int{}
 	state.Bidder = -1
 	state.Trump = NoColor
 	state.Trick = Trick{ Leader: -1 , Winner: -1 }

@@ -43,6 +43,9 @@ type User struct {
 	// PinHash protects signing back in through a multi-use sign-up link.
 	// Empty means no PIN: picking the name is enough. See signup_link.go.
 	PinHash string `json:"pin_hash,omitempty"`
+	// BotLevel is the level the Add bot picker starts on for this player
+	// (game.Level's names). Empty means normal.
+	BotLevel string `json:"bot_level,omitempty"`
 }
 
 // MayInvite is the single answer to "may this account bring someone new in".

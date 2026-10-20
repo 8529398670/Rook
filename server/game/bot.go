@@ -2,9 +2,10 @@ package game
 
 // Bots exist so one to three people can still get a game, and so the
 // property test can play thousands of games without anyone at the keyboard.
-// They come in four levels (bot_level.go): Easy (bot_easy.go), Normal (this
-// file -- simple heuristics, the original bot), Hard (bot_hard.go, which
-// counts cards) and Expert (bot_expert.go, which searches).
+// They come in five levels (bot_level.go): Easy (bot_easy.go), Normal (this
+// file -- simple heuristics, the original bot), Skilled and Hard
+// (bot_hard.go: the strategy guide, without and with card counting) and
+// Expert (bot_expert.go, which searches).
 //
 // Every decision at every level reads only what that seat could see at a
 // real table: its own hand, the bids, trump, the cards already played, and
@@ -84,10 +85,12 @@ func ( state *State ) BotBid( seat int , level Level ) ( amount int ) {
 	switch level.orNormal() {
 	case LevelEasy:
 		amount = state.easyBid( seat )
-	case LevelHard:
+	case LevelSkilled , LevelHard:
 		amount = state.hardBid( seat )
 	case LevelExpert:
-		amount = state.expertBid( seat )
+		amount = state.expertBid( seat , false )
+	case LevelMaster:
+		amount = state.expertBid( seat , true )
 	default:
 		amount = state.normalBid( seat )
 	}
@@ -100,10 +103,12 @@ func ( state *State ) BotBury( seat int , level Level ) ( buried []Card , trump 
 	switch level.orNormal() {
 	case LevelEasy:
 		buried , trump = state.easyBury( seat )
-	case LevelHard:
+	case LevelSkilled , LevelHard:
 		buried , trump = state.hardBury( seat )
 	case LevelExpert:
-		buried , trump = state.expertBury( seat )
+		buried , trump = state.expertBury( seat , false )
+	case LevelMaster:
+		buried , trump = state.expertBury( seat , true )
 	default:
 		buried , trump = state.normalBury( seat )
 	}
@@ -115,10 +120,14 @@ func ( state *State ) BotPlay( seat int , level Level ) ( card Card ) {
 	switch level.orNormal() {
 	case LevelEasy:
 		card = state.easyPlay( seat )
+	case LevelSkilled:
+		card = state.skilledPlay( seat )
 	case LevelHard:
 		card = state.hardPlay( seat )
 	case LevelExpert:
-		card = state.expertPlay( seat )
+		card = state.expertPlay( seat , false )
+	case LevelMaster:
+		card = state.expertPlay( seat , true )
 	default:
 		card = state.normalPlay( seat )
 	}

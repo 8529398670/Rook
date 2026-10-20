@@ -887,41 +887,34 @@ const Table = {
   },
 
   // How well a bot plays, weakest first; the server checks the same list.
-  botLevels: [ "easy" , "normal" , "hard" , "expert" ],
-  botLevelKey: "rook.bot_level",
+  botLevels: [ "easy" , "normal" , "skilled" , "hard" , "expert" , "master" ],
 
-  // The level picked last time, remembered on this device so filling a
-  // table with bots is one tap each.
-  lastBotLevel() {
-    let level = "normal";
-    try {
-      level = window.localStorage.getItem( this.botLevelKey ) || level;
-    } catch ( error ) {}
+  // The player's default level, set in Settings.
+  defaultBotLevel() {
+    const level = App.me && App.me.bot_level;
     return this.botLevels.indexOf( level ) >= 0 ? level : "normal";
   },
 
-  // Add bot: pick how well it plays.
+  // Add bot: pick how well it plays. The player's default is marked and
+  // focused, so Enter adds one at that level.
   openAddBot( seat ) {
     const list = Dom.get( "add-bot-levels" );
-    const last = this.lastBotLevel();
+    const preferred = this.defaultBotLevel();
     Dom.clear( list );
     this.botLevels.forEach( function ( level ) {
       list.appendChild( Dom.el( "button" , {
-        attrs: { type: "button" , "aria-current": String( level === last ) },
+        attrs: { type: "button" , "aria-current": String( level === preferred ) },
         children: [
           Dom.el( "span" , { class: "switch-title" , text: I18n.get( "bots.level_" + level ) } ),
           Dom.el( "span" , { class: "switch-help" , text: I18n.get( "bots.level_" + level + "_help" ) } ),
         ],
         on: { click: function () {
-          try {
-            window.localStorage.setItem( Table.botLevelKey , level );
-          } catch ( error ) {}
           Sheet.close( true );
           Table.act( Api.addBot( Table.id , seat , level ) );
         } },
       } ) );
     } );
-    Sheet.open( "sheet-add-bot" );
+    Sheet.open( "sheet-add-bot" , { focus: false } );
     const current = list.querySelector( "[aria-current='true']" );
     if ( current ) window.setTimeout( function () { current.focus( { preventScroll: true } ); } , 60 );
   },

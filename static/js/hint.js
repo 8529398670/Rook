@@ -5,7 +5,7 @@
 //   2. show it: lift the card, set the bid, pick the five and trump;
 //   3. do it.
 //
-// The suggestion is the Expert bot's move for your seat -- the strongest
+// The suggestion is the Master bot's move for your seat -- the strongest
 // level, whatever the bots at the table are set to -- worked out on the
 // server from your own cards and what has been played, so a hint never
 // knows more than you could.
