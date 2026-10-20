@@ -718,6 +718,18 @@ button.guide-jump:hover { color: var(--accent-strong); border-color: var(--accen
 .guide-points { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; line-height: 1.45; }
 .guide-points li::marker { color: var(--accent); }
 
+/* The glossary: the word on the left, its meaning beside it; stacked on a
+   phone. */
+.guide-terms { margin: 0; display: flex; flex-direction: column; }
+.guide-terms > div { display: grid; grid-template-columns: 1fr; gap: 1px; padding: 0.55rem 0; border-top: 1px solid var(--border); }
+.guide-terms > div:first-child { border-top: 0; padding-top: 0.2rem; }
+.guide-terms dt { font-weight: 750; color: var(--accent-strong); }
+.guide-terms dd { margin: 0; line-height: 1.45; }
+
+@media (min-width: 40rem) {
+  .guide-terms > div { grid-template-columns: 9rem 1fr; gap: 1rem; }
+}
+
 .guide-highlight { background: var(--accent-soft); border-color: var(--accent); }
 .guide-highlight .guide-points li { font-weight: 600; }
 

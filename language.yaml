@@ -386,6 +386,7 @@ rules:
 #   points    a bulleted list
 #   cards     a row of card faces: R1, G14, B10, Y5, ROOK ...
 #   labels    one caption under each card, in the same order
+#   terms     a glossary: a list of { term, meaning }
 #   tip       a highlighted "rule of thumb" at the bottom
 #   style     "highlight" draws the whole section as a callout
 #
@@ -399,6 +400,50 @@ guide:
   contents: "Jump to"
   rule_of_thumb: "Rule of thumb"
   rules:
+    - id: terms
+      heading: "Words to know"
+      lead: "Rook has its own words. These are the ones the rest of this page uses."
+      terms:
+        - term: "The Rook"
+          meaning: "The bird card. It belongs to whichever color is trump and is worth 20 points."
+        - term: "Point cards"
+          meaning: "The only cards that score: the 1s, 14s, 10s, 5s and the Rook. Also called counters."
+        - term: "Color"
+          meaning: "What other card games call a suit: red, black, yellow or green."
+        - term: "Trick"
+          meaning: "One round of play: each player plays one card, and the highest takes all four."
+        - term: "Lead"
+          meaning: "To play the first card of a trick. Its color is the color everyone else must follow."
+        - term: "Follow"
+          meaning: "To play a card of the color that was led. You must if you can."
+        - term: "Trump"
+          meaning: "The color the bid winner names for the hand. Any trump beats any card of another color."
+        - term: "Trump it"
+          meaning: "To play trump on a trick of another color, when you have none of the color led."
+        - term: "Made"
+          meaning: "The bidding team took at least its bid, and scores everything it took."
+        - term: "Going set"
+          meaning: "The bidding team fell short of its bid. It loses the amount of the bid instead of scoring."
+        - term: "Bid"
+          meaning: "A promise of how many points your team will take this hand, with your partner's help."
+        - term: "Bidder"
+          meaning: "The player who won the bid. They and their partner are the bidding team."
+        - term: "Defenders"
+          meaning: "The other team. They try to take enough points to stop the bid."
+        - term: "Kitty"
+          meaning: "The five cards dealt face down in the middle. The bidder picks them up. Also called the nest."
+        - term: "Bury"
+          meaning: "To put five cards from your hand back face down after picking up the kitty."
+        - term: "Last trick"
+          meaning: "The thirteenth trick. Whoever takes it also takes the points in the buried cards."
+        - term: "Void"
+          meaning: "Having no cards of a color. When that color is led, you can trump it."
+        - term: "Draw trump"
+          meaning: "To lead trump so the others have to play theirs, until they have none left. Also called pulling trump."
+        - term: "Top card"
+          meaning: "The highest card of a color that hasn't been played yet. It will win any trick of that color that isn't trumped."
+        - term: "Throw"
+          meaning: "To play a card you don't expect to win with: points onto a trick your partner is winning, or a card worth nothing onto one the other team is winning."
     - id: goal
       heading: "The goal"
       lead: "Rook is played by four people in two teams. Partners sit across from each other."
@@ -474,12 +519,12 @@ guide:
         - "Play to: the points needed to win, or a single hand."
     - id: differences
       heading: "If you learned it differently"
-      lead: "Rook has many house rules. This table plays it like this:"
+      lead: "This table plays it like this:"
       points:
         - "The 1 is the highest card and worth 15. Some boxes put the 1 at the bottom and give it nothing."
         - "All 57 cards are used, so there are 180 points, not 120."
-        - "The kitty belongs to whoever takes the last trick, not always to the bidder."
-        - "The Rook is the top trump unless the table says otherwise."
+        - "The kitty belongs to whoever takes the last trick."
+        - "The Rook is the top trump."
     - id: controls
       heading: "At the table"
       points:
@@ -512,7 +557,7 @@ guide:
         - "The Rook. With Rook high, it's a sure winner worth 20."
         - "1s in any color. Each is a trick you'll win."
         - "A long color for trump: five or more cards with two of the top three (1, 14, 13). The longer it is, the fewer high cards it needs."
-        - "Short colors, with one or two cards. With the kitty you can empty them and trump in later."
+        - "Short colors, with one or two cards. With the kitty you can empty them and trump it later."
         - "Lone 10s and 5s are a weakness for the bidder, who has to protect them. In your partner's hand, they're welcome."
     - id: bidding
       heading: "Bidding"
@@ -623,7 +668,7 @@ chat_settings:
   global_shown_help: "One chat for everyone, at every table and on the home screen."
 
 global:
-  heading: "Global chat"
+  heading: "Global Chat"
   tab: "Everyone"
   placeholder: "Say something to everyone"
   empty: "Nobody has said anything yet."
@@ -631,7 +676,7 @@ global:
   online_heading: "Online now · {count}"
 
 auto_play:
-  heading: "⏩ Auto play"
+  heading: "⏩ Auto Play"
   description: "Plays the best card for you on each of your turns for the rest of this hand. Turns itself off when the next hand is dealt. Shortcut: Ctrl+A."
   only_playing: "Available once the cards are being played. Turns itself off when the next hand is dealt."
   on: "⏩ Auto play is playing your cards this hand."

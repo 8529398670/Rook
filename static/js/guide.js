@@ -1,8 +1,8 @@
 // The Rules and Strategy pages, opened from the lobby's top row: #/rules and
 // #/strategy. Both are drawn from language.yaml (guide.rules and
 // guide.strategy), a list of sections each with a heading, an optional lead,
-// bullet points, a row of card faces and a "rule of thumb" -- so the whole
-// guide is reworded, reordered or trimmed there, never here.
+// a glossary, bullet points, a row of card faces and a "rule of thumb" -- so
+// the whole guide is reworded, reordered or trimmed there, never here.
 //
 // The tabs swap pages with replaceState rather than a new history entry, so
 // Back always returns to wherever the guide was opened from. Nothing here
@@ -82,6 +82,20 @@ const Guide = {
         }
         return Dom.el( "figure" , { children: parts } );
       } ) } ) );
+    }
+
+    const terms = Array.isArray( section.terms ) ? section.terms.filter( function ( entry ) {
+      return entry && typeof entry.term === "string" && entry.term !== "" && typeof entry.meaning === "string" && entry.meaning !== "";
+    } ) : [];
+    if ( terms.length > 0 ) {
+      const list = Dom.el( "dl" , { class: "guide-terms" } );
+      terms.forEach( function ( entry ) {
+        list.appendChild( Dom.el( "div" , { children: [
+          Dom.el( "dt" , { text: entry.term } ),
+          Dom.el( "dd" , { text: entry.meaning } ),
+        ] } ) );
+      } );
+      children.push( list );
     }
 
     const points = strings( section.points );
