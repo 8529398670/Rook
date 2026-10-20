@@ -35,6 +35,7 @@ type ArchivedSeat struct {
 	Kind  string `json:"kind"`
 	Name  string `json:"name"`
 	Bot   int    `json:"bot,omitempty"`
+	Level string `json:"level,omitempty"`
 	Icon  string `json:"icon,omitempty"`
 	Color string `json:"color,omitempty"`
 }
@@ -124,7 +125,7 @@ func ( hub *Hub ) archive( table *Table , status string ) {
 	} }
 	if status == GameFinished { entry.Winner = table.Game.Winner }
 	for index , seat := range table.Seats {
-		entry.Seats[ index ] = ArchivedSeat{ Kind: seat.Kind , Name: seat.shownName() , Bot: seat.Bot , Icon: seat.Icon , Color: seat.Color }
+		entry.Seats[ index ] = ArchivedSeat{ Kind: seat.Kind , Name: seat.shownName() , Bot: seat.Bot , Level: string( seat.Level ) , Icon: seat.Icon , Color: seat.Color }
 	}
 	record , record_err := table.record()
 	if record_err != nil {

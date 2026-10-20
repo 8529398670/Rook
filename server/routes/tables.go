@@ -43,6 +43,14 @@ type assignRequest struct {
 	CSRFToken string `json:"csrf_token"`
 }
 
+// addBotRequest picks the seat and, optionally, how well the bot plays:
+// easy, normal, hard or expert. Leaving it out means normal.
+type addBotRequest struct {
+	Seat      int    `json:"seat"`
+	Level     string `json:"level"`
+	CSRFToken string `json:"csrf_token"`
+}
+
 type renameSeatRequest struct {
 	Seat      int    `json:"seat"`
 	Name      string `json:"name"`
@@ -180,13 +188,26 @@ func ( handlers *Handlers ) LeaveTable( c fiber.Ctx ) ( err error ) {
 }
 
 func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
+	var body addBotRequest
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err
 		return
 	}
 	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.AddBot( id , security.UserFrom( c ) , body.Seat ) )
+	err = handlers.tableResult( c , id , handlers.Hub.AddBot( id , security.UserFrom( c ) , body.Seat , body.Level ) )
+	return
+}
+
+// SetBotLevel changes how well a computer player plays: the host's or an
+// admin's call.
+func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
+	var body addBotRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.SetBotLevel( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Level ) )
 	return
 }
 

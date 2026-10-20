@@ -129,6 +129,17 @@ bots:
   name_2: "Edgar"
   name_3: "Poe"
   name_4: "Hugin"
+  add_heading: "Add a bot"
+  add_description: "How well should it play? The host can change this later by tapping the bot."
+  # How well a bot plays. The short names show under each bot's name.
+  level_easy: "Easy"
+  level_easy_help: "Still learning. Bids timidly, wastes high cards, and sometimes plays the wrong one."
+  level_normal: "Normal"
+  level_normal_help: "Plays sensibly, but doesn't count cards."
+  level_hard: "Hard"
+  level_hard_help: "Plays by the strategy guide. Counts cards and plays with its partner."
+  level_expert: "Expert"
+  level_expert_help: "Thinks ahead through many ways the cards could lie. The hint button uses it."
 
 waiting:
   deal: "Deal"
@@ -341,6 +352,9 @@ seat_manage:
   body_pending: "This seat is saved for them. Cancel that, and free the seat?"
   body_bot: "Take the bot out to free the seat for a person."
   body_bot_game: "Take the bot out? The game pauses until someone — a person or another bot — fills the seat."
+  level_label: "How well it plays"
+  # {name} is the bot's name, {level} the level's short name.
+  level_set: "{name} now plays at {level}."
   rename_label: "Name at this table"
   rename: "Rename"
   reset: "Use their own name"
@@ -800,6 +814,7 @@ errors:
   no_such_link: "That link doesn't lead to an open table any more."
   seats_full: "Every seat is taken."
   hints_off: "Hints aren't switched on for you."
+  bad_bot_level: "Pick Easy, Normal, Hard or Expert."
   bad_avatar: "Pick an icon and color from the list."
   bad_pin: "A PIN is 4 to 8 digits."
   bad_name: "Names are 1 to 80 characters."

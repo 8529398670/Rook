@@ -170,6 +170,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/leave" , handlers.LeaveTable )
 	game_tables.Post( "/:table_id/bot" , handlers.AddBot )
 	game_tables.Post( "/:table_id/bot/remove" , handlers.RemoveBot )
+	game_tables.Post( "/:table_id/bot/level" , handlers.SetBotLevel )
 	// An invite creates an account and its login link, so like every route
 	// that creates a credential it is browser-only (see the admin group).
 	game_tables.Post( "/:table_id/invite" , handlers.Guard.RequireSession , handlers.InviteToSeat )

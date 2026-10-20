@@ -494,12 +494,13 @@ func TestViewHidesOtherHandsAndTheKitty( t *testing.T ) {
 }
 
 // TestBotGamesKeepEveryInvariant plays thousands of complete games between
-// bots across every option combination, checking after every single action
-// that no card was created or lost, that only legal moves were accepted, and
-// that every hand's counters add up to 180.
+// bots across every option combination and every mix of levels, checking
+// after every single action that no card was created or lost, that only
+// legal moves were accepted, and that every hand's counters add up to 180.
+// Expert searches, so only the first expert_games games seat it.
 func TestBotGamesKeepEveryInvariant( t *testing.T ) {
-	games := 2000
-	if testing.Short() { games = 200 }
+	games , expert_games := 2000 , 12
+	if testing.Short() { games , expert_games = 200 , 4 }
 
 	rook_ranks := []RookRank{ RookHigh , RookTenHalf , RookLow }
 	play_to := []int{ 0 , 100 , 250 , 300 , 500 }
@@ -517,6 +518,14 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 		}
 		state , err := NewGame( options , game_index%4 , source )
 		if err != nil { t.Fatal( err ) }
+		var levels [4]Level
+		for seat := range levels {
+			if game_index < expert_games {
+				levels[ seat ] = Levels[ ( game_index+seat )%len( Levels ) ]
+			} else {
+				levels[ seat ] = Levels[ ( game_index/3+seat )%( len( Levels )-1 ) ]
+			}
+		}
 
 		for steps := 0; state.Phase != PhaseGameOver; steps++ {
 			if steps > 20000 { t.Fatalf( "game %d never ended" , game_index ) }
@@ -531,12 +540,12 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 
 			seat := state.Turn
 			if state.Phase == PhasePlaying {
-				choice := state.BotPlay( seat )
+				choice := state.BotPlay( seat , levels[ seat ] )
 				if containsCard( state.LegalCards( seat ) , choice ) == false {
 					t.Fatalf( "game %d: bot chose illegal %s" , game_index , choice.ID() )
 				}
 			}
-			moved , err := state.BotMove( seat )
+			moved , err := state.BotMove( seat , levels[ seat ] )
 			if err != nil || moved == false {
 				t.Fatalf( "game %d seat %d phase %s: moved %v err %v" , game_index , seat , state.Phase , moved , err )
 			}

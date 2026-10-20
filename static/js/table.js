@@ -353,7 +353,7 @@ const Table = {
     this.renderBar( view );
     Seats.render( view , {
       sit: function ( seat ) { Table.act( Api.sit( Table.id , seat ) ); },
-      addBot: function ( seat ) { Table.act( Api.addBot( Table.id , seat ) ); },
+      addBot: function ( seat ) { Table.openAddBot( seat ); },
       removeBot: function ( seat ) { Table.act( Api.removeBot( Table.id , seat ) ); },
       invite: function ( seat ) { Table.openInvite( seat ); },
       manageSeat: function ( seat ) { Table.manageSeat( seat ); },
@@ -886,8 +886,72 @@ const Table = {
     }
   },
 
+  // How well a bot plays, weakest first; the server checks the same list.
+  botLevels: [ "easy" , "normal" , "hard" , "expert" ],
+  botLevelKey: "rook.bot_level",
+
+  // The level picked last time, remembered on this device so filling a
+  // table with bots is one tap each.
+  lastBotLevel() {
+    let level = "normal";
+    try {
+      level = window.localStorage.getItem( this.botLevelKey ) || level;
+    } catch ( error ) {}
+    return this.botLevels.indexOf( level ) >= 0 ? level : "normal";
+  },
+
+  // Add bot: pick how well it plays.
+  openAddBot( seat ) {
+    const list = Dom.get( "add-bot-levels" );
+    const last = this.lastBotLevel();
+    Dom.clear( list );
+    this.botLevels.forEach( function ( level ) {
+      list.appendChild( Dom.el( "button" , {
+        attrs: { type: "button" , "aria-current": String( level === last ) },
+        children: [
+          Dom.el( "span" , { class: "switch-title" , text: I18n.get( "bots.level_" + level ) } ),
+          Dom.el( "span" , { class: "switch-help" , text: I18n.get( "bots.level_" + level + "_help" ) } ),
+        ],
+        on: { click: function () {
+          try {
+            window.localStorage.setItem( Table.botLevelKey , level );
+          } catch ( error ) {}
+          Sheet.close( true );
+          Table.act( Api.addBot( Table.id , seat , level ) );
+        } },
+      } ) );
+    } );
+    Sheet.open( "sheet-add-bot" );
+    const current = list.querySelector( "[aria-current='true']" );
+    if ( current ) window.setTimeout( function () { current.focus( { preventScroll: true } ); } , 60 );
+  },
+
+  renderBotLevel( info ) {
+    const group = Dom.get( "seat-sheet-level" );
+    Dom.clear( group );
+    this.botLevels.forEach( function ( level ) {
+      group.appendChild( Dom.el( "button" , {
+        text: I18n.get( "bots.level_" + level ),
+        attrs: { type: "button" , role: "radio" , "aria-checked": String( ( info.level || "normal" ) === level ) , title: I18n.get( "bots.level_" + level + "_help" ) },
+        on: { click: function () { Table.setBotLevel( level ); } },
+      } ) );
+    } );
+  },
+
+  async setBotLevel( level ) {
+    const seat = this.manageSeatIndex;
+    try {
+      const view = await Api.setBotLevel( this.id , seat , level );
+      this.apply( view );
+      if ( view.seats[ seat ] && view.seats[ seat ].kind === "bot" ) this.renderBotLevel( view.seats[ seat ] );
+      Toast.show( I18n.format( "seat_manage.level_set" , { name: this.manageSeatName , level: I18n.get( "bots.level_" + level ) } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
   // The host or an admin clicked a player's avatar: rename them for this
-  // table, or take them out of the seat.
+  // table, change how well a bot plays, or take them out of the seat.
   manageSeat( seat ) {
     const view = this.view;
     const info = view && view.seats[ seat ];
@@ -902,6 +966,8 @@ const Table = {
     Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
     Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
     Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+    Dom.show( Dom.get( "seat-sheet-level-box" ) , info.kind === "bot" );
+    if ( info.kind === "bot" ) this.renderBotLevel( info );
 
     // Removing: anyone's seat but your own (that is Leave), person or bot,
     // at any point in the game.

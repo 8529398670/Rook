@@ -71,7 +71,7 @@ func TestSeatingRules( t *testing.T ) {
 	if err := hub.Sit( id , guest , 1 ); !errors.Is( err , ErrAlreadySeated ) {
 		t.Fatalf( "second seat: %v" , err )
 	}
-	if err := hub.AddBot( id , guest , 1 ); err != nil { t.Fatal( err ) }
+	if err := hub.AddBot( id , guest , 1 , "" ); err != nil { t.Fatal( err ) }
 	if err := hub.Start( id , guest , DealerHost ); !errors.Is( err , ErrNotHost ) {
 		t.Fatalf( "non-host start: %v" , err )
 	}
@@ -107,7 +107,7 @@ func TestTheHostDealsTheFirstHand( t *testing.T ) {
 	if err := hub.Leave( id , ana ); err != nil { t.Fatal( err ) }
 	if err := hub.Sit( id , ana , 0 ); err != nil { t.Fatal( err ) }
 	for _ , seat := range []int{ 1 , 3 } {
-		if err := hub.AddBot( id , ben , seat ); err != nil { t.Fatal( err ) }
+		if err := hub.AddBot( id , ben , seat , "" ); err != nil { t.Fatal( err ) }
 	}
 	if err := hub.Start( id , ben , DealerHost ); err != nil { t.Fatal( err ) }
 	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
@@ -123,7 +123,7 @@ func TestTheHostPicksTheFirstDealer( t *testing.T ) {
 	table := func() ( id string ) {
 		id , _ = hub.Create( ana , "Cards" , game.DefaultOptions() )
 		for seat := 1; seat < 4; seat++ {
-			if err := hub.AddBot( id , ana , seat ); err != nil { t.Fatal( err ) }
+			if err := hub.AddBot( id , ana , seat , "" ); err != nil { t.Fatal( err ) }
 		}
 		return
 	}
@@ -211,7 +211,7 @@ func TestAHandWithBots( t *testing.T ) {
 	options.PlayTo = 300
 	id , _ := hub.Create( person , "Solo" , options )
 	for seat := 1; seat < 4; seat++ {
-		if err := hub.AddBot( id , person , seat ); err != nil { t.Fatal( err ) }
+		if err := hub.AddBot( id , person , seat , "" ); err != nil { t.Fatal( err ) }
 	}
 	if err := hub.Start( id , person , DealerHost ); err != nil { t.Fatal( err ) }
 
@@ -301,7 +301,7 @@ func TestRemovePlayer( t *testing.T ) {
 
 	// Someone already at the table cannot be held a second seat.
 	if err = hub.Reserve( id , 3 , guest ); errors.Is( err , ErrAlreadySeated ) == false { t.Fatalf( "reserve seated: %v" , err ) }
-	if err = hub.AddBot( id , host , 3 ); err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , host , 3 , "" ); err != nil { t.Fatal( err ) }
 	if err = hub.Start( id , host , DealerHost ); err != nil { t.Fatal( err ) }
 
 	// Mid-game, removing a player pauses the table. An admin may do it too.
@@ -324,7 +324,7 @@ func TestRenameSeat( t *testing.T ) {
 	id , err := hub.Create( host , "Rename test" , game.DefaultOptions() )
 	if err != nil { t.Fatal( err ) }
 	if err = hub.Sit( id , guest , 1 ); err != nil { t.Fatal( err ) }
-	if err = hub.AddBot( id , host , 2 ); err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , host , 2 , "" ); err != nil { t.Fatal( err ) }
 
 	if err = hub.RenameSeat( id , guest , false , 0 , "Boss" ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host rename: %v" , err ) }
 	if err = hub.RenameSeat( id , host , false , 3 , "Nobody" ); errors.Is( err , ErrNotAPlayer ) == false { t.Fatalf( "rename empty: %v" , err ) }
@@ -373,5 +373,34 @@ func TestNewTablesTakeTheRookRulesFromTheSettings( t *testing.T ) {
 	view , _ = hub.View( before , Viewer{ User: host } , ViewOptions{} )
 	if view.Options.RookAnytime || view.Options.RookFirstTrick == false {
 		t.Fatalf( "existing table's rules changed: %+v" , view.Options )
+	}
+}
+
+func TestBotLevels( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	host := testUser( t , store , "Ana" )
+	guest := testUser( t , store , "Ben" )
+
+	id , err := hub.Create( host , "Level test" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.Sit( id , guest , 1 ); err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , guest , 2 , "smart" ); errors.Is( err , game.ErrBadLevel ) == false { t.Fatalf( "unknown level: %v" , err ) }
+	if err = hub.AddBot( id , guest , 2 , "hard" ); err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , host , 3 , "" ); err != nil { t.Fatal( err ) }
+
+	view , _ := hub.View( id , Viewer{ User: guest } , ViewOptions{} )
+	if view.Seats[ 2 ].Level != "hard" || view.Seats[ 3 ].Level != "normal" || view.Seats[ 1 ].Level != "" {
+		t.Fatalf( "levels after adding: %+v" , view.Seats )
+	}
+
+	if err = hub.SetBotLevel( id , guest , false , 2 , "easy" ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host: %v" , err ) }
+	if err = hub.SetBotLevel( id , host , false , 1 , "easy" ); errors.Is( err , ErrNotABot ) == false { t.Fatalf( "a person: %v" , err ) }
+	if err = hub.SetBotLevel( id , host , false , 2 , "" ); errors.Is( err , game.ErrBadLevel ) == false { t.Fatalf( "empty level: %v" , err ) }
+	if err = hub.SetBotLevel( id , host , false , 2 , "expert" ); err != nil { t.Fatal( err ) }
+	if err = hub.SetBotLevel( id , guest , true , 3 , "easy" ); err != nil { t.Fatalf( "admin: %v" , err ) }
+
+	view , _ = hub.View( id , Viewer{ User: guest } , ViewOptions{} )
+	if view.Seats[ 2 ].Level != "expert" || view.Seats[ 3 ].Level != "easy" {
+		t.Fatalf( "levels after changing: %+v" , view.Seats )
 	}
 }

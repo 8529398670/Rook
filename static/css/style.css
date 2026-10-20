@@ -263,7 +263,7 @@ form {
   gap: 0.25rem;
 }
 
-label, legend {
+label, legend, .field-label {
   font-size: 0.85rem;
   font-weight: 650;
   color: var(--fg-muted);
@@ -541,6 +541,8 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .menu-list button.danger { color: var(--danger); background: transparent; }
+/* The level picked last time, in the Add bot sheet. */
+.bot-levels button[aria-current="true"] { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .menu-list .badge-dot { top: 50%; right: 16px; margin-top: -5px; }
 
 @keyframes sheet-up {

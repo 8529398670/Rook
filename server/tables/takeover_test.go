@@ -81,7 +81,7 @@ func TestDeclineCancelAndPrune( t *testing.T ) {
 	guest := testUser( t , store , "Ben" )
 	id , _ := hub.Create( host , "Cards" , game.DefaultOptions() )
 	for seat := 1; seat < 4; seat++ {
-		hub.AddBot( id , host , seat )
+		hub.AddBot( id , host , seat , "" )
 	}
 
 	hub.RequestSeat( id , guest , 1 )

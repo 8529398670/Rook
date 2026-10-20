@@ -106,6 +106,10 @@ type State struct {
 
 	Events   []Event `json:"events"`
 	EventSeq int     `json:"event_seq"`
+
+	// silent is set on the hands Expert imagines: nobody reads their log,
+	// and writing it would be most of the search's garbage.
+	silent bool
 }
 
 // NewGame deals the first hand from a freshly shuffled deck. first_bidder is
@@ -161,6 +165,7 @@ func ( state *State ) deal( deck []Card ) {
 }
 
 func ( state *State ) log( event Event ) {
+	if state.silent { return }
 	state.EventSeq++
 	event.Seq = state.EventSeq
 	state.Events = append( state.Events , event )

@@ -95,6 +95,9 @@ type Seat struct {
 	// Bot numbers computer players 1-4 so each can have its own name in
 	// language.yaml.
 	Bot int `json:"bot,omitempty"`
+	// Level is how well this seat's bot plays. A bot saved before levels
+	// existed has none, and plays as Normal.
+	Level game.Level `json:"level,omitempty"`
 	// Pending marks a seat held for someone who was invited and has not
 	// opened the table yet.
 	Pending bool `json:"pending,omitempty"`

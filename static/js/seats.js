@@ -78,6 +78,8 @@ const Seats = {
     if ( info.pending ) return I18n.get( "seats.invited" );
     if ( info.kind === "human" && !info.online ) return I18n.get( "seats.away" );
     if ( info.host && view.status === "waiting" ) return I18n.get( "seats.host" );
+    // A bot is always ready at once, so its note says how well it plays.
+    if ( info.kind === "bot" ) return I18n.get( "bots.level_" + ( info.level || "normal" ) );
     if ( game && game.phase === "hand_over" ) return game.ready[ seat ] ? I18n.get( "seats.ready" ) : "";
     return "";
   },

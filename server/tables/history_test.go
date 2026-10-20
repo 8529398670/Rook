@@ -16,7 +16,7 @@ func soloTable( t *testing.T , hub *Hub , person *models.User ) ( id string ) {
 	id , err := hub.Create( person , "Solo" , game.DefaultOptions() )
 	if err != nil { t.Fatal( err ) }
 	for seat := 1; seat < 4; seat++ {
-		if err := hub.AddBot( id , person , seat ); err != nil { t.Fatal( err ) }
+		if err := hub.AddBot( id , person , seat , "" ); err != nil { t.Fatal( err ) }
 	}
 	if err := hub.Start( id , person , DealerHost ); err != nil { t.Fatal( err ) }
 	return
@@ -211,8 +211,8 @@ func TestJoinLinks( t *testing.T ) {
 	if seated , _ := hub.View( id , Viewer{ User: friend } , ViewOptions{} ); seated.You != 1 {
 		t.Fatalf( "friend should be in the first free seat, got %d" , seated.You )
 	}
-	hub.AddBot( id , host , 2 )
-	hub.AddBot( id , host , 3 )
+	hub.AddBot( id , host , 2 , "" )
+	hub.AddBot( id , host , 3 , "" )
 	if _ , err := hub.Join( view.JoinCode , late ); err != nil { t.Fatal( err ) }
 	if watching , _ := hub.View( id , Viewer{ User: late } , ViewOptions{} ); watching.You != -1 || watching.MyRequest != 2 {
 		t.Fatalf( "a full table should leave a late joiner watching and asking for a bot's seat" )

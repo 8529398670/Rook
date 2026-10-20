@@ -748,6 +748,10 @@
         <span id="seat-sheet-avatar" class="mini-avatar" aria-hidden="true"></span>
         <h2 id="seat-sheet-name"></h2>
       </div>
+      <div id="seat-sheet-level-box" class="field" hidden>
+        <span class="field-label" id="seat-sheet-level-label" data-i18n="seat_manage.level_label"></span>
+        <div id="seat-sheet-level" class="segmented" role="radiogroup" aria-labelledby="seat-sheet-level-label"></div>
+      </div>
       <div class="field">
         <label for="seat-sheet-rename" data-i18n="seat_manage.rename_label"></label>
         <div class="seat-rename-row">
@@ -767,6 +771,13 @@
         <button type="button" class="secondary" data-sheet-close data-i18n="common.done"></button>
       </div>
     </form>
+
+    <div id="sheet-add-bot" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 data-i18n="bots.add_heading"></h2>
+      <p class="muted" data-i18n="bots.add_description"></p>
+      <div id="add-bot-levels" class="menu-list bot-levels"></div>
+    </div>
 
     <div id="sheet-menu" class="sheet" hidden>
       <div class="sheet-grip" aria-hidden="true"></div>

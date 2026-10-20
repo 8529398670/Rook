@@ -92,9 +92,14 @@ func ( hub *Hub ) SetAutoPlay( id string , user *models.User , on bool ) ( err e
 	return
 }
 
-// AddBot fills an empty seat with a computer player. Anyone seated may do it,
-// before a game or to unpause one.
-func ( hub *Hub ) AddBot( id string , user *models.User , seat int ) ( err error ) {
+// AddBot fills an empty seat with a computer player of the given level ("" is
+// Normal). Anyone seated may do it, before a game or to unpause one.
+func ( hub *Hub ) AddBot( id string , user *models.User , seat int , level string ) ( err error ) {
+	parsed , ok := game.ParseLevel( level )
+	if ok == false {
+		err = game.ErrBadLevel
+		return
+	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		if _ , fn_err = table.seated( user ); fn_err != nil { return }
 		if validSeat( seat ) == false {
@@ -105,7 +110,7 @@ func ( hub *Hub ) AddBot( id string , user *models.User , seat int ) ( err error
 			fn_err = ErrSeatTaken
 			return
 		}
-		table.Seats[ seat ] = Seat{ Kind: KindBot , Bot: table.nextBotNumber() }
+		table.Seats[ seat ] = Seat{ Kind: KindBot , Bot: table.nextBotNumber() , Level: parsed }
 		return
 	} )
 	return
@@ -179,6 +184,34 @@ func ( hub *Hub ) RenameSeat( id string , caller *models.User , admin bool , sea
 		}
 		if name == table.Seats[ seat ].Name { name = "" }
 		table.Seats[ seat ].Alias = name
+		return
+	} )
+	return
+}
+
+// SetBotLevel changes how well a computer player plays: the host's call, or
+// an admin's, at any point. Mid-hand the bot simply plays its next move at
+// the new level.
+func ( hub *Hub ) SetBotLevel( id string , caller *models.User , admin bool , seat int , level string ) ( err error ) {
+	parsed , ok := game.ParseLevel( level )
+	if ok == false || level == "" {
+		err = game.ErrBadLevel
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind != KindBot {
+			fn_err = ErrNotABot
+			return
+		}
+		table.Seats[ seat ].Level = parsed
 		return
 	} )
 	return

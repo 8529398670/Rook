@@ -1,12 +1,15 @@
 package game
 
-// Bots are simple heuristics, not search. They exist so one to three people
-// can still get a game, and so the property test can play thousands of games
-// without anyone at the keyboard.
+// Bots exist so one to three people can still get a game, and so the
+// property test can play thousands of games without anyone at the keyboard.
+// They come in four levels (bot_level.go): Easy (bot_easy.go), Normal (this
+// file -- simple heuristics, the original bot), Hard (bot_hard.go, which
+// counts cards) and Expert (bot_expert.go, which searches).
 //
-// Every decision here reads only what that seat could see at a real table:
-// its own hand, the bid, trump, and the cards already on the table. None of
-// them looks at another hand or the buried kitty.
+// Every decision at every level reads only what that seat could see at a
+// real table: its own hand, the bids, trump, the cards already played, and
+// the buried kitty only for the seat that buried it. None of them looks at
+// another hand.
 
 func ( state *State ) isTrump( card Card ) ( result bool ) {
 	result = state.Trump != NoColor && state.suitOf( card ) == state.Trump
@@ -40,7 +43,7 @@ func bestTrump( hand []Card ) ( best Color ) {
 }
 
 // handStrength estimates how much of the 180 this hand could carry with a
-// partner's help. The scale is arbitrary; BotBid's formula was tuned against
+// partner's help. The scale is arbitrary; normalBid's formula was tuned against
 // the property test's thousands of bot games until ordinary hands go to about
 // 105, long high hands push toward 150, and bidders make it roughly three
 // times in four -- close enough to people that a set is a real risk.
@@ -76,10 +79,56 @@ func handStrength( hand []Card , trump Color ) ( score int ) {
 	return
 }
 
-// BotBid returns the amount to bid, or 0 to pass. Bots raise by the minimum
+// BotBid returns the amount a bot of this level bids, or 0 to pass.
+func ( state *State ) BotBid( seat int , level Level ) ( amount int ) {
+	switch level.orNormal() {
+	case LevelEasy:
+		amount = state.easyBid( seat )
+	case LevelHard:
+		amount = state.hardBid( seat )
+	case LevelExpert:
+		amount = state.expertBid( seat )
+	default:
+		amount = state.normalBid( seat )
+	}
+	return
+}
+
+// BotBury returns the five cards a bot of this level buries and the trump it
+// names.
+func ( state *State ) BotBury( seat int , level Level ) ( buried []Card , trump Color ) {
+	switch level.orNormal() {
+	case LevelEasy:
+		buried , trump = state.easyBury( seat )
+	case LevelHard:
+		buried , trump = state.hardBury( seat )
+	case LevelExpert:
+		buried , trump = state.expertBury( seat )
+	default:
+		buried , trump = state.normalBury( seat )
+	}
+	return
+}
+
+// BotPlay returns the legal card a bot of this level plays.
+func ( state *State ) BotPlay( seat int , level Level ) ( card Card ) {
+	switch level.orNormal() {
+	case LevelEasy:
+		card = state.easyPlay( seat )
+	case LevelHard:
+		card = state.hardPlay( seat )
+	case LevelExpert:
+		card = state.expertPlay( seat )
+	default:
+		card = state.normalPlay( seat )
+	}
+	return
+}
+
+// normalBid returns the amount to bid, or 0 to pass. Bots raise by the minimum
 // and stop at their estimate, and they back off when their partner already
 // holds the bid rather than bidding against their own team.
-func ( state *State ) BotBid( seat int ) ( amount int ) {
+func ( state *State ) normalBid( seat int ) ( amount int ) {
 	hand := state.Hands[ seat ]
 	limit := 45 + handStrength( hand , bestTrump( hand ) )*3/2
 	if state.HighBidder >= 0 && TeamOf( state.HighBidder ) == TeamOf( seat ) {
@@ -93,10 +142,10 @@ func ( state *State ) BotBid( seat int ) ( amount int ) {
 	return
 }
 
-// BotBury names the strongest color and buries the five off-color cards it
+// normalBury names the strongest color and buries the five off-color cards it
 // least wants: low cards in short colors, keeping counters and 1s, so the
 // hand ends up with voids it can trump into.
-func ( state *State ) BotBury( seat int ) ( buried []Card , trump Color ) {
+func ( state *State ) normalBury( seat int ) ( buried []Card , trump Color ) {
 	hand := state.Hands[ seat ]
 	trump = bestTrump( hand )
 
@@ -128,10 +177,10 @@ func ( state *State ) BotBury( seat int ) ( buried []Card , trump Color ) {
 	return
 }
 
-// BotPlay picks a legal card: take the trick as cheaply as possible when it
+// normalPlay picks a legal card: take the trick as cheaply as possible when it
 // can, feed counters to a partner who is winning, and otherwise throw the
 // least valuable card it holds.
-func ( state *State ) BotPlay( seat int ) ( card Card ) {
+func ( state *State ) normalPlay( seat int ) ( card Card ) {
 	legal := state.LegalCards( seat )
 	if len( legal ) == 0 { return }
 	card = legal[ 0 ]
@@ -156,7 +205,7 @@ func ( state *State ) BotPlay( seat int ) ( card Card ) {
 
 	plays := state.Trick.Plays
 	if len( plays ) == 0 {
-		card = state.botLead( seat , legal , lowest , highest_rank )
+		card = state.normalLead( seat , legal , lowest , highest_rank )
 		return
 	}
 
@@ -219,7 +268,7 @@ func ( state *State ) BotPlay( seat int ) ( card Card ) {
 	return
 }
 
-func ( state *State ) botLead( seat int , legal []Card , lowest func( []Card ) Card , highest_rank func( []Card ) Card ) ( card Card ) {
+func ( state *State ) normalLead( seat int , legal []Card , lowest func( []Card ) Card , highest_rank func( []Card ) Card ) ( card Card ) {
 	// An off-color 1 is the top card of its color: lead it while nobody is
 	// void yet.
 	for _ , candidate := range legal {
@@ -267,24 +316,25 @@ func lessValuable( state *State , a Card , b Card ) ( result bool ) {
 	return
 }
 
-// BotMove makes whatever move the current phase calls for on behalf of seat.
-// It returns whether a move was made: a bot can only act on its own turn.
-func ( state *State ) BotMove( seat int ) ( moved bool , err error ) {
+// BotMove makes whatever move the current phase calls for on behalf of seat,
+// at the given level. It returns whether a move was made: a bot can only act
+// on its own turn.
+func ( state *State ) BotMove( seat int , level Level ) ( moved bool , err error ) {
 	switch state.Phase {
 	case PhaseBidding:
 		if state.Turn != seat { return }
-		if amount := state.BotBid( seat ); amount > 0 {
+		if amount := state.BotBid( seat , level ); amount > 0 {
 			err = state.PlaceBid( seat , amount )
 		} else {
 			err = state.Pass( seat )
 		}
 	case PhaseKitty:
 		if state.Turn != seat { return }
-		buried , trump := state.BotBury( seat )
+		buried , trump := state.BotBury( seat , level )
 		err = state.Bury( seat , buried , trump )
 	case PhasePlaying:
 		if state.Turn != seat { return }
-		err = state.PlayCard( seat , state.BotPlay( seat ) )
+		err = state.PlayCard( seat , state.BotPlay( seat , level ) )
 	default:
 		return
 	}

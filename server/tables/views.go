@@ -13,6 +13,8 @@ type SeatInfo struct {
 	UserID  uint64 `json:"user_id,omitempty"`
 	Name    string `json:"name"`
 	Bot     int    `json:"bot"`
+	// Level is how well a computer player plays; empty for people.
+	Level   string `json:"level,omitempty"`
 	Online  bool   `json:"online"`
 	Pending bool   `json:"pending"`
 	Renamed bool   `json:"renamed"`
@@ -140,6 +142,7 @@ func ( table *Table ) seatInfo() ( seats [4]SeatInfo ) {
 			Online:  seat.Kind == KindBot || ( seat.Kind == KindHuman && table.online( seat.UserID ) ),
 			AutoPlay: table.autoPlays( index ),
 		}
+		if seat.Kind == KindBot { seats[ index ].Level = string( table.moveLevel( index ) ) }
 	}
 	return
 }
