@@ -420,11 +420,13 @@ global:
 
 auto_play:
   heading: "⏩ Auto play"
-  description: "Plays the best card for you on each of your turns for the rest of this hand. Turns itself off when the next hand is dealt."
+  description: "Plays the best card for you on each of your turns for the rest of this hand. Turns itself off when the next hand is dealt. Shortcut: Ctrl+A."
   only_playing: "Available once the cards are being played. Turns itself off when the next hand is dealt."
   on: "⏩ Auto play is playing your cards this hand."
   stop: "Stop"
   seat: "Auto play is on"
+  toast_on: "⏩ Auto play on (Ctrl+A to stop)"
+  toast_off: "Auto play off"
 
 player_scores:
   heading: "Players' points in the top bar"

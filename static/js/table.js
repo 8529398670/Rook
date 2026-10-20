@@ -106,6 +106,15 @@ const Table = {
       const toggle = event.target;
       if ( !await Table.setAutoPlay( toggle.checked ) ) toggle.checked = !toggle.checked;
     } );
+    // Ctrl+A toggles auto play while you are seated at this table. Not in a
+    // text field, where Ctrl+A keeps its usual meaning (select all / start of
+    // line), and not with Cmd, so Cmd+A still selects all on a Mac.
+    document.addEventListener( "keydown" , function ( event ) {
+      if ( !event.ctrlKey || event.metaKey || event.altKey || event.shiftKey ) return;
+      if ( event.key.toLowerCase() !== "a" || event.repeat ) return;
+      if ( App.screen !== Table || Table.typing( event.target ) ) return;
+      Table.toggleAutoPlayShortcut( event );
+    } );
     Dom.get( "menu-trick-pause" ).addEventListener( "change" , function ( event ) {
       Table.act( Api.setTrickPause( Table.id , Number( event.target.value ) ) );
     } );
@@ -138,6 +147,24 @@ const Table = {
   // your turns, for the rest of this hand. Turns itself off at the next deal.
   setAutoPlay( on ) {
     return this.act( Api.autoPlay( this.id , on ) );
+  },
+
+  typing( target ) {
+    return Boolean( target ) && ( target.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test( target.tagName ) );
+  },
+
+  // The Ctrl+A shortcut: the same switch as the one in the table menu, for a
+  // seated player once a hand is under way.
+  async toggleAutoPlayShortcut( event ) {
+    const view = this.view;
+    if ( !view || view.you < 0 || !view.game || view.status === "waiting" ) return;
+    event.preventDefault();
+    if ( view.game.phase !== "playing" || view.status !== "playing" ) {
+      Toast.show( I18n.get( "auto_play.only_playing" ) );
+      return;
+    }
+    const on = !view.auto_play;
+    if ( await this.setAutoPlay( on ) ) Toast.show( I18n.get( on ? "auto_play.toast_on" : "auto_play.toast_off" ) );
   },
 
   showPlayerScores() {
