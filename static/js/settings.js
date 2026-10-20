@@ -27,7 +27,7 @@ const Settings = {
       } );
     } );
     this.renderWho();
-    this.renderBotLevel();
+    this.renderLevels();
     Zoom.bind( Dom.get( "settings-zoom" ) );
   },
 
@@ -66,28 +66,36 @@ const Settings = {
     Art.avatar( Dom.get( "open-settings" ) , this.me );
   },
 
-  // The level the Add bot picker starts on, saved to the account so it
-  // follows the player to every device.
-  renderBotLevel() {
-    const group = Dom.get( "bot-default-levels" );
-    const current = Table.defaultBotLevel();
+  // Two levels saved to the account, so they follow the player to every
+  // device: the one the Add bot picker starts on, and the one auto play
+  // plays their cards at.
+  renderLevels() {
+    this.renderLevel( "bot-default-levels" , "bot-default-help" , Table.defaultBotLevel() , function ( level ) {
+      Settings.saveLevel( "bot_level" , level , Api.setDefaultBotLevel( level ) );
+    } );
+    this.renderLevel( "auto-play-levels" , "auto-play-help" , Table.autoPlayLevel() , function ( level ) {
+      Settings.saveLevel( "auto_play_level" , level , Api.setAutoPlayLevel( level ) );
+    } );
+  },
+
+  renderLevel( groupId , helpId , current , pick ) {
+    const group = Dom.get( groupId );
     Dom.clear( group );
     Table.botLevels.forEach( function ( level ) {
       group.appendChild( Dom.el( "button" , {
         text: I18n.get( "bots.level_" + level ),
         attrs: { type: "button" , role: "radio" , "aria-checked": String( level === current ) },
-        on: { click: function () { Settings.setBotLevel( level ); } },
+        on: { click: function () { if ( level !== current ) pick( level ); } },
       } ) );
     } );
-    Dom.text( Dom.get( "bot-default-help" ) , I18n.get( "bots.level_" + current + "_help" ) );
+    Dom.text( Dom.get( helpId ) , I18n.get( "bots.level_" + current + "_help" ) );
   },
 
-  async setBotLevel( level ) {
-    if ( level === Table.defaultBotLevel() ) return;
+  async saveLevel( field , level , request ) {
     try {
-      await Api.setDefaultBotLevel( level );
-      this.me.bot_level = level;
-      this.renderBotLevel();
+      await request;
+      this.me[ field ] = level;
+      this.renderLevels();
     } catch ( error ) {
       Toast.error( error );
     }

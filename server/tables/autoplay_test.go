@@ -80,3 +80,40 @@ func TestAutoPlayStaysWithThePersonNotTheSeat( t *testing.T ) {
 	// A bot seat is never "auto play"; it is just a bot.
 	if table.autoPlays( 1 ) { t.Fatalf( "bot seat reported auto play" ) }
 }
+
+// TestAutoPlayUsesThePersonsLevel checks auto play plays at the level the
+// person chose -- the best there is until they choose -- and that changing
+// it while auto play is on takes effect at once.
+func TestAutoPlayUsesThePersonsLevel( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	person := testUser( t , store , "Ana" )
+	id := soloTable( t , hub , person )
+
+	table := hub.table( id )
+	table.mu.Lock()
+	table.Game.Phase = game.PhasePlaying
+	table.mu.Unlock()
+
+	level := func() ( result game.Level ) {
+		table.mu.Lock()
+		result = table.moveLevel( 0 )
+		table.mu.Unlock()
+		return
+	}
+	if err := hub.SetAutoPlay( id , person , true ); err != nil { t.Fatal( err ) }
+	if got := level(); got != game.BestLevel { t.Fatalf( "unset level plays at %s, want %s" , got , game.BestLevel ) }
+
+	person.AutoPlayLevel = "skilled"
+	if err := hub.SetAutoPlay( id , person , true ); err != nil { t.Fatal( err ) }
+	if got := level(); got != game.LevelSkilled { t.Fatalf( "chosen level plays at %s" , got ) }
+
+	person.AutoPlayLevel = "easy"
+	hub.RefreshUser( person )
+	if got := level(); got != game.LevelEasy { t.Fatalf( "a new level while on plays at %s" , got ) }
+
+	if err := hub.SetAutoPlay( id , person , false ); err != nil { t.Fatal( err ) }
+	table.mu.Lock()
+	_ , kept := table.AutoPlayLevel[ person.ID ]
+	table.mu.Unlock()
+	if kept { t.Fatalf( "the level stayed after auto play went off" ) }
+}

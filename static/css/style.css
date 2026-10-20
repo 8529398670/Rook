@@ -681,7 +681,8 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .settings-main .segmented { max-width: 20rem; }
-.settings-main #bot-default-levels { max-width: 26rem; }
+.settings-main #bot-default-levels,
+.settings-main #auto-play-levels { max-width: 26rem; }
 /* Six bot levels: two rows of three, so each name fits on a phone. */
 .segmented.level-choices { display: grid; grid-template-columns: repeat(3, 1fr); }
 .bot-default-help { margin: 0.5rem 0 0; font-size: 0.85rem; }

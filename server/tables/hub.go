@@ -395,6 +395,10 @@ func ( hub *Hub ) RefreshUser( user *models.User ) {
 				pending := table.Seats[ seat ].Pending
 				fillSeat( &table.Seats[ seat ] , user )
 				table.Seats[ seat ].Pending = pending
+				// Auto play already on here follows a new level at once.
+				if _ , on := table.AutoPlay[ user.ID ]; on && table.AutoPlayLevel != nil {
+					table.AutoPlayLevel[ user.ID ] = AutoPlayLevelOf( user )
+				}
 			}
 			return
 		} )

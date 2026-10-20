@@ -85,6 +85,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Post( "/account/avatar" , handlers.SetAvatar )
 	account.Post( "/account/pin" , handlers.SetPin )
 	account.Post( "/account/bot-level" , handlers.SetBotLevel )
+	account.Post( "/account/auto-play-level" , handlers.SetAutoPlayLevel )
 	account.Post( "/join/:code" , handlers.JoinTable )
 	// The chat everyone shares, and who is online (see global.go).
 	account.Get( "/global" , handlers.GetGlobal )

@@ -5,6 +5,7 @@ import (
 
 	models "rook/server/models"
 	security "rook/server/security"
+	tables "rook/server/tables"
 )
 
 type renameRequest struct {
@@ -45,6 +46,7 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		"owner":            actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
 		"can_undo":         user.CanUndo,
 		"bot_level":        botLevelOf( user ),
+		"auto_play_level":  string( tables.AutoPlayLevelOf( user ) ),
 	}
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see

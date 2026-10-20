@@ -70,9 +70,19 @@ func ( hub *Hub ) Leave( id string , user *models.User ) ( err error ) {
 	return
 }
 
+// AutoPlayLevelOf is the level auto play plays user's cards at: their own
+// setting, or the best there is.
+func AutoPlayLevelOf( user *models.User ) ( level game.Level ) {
+	level = game.BestLevel
+	if parsed , ok := game.ParseLevel( user.AutoPlayLevel ); ok && user.AutoPlayLevel != "" {
+		level = parsed
+	}
+	return
+}
+
 // SetAutoPlay switches auto play on or off for the user's seat: while on,
-// the server plays the bot's choice of card for them on each of their turns
-// until the hand ends. Only while cards are being played -- bidding and the
+// the server plays a bot's choice of card for them -- at the level they set
+// -- on each of their turns until the hand ends. Only while cards are being played -- bidding and the
 // kitty are real decisions.
 func ( hub *Hub ) SetAutoPlay( id string , user *models.User , on bool ) ( err error ) {
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
@@ -83,10 +93,13 @@ func ( hub *Hub ) SetAutoPlay( id string , user *models.User , on bool ) ( err e
 		}
 		if on == false {
 			delete( table.AutoPlay , user.ID )
+			delete( table.AutoPlayLevel , user.ID )
 			return
 		}
 		if table.AutoPlay == nil { table.AutoPlay = map[ uint64 ]int{} }
+		if table.AutoPlayLevel == nil { table.AutoPlayLevel = map[ uint64 ]game.Level{} }
 		table.AutoPlay[ user.ID ] = table.Game.HandNumber
+		table.AutoPlayLevel[ user.ID ] = AutoPlayLevelOf( user )
 		return
 	} )
 	return

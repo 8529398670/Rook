@@ -60,11 +60,14 @@ func ( table *Table ) computerMoves( seat int ) ( result bool ) {
 }
 
 // moveLevel is how well the server plays seat's moves: the bot's own level,
-// or the best there is for a person on auto play.
+// or, for a person on auto play, the level they chose for it.
 func ( table *Table ) moveLevel( seat int ) ( level game.Level ) {
 	level = game.BestLevel
-	if table.Seats[ seat ].Kind == KindBot {
+	switch table.Seats[ seat ].Kind {
+	case KindBot:
 		level , _ = game.ParseLevel( string( table.Seats[ seat ].Level ) )
+	case KindHuman:
+		if chosen , ok := table.AutoPlayLevel[ table.Seats[ seat ].UserID ]; ok { level = chosen }
 	}
 	return
 }

@@ -188,6 +188,9 @@ type Table struct {
 	// to the hand they asked in. Keyed by person and hand, so it ends by
 	// itself at the next deal and never passes to whoever sits there next.
 	AutoPlay map[ uint64 ]int `json:"auto_play,omitempty"`
+	// AutoPlayLevel is the level each of those people's cards are played
+	// at, from their own setting. It goes with AutoPlay.
+	AutoPlayLevel map[ uint64 ]game.Level `json:"auto_play_level,omitempty"`
 	CreatedAt time.Time    `json:"created_at"`
 	UpdatedAt time.Time    `json:"updated_at"`
 

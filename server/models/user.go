@@ -46,6 +46,9 @@ type User struct {
 	// BotLevel is the level the Add bot picker starts on for this player
 	// (game.Level's names). Empty means normal.
 	BotLevel string `json:"bot_level,omitempty"`
+	// AutoPlayLevel is the level auto play plays this player's cards at.
+	// Empty means the best there is (game.BestLevel).
+	AutoPlayLevel string `json:"auto_play_level,omitempty"`
 }
 
 // MayInvite is the single answer to "may this account bring someone new in".

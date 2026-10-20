@@ -664,6 +664,10 @@ bot_default:
   heading: "Bots you add"
   description: "How well a bot plays when you add one to a table. Saved to your account. You can still pick another level each time."
 
+auto_play_settings:
+  heading: "Auto play plays as"
+  description: "The bot level that plays your cards when you switch on ⏩ Auto Play (Ctrl+A). Saved to your account. A change applies straight away, even mid-hand."
+
 appearance:
   heading: "Appearance"
   description: "Light is the default. Your choice is remembered on this device."
@@ -699,12 +703,13 @@ global:
 
 auto_play:
   heading: "⏩ Auto Play"
-  description: "Plays the best card for you on each of your turns for the rest of this hand. Turns itself off when the next hand is dealt. Shortcut: Ctrl+A."
+  # {level} is the level chosen in Settings, "Master" unless changed.
+  description: "Plays your cards for you on each of your turns for the rest of this hand, as {level} (change it in Settings). Turns itself off when the next hand is dealt. Shortcut: Ctrl+A."
   only_playing: "Available once the cards are being played. Turns itself off when the next hand is dealt."
-  on: "⏩ Auto play is playing your cards this hand."
+  on: "⏩ Auto play ({level}) is playing your cards this hand."
   stop: "Stop"
   seat: "Auto play is on"
-  toast_on: "⏩ Auto play on (Ctrl+A to stop)"
+  toast_on: "⏩ Auto play on, as {level} (Ctrl+A to stop)"
   toast_off: "Auto play off"
 
 player_scores:

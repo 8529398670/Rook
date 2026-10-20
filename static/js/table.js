@@ -165,7 +165,7 @@ const Table = {
       return;
     }
     const on = !view.auto_play;
-    if ( await this.setAutoPlay( on ) ) Toast.show( I18n.get( on ? "auto_play.toast_on" : "auto_play.toast_off" ) );
+    if ( await this.setAutoPlay( on ) ) Toast.show( on ? I18n.format( "auto_play.toast_on" , { level: this.autoPlayLevelName() } ) : I18n.get( "auto_play.toast_off" ) );
   },
 
   showPlayerScores() {
@@ -544,7 +544,7 @@ const Table = {
     // While the server plays your cards, say so, with a way to stop it.
     if ( view.auto_play && game.phase === "playing" ) {
       tray.appendChild( Dom.el( "div" , { class: "tray-panel auto-play-panel" , children: [
-        Dom.el( "span" , { class: "auto-play-note" , text: I18n.get( "auto_play.on" ) } ),
+        Dom.el( "span" , { class: "auto-play-note" , text: I18n.format( "auto_play.on" , { level: this.autoPlayLevelName() } ) } ),
         Dom.el( "button" , { class: "small secondary" , text: I18n.get( "auto_play.stop" ) , attrs: { type: "button" } , on: { click: function () { Table.setAutoPlay( false ); } } } ),
       ] } ) );
       return;
@@ -739,7 +739,7 @@ const Table = {
       Dom.show( Dom.get( "menu-auto-play-row" ) , view.you >= 0 && Boolean( view.game ) && view.status !== "waiting" );
       Dom.get( "menu-auto-play" ).checked = Boolean( view.auto_play );
       Dom.get( "menu-auto-play" ).disabled = !playing;
-      Dom.text( Dom.get( "menu-auto-play-help" ) , I18n.get( playing ? "auto_play.description" : "auto_play.only_playing" ) );
+      Dom.text( Dom.get( "menu-auto-play-help" ) , playing ? I18n.format( "auto_play.description" , { level: this.autoPlayLevelName() } ) : I18n.get( "auto_play.only_playing" ) );
       Dom.show( document.querySelector( "[data-menu='leave']" ) , view.you >= 0 );
       // Restart and delete: the host's call, or an admin's.
       const manager = view.is_host || view.is_admin;
@@ -893,6 +893,17 @@ const Table = {
   defaultBotLevel() {
     const level = App.me && App.me.bot_level;
     return this.botLevels.indexOf( level ) >= 0 ? level : "normal";
+  },
+
+  // The level auto play plays the player's cards at, set in Settings. The
+  // server decides; this is only for showing it.
+  autoPlayLevel() {
+    const level = App.me && App.me.auto_play_level;
+    return this.botLevels.indexOf( level ) >= 0 ? level : "master";
+  },
+
+  autoPlayLevelName() {
+    return I18n.get( "bots.level_" + this.autoPlayLevel() );
   },
 
   // Add bot: pick how well it plays. The player's default is marked and
