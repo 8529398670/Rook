@@ -4,6 +4,7 @@ import (
 	errors "errors"
 
 	db "rook/server/db"
+	game "rook/server/game"
 )
 
 // AppSettings are the few switches an admin flips from the Settings screen
@@ -33,6 +34,25 @@ type AppSettings struct {
 	// the first trick, as it always was.
 	RookAnytime       bool `json:"rook_anytime"`
 	RookFirstTrickOff bool `json:"rook_first_trick_off"`
+	// RookRank is where the bird sits in trump at every new table, copied
+	// in the same way. "" means game.RookHigh, as it always was.
+	RookRank game.RookRank `json:"rook_rank,omitempty"`
+}
+
+// ValidRookRank accepts "" ("the default") or one of the game's ranks.
+func ValidRookRank( rank game.RookRank ) ( ok bool ) {
+	switch rank {
+	case "" , game.RookHigh , game.RookTenHalf , game.RookLow:
+		ok = true
+	}
+	return
+}
+
+// Rank is the app-wide Rook rank, with "" read as the default.
+func ( settings AppSettings ) Rank() ( rank game.RookRank ) {
+	rank = settings.RookRank
+	if rank == "" { rank = game.RookHigh }
+	return
 }
 
 // DefaultTrickPauseMS is the pause a finished trick has always had.

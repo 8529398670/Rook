@@ -25,7 +25,7 @@ The Rook card game, for four players in two teams, played in the browser. Any em
 
 **At the table**
 - Bidding, the kitty and naming trump, trick play, scoring, and games played to 100, 300, 500, a custom target, or a single hand.
-- Table options: where the Rook ranks, whether it may be played on any trick, and whether it is barred from the first trick.
+- Rook rules, set by the owner in Game settings for every new table: where the Rook ranks, whether it may be played on any trick, and whether it is barred from the first trick.
 - Cards you may not play are dimmed. The server decides what is legal, so the browser never has to know the rules.
 - You can play by dragging, by tapping a card twice, or from the keyboard.
 
@@ -129,7 +129,8 @@ The full rules and a strategy guide are in the app: **Rules & strategy** in the 
 - The defenders always score what they took.
 - The game ends after the hand in which either team reaches the target.
 
-**Table options**, chosen by whoever creates the table:
+**Table options**: the three Rook rules are the owner's, in Game settings, and
+copied into each new table; the target is chosen by whoever creates the table:
 - **Rook rank:** highest (the default), 10½, or lowest.
 - **Rook anytime:** the Rook may be played on any trick.
 - **No Rook on trick 1.**

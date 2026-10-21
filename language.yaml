@@ -533,7 +533,7 @@ guide:
         - "Scores can go below zero."
     - id: options
       heading: "Table options"
-      lead: "Whoever creates a table can change a few rules. They show as tags on the table."
+      lead: "The Rook rules are set for every new table in Game settings; whoever creates a table picks the target. They show as tags on the table."
       points:
         - "Rook rank: Highest (above the 1, the default), 10½ (beats the 10, loses to the 11) or Lowest (below the 2)."
         - "Rook anytime: the Rook may be played on any trick, even when you could follow the color led."
@@ -1039,6 +1039,7 @@ game_settings:
   global_chat_help: "One chat shared by everyone signed in, on the home screen and at every table."
   rook_anytime_help: "Official rule: even when you could follow the color led. Applies to tables created from now on."
   rook_first_trick_help: "Turn off to keep the bird out of the hand's opening trick. Applies to tables created from now on."
+  rook_rank_help: "Highest beats every card; 10½ beats the 10 and loses to the 11; Lowest is the weakest trump. Applies to tables created from now on."
   saved: "Saved."
 
 signup_links:

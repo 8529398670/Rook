@@ -658,6 +658,17 @@
           </span>
           <input id="setting-rook-anytime" type="checkbox" role="switch" />
         </label>
+        <label class="switch-row pause-row">
+          <span>
+            <span class="switch-title" data-i18n="options.rook_rank"></span>
+            <span class="switch-help" data-i18n="game_settings.rook_rank_help"></span>
+          </span>
+          <select id="setting-rook-rank" class="pause-select">
+            <option value="high" data-i18n="options.rook_high"></option>
+            <option value="ten_half" data-i18n="options.rook_ten_half"></option>
+            <option value="low" data-i18n="options.rook_low"></option>
+          </select>
+        </label>
         <label class="switch-row">
           <span>
             <span class="switch-title" data-i18n="options.rook_first_trick"></span>
@@ -699,14 +710,6 @@
         <label for="new-table-name" data-i18n="create.name_label"></label>
         <input id="new-table-name" maxlength="40" required data-i18n-attr="placeholder:create.name_placeholder" />
       </div>
-      <fieldset class="option">
-        <legend data-i18n="options.rook_rank"></legend>
-        <div class="segmented" data-option="rook_rank">
-          <button type="button" data-value="high" data-i18n="options.rook_high"></button>
-          <button type="button" data-value="ten_half" data-i18n="options.rook_ten_half"></button>
-          <button type="button" data-value="low" data-i18n="options.rook_low"></button>
-        </div>
-      </fieldset>
       <fieldset class="option">
         <legend data-i18n="options.play_to"></legend>
         <div class="segmented" data-option="play_to">

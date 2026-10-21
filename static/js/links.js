@@ -33,7 +33,7 @@ const Links = {
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
     this.fillPauses( Dom.get( "setting-trick-pause" ) );
-    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-first-trick" ].forEach( function ( id ) {
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-rank" , "setting-rook-first-trick" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
@@ -47,6 +47,7 @@ const Links = {
       Dom.get( "setting-trick-pause" ).value = String( settings.trick_pause_ms || 1100 );
       Dom.get( "setting-rook-anytime" ).checked = settings.rook_anytime;
       Dom.get( "setting-rook-first-trick" ).checked = !settings.rook_first_trick_off;
+      Dom.get( "setting-rook-rank" ).value = settings.rook_rank || "high";
     } catch ( error ) {
       Toast.error( error );
     }
@@ -76,6 +77,7 @@ const Links = {
         trick_pause_ms: Number( Dom.get( "setting-trick-pause" ).value ),
         rook_anytime: Dom.get( "setting-rook-anytime" ).checked,
         rook_first_trick_off: !Dom.get( "setting-rook-first-trick" ).checked,
+        rook_rank: Dom.get( "setting-rook-rank" ).value,
       } );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {

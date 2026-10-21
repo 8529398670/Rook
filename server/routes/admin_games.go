@@ -136,6 +136,10 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "bad_trick_pause" )
 		return
 	}
+	if models.ValidRookRank( body.RookRank ) == false {
+		err = badRequest( c , "bad_options" )
+		return
+	}
 	if handlers.Hub.SetSettings( body.AppSettings ) != nil {
 		err = serverError( c )
 		return

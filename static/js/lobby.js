@@ -237,7 +237,9 @@ const Lobby = {
   },
 
   openCreate() {
-    this.options = { rook_rank: "high" , play_to: 500 };
+    // Where the Rook ranks is the owner's, in Game settings; the server
+    // fills it in.
+    this.options = { play_to: 500 };
     this.customPlayTo = false;
     Dom.get( "play-to-custom-input" ).value = "";
     Dom.get( "new-table-name" ).value = I18n.format( "create.default_name" , { name: this.me.display_name } );
