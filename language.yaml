@@ -753,8 +753,6 @@ guide:
       links:
         - text: "github.com/8529398670/Rook"
           url: "https://github.com/8529398670/Rook"
-        - text: "How the computer players work"
-          url: "https://github.com/8529398670/Rook#computer-players"
 
 settings:
   heading: "Settings"
