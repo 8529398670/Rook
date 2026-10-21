@@ -5,7 +5,8 @@
 //   #/t/<id>           a table
 //   #/settings         account, theme, API keys, admin
 //   #/games            the game history (#/games/<id> for one game)
-//   #/rules            the rules (#/strategy for the strategy tips)
+//   #/rules            the rules (#/strategy for the strategy tips, #/bots
+//                      for the computer players, #/about for the app)
 //   #/join/<code>      a table's join link
 //   #/watch/<code>     a table's watch link
 //   #/signup/<cred>    a multi-use sign-up link
@@ -168,7 +169,7 @@ const App = {
       argument = match( "signup" );
     } else if ( hash === "#/settings" ) {
       next = Settings;
-    } else if ( hash === "#/rules" || hash === "#/strategy" ) {
+    } else if ( [ "#/rules" , "#/strategy" , "#/bots" , "#/about" ].indexOf( hash ) >= 0 ) {
       next = Guide;
       argument = hash.slice( 2 );
     } else if ( hash === "#/games" ) {

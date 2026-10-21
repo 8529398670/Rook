@@ -701,8 +701,14 @@ td .row-actions { display: flex; gap: 0.4rem; }
 
 /* The header is back button, tabs, and a spacer as wide as the back button
    so the tabs sit centred. The title is there for screen readers only. */
-.guide-tabs { flex: 1 1 auto; max-width: 22rem; margin: 0 auto; }
+.guide-tabs { flex: 1 1 auto; max-width: 30rem; margin: 0 auto; }
 .guide-tabs button { font-size: 1rem; font-weight: 700; }
+@media (max-width: 30rem) {
+  .guide-tabs button { font-size: 0.85rem; padding-left: 4px; padding-right: 4px; }
+}
+
+.guide-links { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
+.guide-links .guide-link { font-weight: 700; }
 .guide-header-spacer { flex: 0 0 44px; }
 
 .guide-contents { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }

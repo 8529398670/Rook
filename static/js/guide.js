@@ -1,7 +1,8 @@
-// The Rules and Strategy pages, opened from the lobby's top row: #/rules and
-// #/strategy. Both are drawn from language.yaml (guide.rules and
-// guide.strategy), a list of sections each with a heading, an optional lead,
-// a glossary, bullet points, a row of card faces and a "rule of thumb" -- so
+// The Rules, Strategy, Bots and About pages, opened from the lobby's top row:
+// #/rules, #/strategy, #/bots and #/about. All are drawn from language.yaml
+// (guide.rules, guide.strategy, guide.bots, guide.about), a list of sections
+// each with a heading, an optional lead, a glossary, bullet points, a row of
+// card faces, a "rule of thumb" and links to read more -- so
 // the whole guide is reworded, reordered or trimmed there, never here.
 //
 // The tabs swap pages with replaceState rather than a new history entry, so
@@ -10,7 +11,7 @@
 // too.
 const Guide = {
   screenId: "screen-guide",
-  tabs: [ "rules" , "strategy" ],
+  tabs: [ "rules" , "strategy" , "bots" , "about" ],
   bound: false,
   tab: "rules",
 
@@ -111,6 +112,19 @@ const Guide = {
         label !== "" ? Dom.el( "strong" , { text: label } ) : null,
         Dom.el( "span" , { text: section.tip } ),
       ].filter( Boolean ) } ) );
+    }
+
+    // Links open in a new tab, and only to web addresses: a typo in the
+    // YAML cannot turn one into a script.
+    const links = Array.isArray( section.links ) ? section.links.filter( function ( entry ) {
+      return entry && typeof entry.text === "string" && entry.text !== "" && /^https?:\/\//.test( entry.url || "" );
+    } ) : [];
+    if ( links.length > 0 ) {
+      children.push( Dom.el( "ul" , { class: "guide-links" , children: links.map( function ( entry ) {
+        return Dom.el( "li" , { children: [
+          Dom.el( "a" , { class: "guide-link" , text: entry.text , attrs: { href: entry.url , target: "_blank" , rel: "noopener" } } ),
+        ] } );
+      } ) } ) );
     }
 
     const highlight = section.style === "highlight" ? " guide-highlight" : "";

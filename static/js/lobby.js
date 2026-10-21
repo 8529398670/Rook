@@ -16,6 +16,7 @@ const Lobby = {
     Dom.get( "open-settings" ).addEventListener( "click" , function () { App.go( "#/settings" ); } );
     Dom.get( "open-games" ).addEventListener( "click" , function () { App.go( "#/games" ); } );
     Dom.get( "open-rules" ).addEventListener( "click" , function () { App.go( "#/rules" ); } );
+    Dom.get( "open-about" ).addEventListener( "click" , function () { App.go( "#/about" ); } );
     Dom.get( "new-table-button" ).addEventListener( "click" , this.openCreate.bind( this ) );
     Dom.get( "sheet-new-table" ).addEventListener( "submit" , this.onCreate.bind( this ) );
 
