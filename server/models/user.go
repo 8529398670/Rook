@@ -53,7 +53,7 @@ type User struct {
 	// (game.Level's names). Empty means normal.
 	BotLevel string `json:"bot_level,omitempty"`
 	// AutoPlayLevel is the level auto play plays this player's cards at.
-	// Empty means the best there is (game.BestLevel).
+	// Empty means game.HelpLevel (Expert).
 	AutoPlayLevel string `json:"auto_play_level,omitempty"`
 }
 

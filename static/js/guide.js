@@ -1,8 +1,8 @@
-// The Rules, Strategy, Bots and About pages, opened from the lobby's top row:
+// The Rules, Strategy, Bots and About pages, opened from the lobby's ⓘ button:
 // #/rules, #/strategy, #/bots and #/about. All are drawn from language.yaml
 // (guide.rules, guide.strategy, guide.bots, guide.about), a list of sections
 // each with a heading, an optional lead, a glossary, bullet points, a row of
-// card faces, a "rule of thumb" and links to read more -- so
+// card faces, a "rule of thumb", plain paragraphs and links to read more -- so
 // the whole guide is reworded, reordered or trimmed there, never here.
 //
 // The tabs swap pages with replaceState rather than a new history entry, so
@@ -72,6 +72,9 @@ const Guide = {
     if ( typeof section.lead === "string" && section.lead !== "" ) {
       children.push( Dom.el( "p" , { class: "guide-lead" , text: section.lead } ) );
     }
+    strings( section.paragraphs ).forEach( function ( text ) {
+      children.push( Dom.el( "p" , { class: "guide-paragraph" , text: text } ) );
+    } );
 
     const cards = strings( section.cards );
     const labels = Array.isArray( section.labels ) ? section.labels : [];

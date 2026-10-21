@@ -32,8 +32,8 @@ The Rook card game, for four players in two teams, played in the browser. Any em
 **Players and bots**
 - Fill any seat with a computer player at one of six levels: Easy, Normal, Skilled, Hard, Expert or Master.
 - Each player can set the level the "Add bot" picker starts on.
-- A **hint button** (for players an admin allows) that uses the strongest bot, Master.
-- **Auto play**, which plays your cards for the rest of a hand at the level you choose in Settings (Master unless you change it).
+- A **hint button** (for players an admin allows) that uses the Expert bot.
+- **Auto play**, which plays your cards for the rest of a hand at the level you choose in Settings (Expert unless you change it).
 - Someone watching can ask to take over a bot's seat, and the host decides.
 
 **Around the table**
@@ -154,8 +154,8 @@ Any seated player can fill an empty seat with a bot by pressing **Add bot** and 
 | **Normal** | The original bot. It uses simple rules: it wins a trick as cheaply as it can, throws points onto a trick its partner is winning, and otherwise plays its least valuable card. |
 | **Skilled** | Plays the in-app strategy guide, rule by rule (see below), but does not count cards. It judges only from its own hand and the trick in front of it. |
 | **Hard** | The same guide, plus card counting. |
-| **Expert** | Hard, plus lookahead. For each card it plays it imagines **100 deals** of the cards it cannot see, plays every choice to the end of the hand, and picks the best average. |
-| **Master** | Expert that **reads the table**. Its imagined deals favour the ones that explain the bids, the passes and the trump call. Hints use it, and so does auto play unless you pick another level. |
+| **Expert** | Hard, plus lookahead. For each card it plays it imagines **100 deals** of the cards it cannot see, plays every choice to the end of the hand, and picks the best average. Hints use it, and so does auto play unless you pick another level. |
+| **Master** | Expert that **reads the table**. Its imagined deals favour the ones that explain the bids, the passes and the trump call. |
 
 **What Skilled and Hard do (the strategy guide):**
 - As the bidder, it draws trump while the other team might still hold some, keeping one trump back for the last trick (which carries the kitty).
@@ -229,7 +229,7 @@ Edges move by about ±5 from one set of 300 deals to another (Expert over Hard h
 
 ## Hints and auto play
 
-Neither depends on the levels of the bots at the table. Hints always use **Master**, and auto play uses the level you choose, Master by default.
+Neither depends on the levels of the bots at the table. Hints always use **Expert**, and auto play uses the level you choose, Expert by default.
 
 **The hint button.** An admin switches it on per player in Settings → Players. It teaches before it plays, in three presses:
 1. Say what the suggestion is ("Play the Green 14").
@@ -239,7 +239,7 @@ Neither depends on the levels of the bots at the table. Hints always use **Maste
 A hint is worked out on the server from your own cards and what has been played, so it never knows more than you could. The same position always gets the same hint.
 
 **Auto play** (⏩, or Ctrl+A) plays your cards for the rest of the current hand and turns itself off when the next hand is dealt.
-- It plays at the level you pick in **Settings → Auto play plays as**. That is Master unless you change it, and any of the six levels works, for example to let a gentler bot finish a hand for you.
+- It plays at the level you pick in **Settings → Auto play plays as**. That is Expert unless you change it, and any of the six levels works, for example to let a gentler bot finish a hand for you.
 - The level is saved to your account. Changing it while auto play is on takes effect from your next move.
 - The table shows which level is playing for you ("Auto play (Skilled) is playing your cards this hand").
 

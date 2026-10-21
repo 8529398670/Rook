@@ -72,9 +72,9 @@ func ( hub *Hub ) Leave( id string , user *models.User ) ( err error ) {
 }
 
 // AutoPlayLevelOf is the level auto play plays user's cards at: their own
-// setting, or the best there is.
+// setting, or game.HelpLevel.
 func AutoPlayLevelOf( user *models.User ) ( level game.Level ) {
-	level = game.BestLevel
+	level = game.HelpLevel
 	if parsed , ok := game.ParseLevel( user.AutoPlayLevel ); ok && user.AutoPlayLevel != "" {
 		level = parsed
 	}

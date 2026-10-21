@@ -1,9 +1,9 @@
 package game
 
 // Level is how well a computer player plays. Each seat's bot has its own, so
-// a table can pair a beginner-friendly partner with sharp opponents. Hints
-// and auto play always use BestLevel: a suggestion should be the best move
-// the server knows, whatever the bots at the table are set to.
+// a table can pair a beginner-friendly partner with sharp opponents. Hints,
+// and auto play unless the player picks another level, use HelpLevel,
+// whatever the bots at the table are set to.
 type Level string
 
 const (
@@ -36,8 +36,9 @@ const (
 // next).
 var Levels = []Level{ LevelEasy , LevelNormal , LevelSkilled , LevelHard , LevelExpert , LevelMaster }
 
-// BestLevel is what hints and auto play use.
-const BestLevel = LevelMaster
+// HelpLevel is what hints use, and auto play unless the player picked
+// another level in Settings.
+const HelpLevel = LevelExpert
 
 const ErrBadLevel Error = "bad_bot_level"
 

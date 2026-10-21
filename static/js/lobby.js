@@ -15,8 +15,9 @@ const Lobby = {
     this.me = me;
     Dom.get( "open-settings" ).addEventListener( "click" , function () { App.go( "#/settings" ); } );
     Dom.get( "open-games" ).addEventListener( "click" , function () { App.go( "#/games" ); } );
-    Dom.get( "open-rules" ).addEventListener( "click" , function () { App.go( "#/rules" ); } );
-    Dom.get( "open-about" ).addEventListener( "click" , function () { App.go( "#/about" ); } );
+    // One button for the whole guide -- rules, strategy, bots and about --
+    // opening on the rules.
+    Dom.get( "open-guide" ).addEventListener( "click" , function () { App.go( "#/rules" ); } );
     Dom.get( "new-table-button" ).addEventListener( "click" , this.openCreate.bind( this ) );
     Dom.get( "sheet-new-table" ).addEventListener( "submit" , this.onCreate.bind( this ) );
 

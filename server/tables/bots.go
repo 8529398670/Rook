@@ -9,7 +9,7 @@ import (
 )
 
 // botAction is what a bot of the given level would do for seat right now:
-// the move a computer player makes, and -- at game.BestLevel -- the
+// the move a computer player makes, and -- at game.HelpLevel -- the
 // suggestion behind a person's hint button and the move auto play makes.
 // Expert and Master search, which takes tens of milliseconds, so callers
 // hand it a clone of the game and call it without the table locked.
@@ -62,7 +62,7 @@ func ( table *Table ) computerMoves( seat int ) ( result bool ) {
 // moveLevel is how well the server plays seat's moves: the bot's own level,
 // or, for a person on auto play, the level they chose for it.
 func ( table *Table ) moveLevel( seat int ) ( level game.Level ) {
-	level = game.BestLevel
+	level = game.HelpLevel
 	switch table.Seats[ seat ].Kind {
 	case KindBot:
 		level , _ = game.ParseLevel( string( table.Seats[ seat ].Level ) )
@@ -138,7 +138,7 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	} )
 }
 
-// Hint is the best bot's choice for a person's seat, offered rather than
+// Hint is the Expert bot's choice for a person's seat, offered rather than
 // made. The route checks the person is allowed hints; this checks it is
 // their move. The search runs on a copy, after the table is unlocked.
 func ( hub *Hub ) Hint( id string , user *models.User ) ( action Action , err error ) {
@@ -165,7 +165,7 @@ func ( hub *Hub ) Hint( id string , user *models.User ) ( action Action , err er
 	table.mu.Unlock()
 	if err != nil { return }
 	var ok bool
-	if action , ok = botAction( snapshot , seat , game.BestLevel ); ok == false {
+	if action , ok = botAction( snapshot , seat , game.HelpLevel ); ok == false {
 		err = game.ErrNotYourTurn
 	}
 	return

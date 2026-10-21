@@ -708,7 +708,7 @@ td .row-actions { display: flex; gap: 0.4rem; }
 }
 
 .guide-links { margin: 0.7rem 0 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.4rem; }
-.guide-links .guide-link { font-weight: 700; }
+.guide-links .guide-link { font-weight: 700; overflow-wrap: anywhere; }
 .guide-header-spacer { flex: 0 0 44px; }
 
 .guide-contents { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; }
@@ -727,6 +727,7 @@ button.guide-jump:hover { color: var(--accent-strong); border-color: var(--accen
 .guide-section { scroll-margin-top: calc(70px + var(--safe-top)); padding: 1.1rem 1.2rem; }
 .guide-section h2 { margin-bottom: 0.5rem; font-size: 1.15rem; }
 .guide-lead { margin: 0 0 0.6rem; }
+.guide-paragraph { margin: 0 0 0.7rem; line-height: 1.5; }
 
 .guide-points { margin: 0; padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.45rem; line-height: 1.45; }
 .guide-points li::marker { color: var(--accent); }

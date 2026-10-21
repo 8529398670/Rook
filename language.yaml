@@ -144,9 +144,9 @@ bots:
   level_hard: "Hard"
   level_hard_help: "Plays by the strategy guide and counts cards: knows which top cards are gone and who is out of a color."
   level_expert: "Expert"
-  level_expert_help: "Imagines 100 ways the cards could lie and plays each one out."
+  level_expert_help: "Imagines 100 ways the cards could lie and plays each one out. The hint button uses it."
   level_master: "Master"
-  level_master_help: "Expert that reads the table: guesses who holds what from the bids, the passes and the trump call. The hint button uses it."
+  level_master_help: "Expert that reads the table: guesses who holds what from the bids, the passes and the trump call."
 
 waiting:
   deal: "Deal"
@@ -415,12 +415,12 @@ rules:
 # Delete a section, or a line from it, and it is gone from the page.
 guide:
   heading: "Rules & strategy"
-  rules_button: "Rules & strategy"
+  # The ⓘ button on the home screen, which opens the guide on Rules.
+  button: "Rules, strategy, bots & about"
   rules_tab: "Rules"
   strategy_tab: "Strategy"
   bots_tab: "Bots"
   about_tab: "About"
-  about_button: "About"
   tabs_label: "Rules, strategy, bots or about"
   contents: "Jump to"
   rule_of_thumb: "Rule of thumb"
@@ -664,9 +664,9 @@ guide:
         - term: "Hard"
           meaning: "The same strategy, plus card counting."
         - term: "Expert"
-          meaning: "Hard, plus looking ahead. For each card it could play it imagines 100 deals of the cards it cannot see, plays every choice to the end of the hand, and picks the best on average."
+          meaning: "Hard, plus looking ahead. For each card it could play it imagines 100 deals of the cards it cannot see, plays every choice to the end of the hand, and picks the best on average. Hints use it, and so does auto play unless you pick another level."
         - term: "Master"
-          meaning: "Expert that reads the table: its imagined deals favor the ones that explain the bids, the passes and the trump call. Hints use it, and so does auto play unless you pick another level."
+          meaning: "Expert that reads the table: its imagined deals favor the ones that explain the bids, the passes and the trump call. "
     - id: skilled
       heading: "What Skilled and Hard do"
       lead: "Both play the strategy guide."
@@ -721,16 +721,26 @@ guide:
       heading: "Hints and auto play"
       lead: "Neither depends on the levels of the bots at the table."
       points:
-        - "The hint button, for players an admin turned it on for, always uses Master. It says what it suggests, then shows it, then does it — three presses — and never knows more than you could."
-        - "Auto play (⏩, or Ctrl+A) plays your cards for the rest of the hand, at the level you pick in Settings → Auto play plays as. That is Master unless you change it."
+        - "The hint button, for players an admin turned it on for, always uses Expert. It says what it suggests, then shows it, then does it — three presses — and never knows more than you could."
+        - "Auto play (⏩, or Ctrl+A) plays your cards for the rest of the hand, at the level you pick in Settings → Auto play plays as. That is Expert unless you change it."
     - id: more
       heading: "Read more"
       lead: "The full write-up, with how the bots were measured and where their code lives, is on GitHub."
       links:
         - text: "Computer players, on GitHub"
           url: "https://github.com/8529398670/Rook#computer-players"
-  # The About tab, which the ⓘ button on the home screen opens.
+  # The About tab.
   about:
+    - id: history
+      heading: "The history of Rook"
+      paragraphs:
+        - 'Rook is a trick-taking game, usually played with a specialized deck of cards. Sometimes referred to as Christian cards or missionary cards, Rook playing cards were introduced by Parker Brothers in 1906 to provide an alternative to standard playing cards for those in the Puritan tradition, and those in Mennonite culture who considered the face cards in a regular deck inappropriate because of their association with gambling and cartomancy.'
+        - 'George S. Parker and his wife Grace sought to create a deck of cards that could be marketed to people with religious objections to the standard deck.'
+        - 'To accomplish this, George and Grace recast the standard deck of playing cards. They replaced the Ace with a "1" and the jack, queen, and king with "11", "12", and "13" cards, and added a "14" card as well. The hearts, spades, clubs, and diamonds were replaced with "suits" of colors: red, yellow, green, and black. With this new fifty-six-card deck, whist and most other common card games could be faithfully played.'
+        - 'Grace chose the name "Rook", and with the addition of a "Rook" card (serving as the Joker) the 57-card deck took its final shape.'
+      links:
+        - text: "https://en.wikipedia.org/wiki/Rook_(card_game)"
+          url: "https://en.wikipedia.org/wiki/Rook_(card_game)"
     - id: app
       heading: "About this Rook"
       lead: "Rook, the classic partnership card game for four, to play together from any phone or computer — with friends and family, bots in the empty seats, or both."
@@ -823,7 +833,7 @@ reshuffle:
 
 auto_play:
   heading: "⏩ Auto Play"
-  # {level} is the level chosen in Settings, "Master" unless changed.
+  # {level} is the level chosen in Settings, "Expert" unless changed.
   description: "Plays your cards for you on each of your turns for the rest of this hand, as {level} (change it in Settings). Turns itself off when the next hand is dealt. Shortcut: Ctrl+A."
   only_playing: "Available once the cards are being played. Turns itself off when the next hand is dealt."
   on: "⏩ Auto play ({level}) is playing your cards this hand."

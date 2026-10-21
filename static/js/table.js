@@ -949,7 +949,7 @@ const Table = {
   // server decides; this is only for showing it.
   autoPlayLevel() {
     const level = App.me && App.me.auto_play_level;
-    return this.botLevels.indexOf( level ) >= 0 ? level : "master";
+    return this.botLevels.indexOf( level ) >= 0 ? level : "expert";
   },
 
   autoPlayLevelName() {

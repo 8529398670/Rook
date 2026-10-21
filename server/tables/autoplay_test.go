@@ -101,7 +101,7 @@ func TestAutoPlayUsesThePersonsLevel( t *testing.T ) {
 		return
 	}
 	if err := hub.SetAutoPlay( id , person , true ); err != nil { t.Fatal( err ) }
-	if got := level(); got != game.BestLevel { t.Fatalf( "unset level plays at %s, want %s" , got , game.BestLevel ) }
+	if got := level(); got != game.HelpLevel { t.Fatalf( "unset level plays at %s, want %s" , got , game.HelpLevel ) }
 
 	person.AutoPlayLevel = "skilled"
 	if err := hub.SetAutoPlay( id , person , true ); err != nil { t.Fatal( err ) }
