@@ -98,6 +98,10 @@ const Hand = {
     }
     this.legal = new Set( game ? game.legal : [] );
     const pickedUp = new Set( game ? game.picked_up : [] );
+    // A reshuffle keeps the hand number but swaps most of the cards: deal
+    // those in like a new hand.
+    const unseen = ids.filter( function ( id ) { return !Hand.nodes.has( id ); } ).length;
+    const redealt = fresh || ( this.nodes.size > 0 && unseen > ids.length / 2 );
 
     const keep = new Set( ids );
     this.nodes.forEach( function ( node , id ) {
@@ -116,7 +120,7 @@ const Hand = {
       if ( !node ) {
         node = Cards.el( id , { tag: "button" } );
         Hand.nodes.set( id , node );
-        if ( fresh || pickedUp.has( id ) ) {
+        if ( redealt || pickedUp.has( id ) ) {
           node.classList.add( "is-dealt" );
           Dom.vars( node , { deal: index } );
           node.addEventListener( "animationend" , function () { node.classList.remove( "is-dealt" ); } , { once: true } );

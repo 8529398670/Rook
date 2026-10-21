@@ -315,6 +315,7 @@
 
 .seat.pos-bottom .seat-avatar { width: 34px; height: 34px; font-size: 0.8rem; }
 .seat.kind-bot .seat-avatar { background: var(--card-bg); font-size: 1.2rem; }
+.seat.kind-bot .seat-avatar.has-icon { background: hsl(var(--hue, 200) 60% 88%); }
 
 .seat.kind-empty .seat-avatar {
   background: transparent;

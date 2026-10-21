@@ -98,6 +98,10 @@ type TableView struct {
 	Moves           int  `json:"moves"`
 	CanUndo         bool `json:"can_undo"`
 	CanRedo         bool `json:"can_redo"`
+	// CanReshuffle: this seat may deal the hand again right now -- an admin
+	// or a player given can_reshuffle, during the auction, before they have
+	// bid or passed.
+	CanReshuffle bool `json:"can_reshuffle"`
 	ObserversSeeAll bool `json:"observers_see_all"`
 
 	// How long a finished trick stays before it is swept away, in ms:
@@ -225,6 +229,11 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 		view.Moves = len( table.Log )
 		view.CanUndo = table.Cursor > 0
 		view.CanRedo = table.Cursor < len( table.Log )
+	}
+	if you >= 0 && table.Game != nil && table.Held == false && table.emptySeats() == 0 &&
+		( viewer.Admin || ( viewer.User != nil && viewer.User.CanReshuffle ) ) {
+		state := table.Game
+		view.CanReshuffle = state.Phase == game.PhaseBidding && state.LastBid[ you ] == 0 && state.Passed[ you ] == false
 	}
 	if you >= 0 || viewer.Admin {
 		view.JoinCode = table.JoinCode

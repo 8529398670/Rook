@@ -116,6 +116,18 @@ const Table = {
       if ( App.screen !== Table || Table.typing( event.target ) ) return;
       Table.toggleAutoPlayShortcut( event );
     } );
+    // Ctrl+Z undoes and Ctrl+Y (or Ctrl+Shift+Z) redoes, for whoever has the
+    // undo buttons; Cmd works too on a Mac. Text fields keep their own undo.
+    document.addEventListener( "keydown" , function ( event ) {
+      if ( !( event.ctrlKey || event.metaKey ) || event.altKey ) return;
+      const key = event.key.toLowerCase();
+      let step = "";
+      if ( key === "z" ) step = event.shiftKey ? "redo" : "undo";
+      else if ( key === "y" && !event.shiftKey ) step = "redo";
+      if ( step === "" ) return;
+      if ( App.screen !== Table || Table.typing( event.target ) ) return;
+      Table.rewindShortcut( event , step );
+    } );
     Dom.get( "menu-trick-pause" ).addEventListener( "change" , function ( event ) {
       Table.act( Api.setTrickPause( Table.id , Number( event.target.value ) ) );
     } );
@@ -166,6 +178,29 @@ const Table = {
     }
     const on = !view.auto_play;
     if ( await this.setAutoPlay( on ) ) Toast.show( on ? I18n.format( "auto_play.toast_on" , { level: this.autoPlayLevelName() } ) : I18n.get( "auto_play.toast_off" ) );
+  },
+
+  // The Ctrl+Z / Ctrl+Y shortcuts: the Undo and Redo buttons in the bar.
+  // Holding the key steps again on each repeat, one request at a time.
+  rewinding: false,
+  async rewindShortcut( event , step ) {
+    const view = this.view;
+    if ( !view || !view.can_rewind ) return;
+    if ( Sheet.current && !Sheet.isOpen( "sheet-history" ) ) return;
+    event.preventDefault();
+    if ( this.rewinding ) return;
+    const allowed = step === "undo" ? view.can_undo : view.can_redo;
+    if ( !allowed ) {
+      if ( !event.repeat ) Toast.show( I18n.get( "errors.nothing_to_" + step ) );
+      return;
+    }
+    this.rewinding = true;
+    try {
+      await this.act( step === "undo" ? Api.undo( this.id ) : Api.redo( this.id ) );
+      if ( Sheet.isOpen( "sheet-history" ) ) await History.refresh();
+    } finally {
+      this.rewinding = false;
+    }
   },
 
   showPlayerScores() {
@@ -500,7 +535,7 @@ const Table = {
       view.status , view.you , game.phase , game.turn , game.bid , game.high_bidder , game.hand_number ,
       game.trick_number , game.taken , game.trick.plays.length , this.seatNames( view ) ,
       view.perspective , view.all_hands , view.can_see_all , view.can_hint , view.watchers , view.hands_hidden ,
-      view.auto_play ,
+      view.auto_play , view.can_reshuffle ,
     ] : [ view.status , view.observing , view.perspective ] ).concat( [ view.my_request ] );
     if ( signature === this.traySignature ) return;
     this.traySignature = signature;
@@ -518,12 +553,27 @@ const Table = {
       if ( !view.can_hint || !Table.isMyTurn( view ) ) return;
       ( tray.querySelector( "[data-hint-slot]" ) || tray ).appendChild( Hint.element( view ) );
     };
+    // Reshuffle, for players an admin allowed it, until they bid or pass:
+    // in the bid row on their turn, on its own while they wait for it.
+    const reshuffle = function () {
+      return Dom.el( "button" , {
+        class: "secondary reshuffle-button",
+        text: I18n.get( "reshuffle.button" ),
+        attrs: { type: "button" , title: I18n.get( "reshuffle.label" ) , "aria-label": I18n.get( "reshuffle.label" ) },
+        on: { click: function () { Table.act( Api.reshuffle( Table.id ) ); } },
+      } );
+    };
     if ( this.isMyTurn( view ) && game.phase === "bidding" ) {
       Bidding.render( tray , view , {
         bid: function ( amount ) { Table.act( Api.bid( Table.id , amount ) ); },
         pass: function () { Table.act( Api.pass( Table.id ) ); },
       } );
+      if ( view.can_reshuffle ) tray.querySelector( ".bid-row" ).appendChild( reshuffle() );
       withHint();
+      return;
+    }
+    if ( view.can_reshuffle && game.phase === "bidding" ) {
+      tray.appendChild( Dom.el( "div" , { class: "tray-panel" , children: [ reshuffle() ] } ) );
       return;
     }
     if ( this.isMyTurn( view ) && game.phase === "kitty" ) {
@@ -962,11 +1012,7 @@ const Table = {
     if ( !info || info.kind === "" ) return;
     this.manageSeatIndex = seat;
     this.manageSeatName = Seats.name( info );
-    if ( info.kind === "human" ) {
-      Art.avatar( Dom.get( "seat-sheet-avatar" ) , info );
-    } else {
-      Dom.text( Dom.get( "seat-sheet-avatar" ) , I18n.get( "bots.badge" ) );
-    }
+    Seats.avatar( Dom.get( "seat-sheet-avatar" ) , info );
     Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
     Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
     Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );

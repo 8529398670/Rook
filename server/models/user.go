@@ -37,6 +37,12 @@ type User struct {
 	// they are sitting in -- undo, redo, reset to a move, resume -- as an
 	// admin can at any table. Off by default.
 	CanUndo bool `json:"can_undo,omitempty"`
+	// CanReshuffle lets a player deal the hand again, as often as they
+	// like, until they have bid or passed in it. Off by default.
+	CanReshuffle bool `json:"can_reshuffle,omitempty"`
+	// RandomBots gives the bots this player adds a random name, emoji and
+	// color instead of the usual ones. Their own choice, from Settings.
+	RandomBots bool `json:"random_bots,omitempty"`
 	// Icon and Color are the avatar a player chose (see profile.go).
 	Icon  string `json:"icon,omitempty"`
 	Color string `json:"color,omitempty"`

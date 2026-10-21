@@ -68,7 +68,7 @@ const History = {
       let key = "";
       let title = "";
       switch ( entry.kind ) {
-        case "start": case "bid": case "pass":
+        case "start": case "bid": case "pass": case "reshuffle":
           key = "bidding"; title = I18n.get( "history.bidding" ); break;
         case "bury":
           key = "kitty"; title = I18n.get( "history.kitty" ); break;
@@ -104,6 +104,8 @@ const History = {
         return I18n.format( "events.play" , { name: name , card: Cards.name( entry.card ) } );
       case "continue":
         return I18n.format( "history.continue" , { name: name } );
+      case "reshuffle":
+        return I18n.format( "history.reshuffle" , { name: name } );
       default:
         return entry.kind;
     }

@@ -83,6 +83,28 @@ func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+type randomBotsRequest struct {
+	RandomBots bool   `json:"random_bots"`
+	CSRFToken  string `json:"csrf_token"`
+}
+
+// SetRandomBots switches random names, emojis and colors on or off for the
+// bots the player adds from now on.
+func ( handlers *Handlers ) SetRandomBots( c fiber.Ctx ) ( err error ) {
+	var body randomBotsRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	user := security.UserFrom( c )
+	if models.SetUserRandomBots( handlers.Store , user.ID , body.RandomBots ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true , "random_bots": body.RandomBots } )
+	return
+}
+
 // SetAutoPlayLevel saves the level auto play plays the player's cards at. A
 // table where their auto play is already on switches over at their next move.
 func ( handlers *Handlers ) SetAutoPlayLevel( c fiber.Ctx ) ( err error ) {

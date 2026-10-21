@@ -2,6 +2,7 @@ package routes
 
 import (
 	strconv "strconv"
+	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v3"
 
@@ -193,8 +194,21 @@ func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
 		err = decode_err
 		return
 	}
-	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.AddBot( id , security.UserFrom( c ) , body.Seat , body.Level ) )
+	id , user := c.Params( "table_id" ) , security.UserFrom( c )
+	look := tables.BotLook{}
+	if user.RandomBots {
+		look.Names , look.Icons = handlers.randomBotNames() , models.BotIcons
+	}
+	err = handlers.tableResult( c , id , handlers.Hub.AddBotLooking( id , user , body.Seat , body.Level , look ) )
+	return
+}
+
+// randomBotNames is the list a random-looking bot's name comes from:
+// bots.random_names in language.yaml, separated by commas.
+func ( handlers *Handlers ) randomBotNames() ( names []string ) {
+	for _ , name := range strings.Split( handlers.Language.Get( "bots.random_names" ) , "," ) {
+		if name = strings.TrimSpace( name ); name != "" { names = append( names , name ) }
+	}
 	return
 }
 

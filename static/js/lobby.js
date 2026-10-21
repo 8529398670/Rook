@@ -163,9 +163,9 @@ const Lobby = {
       const dot = Dom.el( "span" , {
         class: className,
         attrs: { "aria-hidden": "true" },
-        text: seat.kind === "" ? "" : ( seat.kind === "bot" ? I18n.get( "bots.badge" ) : Art.initials( Seats.name( seat ) ) ),
+        text: seat.kind === "" ? "" : ( seat.kind === "bot" ? Seats.badge( seat ) : Art.initials( Seats.name( seat ) ) ),
       } );
-      if ( seat.kind === "human" ) Art.avatar( dot , seat );
+      if ( seat.kind === "human" || seat.icon ) Art.avatar( dot , seat );
       compass.appendChild( dot );
     } );
 
@@ -179,7 +179,7 @@ const Lobby = {
       if ( index > 0 ) names.appendChild( document.createTextNode( bot || seated[ index - 1 ].kind === "bot" ? " " : ", " ) );
       names.appendChild( Dom.el( "span" , {
         class: "table-card-player" + ( bot ? " is-bot" : "" ),
-        text: bot ? I18n.get( "bots.badge" ) + " " + Seats.name( seat ) : Seats.name( seat ),
+        text: bot ? Seats.badge( seat ) + " " + Seats.name( seat ) : Seats.name( seat ),
         attrs: bot ? { title: I18n.get( "lobby.bot_label" ) } : {},
       } ) );
       if ( bot ) names.appendChild( Dom.el( "span" , { class: "visually-hidden" , text: " (" + I18n.get( "lobby.bot_label" ) + ")" } ) );

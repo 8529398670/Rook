@@ -77,6 +77,31 @@ func ( state *State ) Pass( seat int ) ( err error ) {
 	return
 }
 
+// Reshuffle deals this hand again from a new deck, for a seat that has not
+// bid or passed yet. Whatever bids the others made are thrown away and the
+// auction starts over with the same opener; it is still the same hand.
+func ( state *State ) Reshuffle( seat int , deck []Card ) ( err error ) {
+	if state.Phase != PhaseBidding {
+		err = ErrWrongPhase
+		return
+	}
+	if seat < 0 || seat > 3 {
+		err = ErrNotYourTurn
+		return
+	}
+	if state.LastBid[ seat ] > 0 || state.Passed[ seat ] {
+		err = ErrAlreadyBid
+		return
+	}
+	if ValidDeck( deck ) == false {
+		err = ErrBadDeck
+		return
+	}
+	state.redeal( deck )
+	state.log( Event{ Kind: "reshuffle" , Seat: seat , Amount: state.HandNumber , Team: TeamOf( seat ) } )
+	return
+}
+
 func ( state *State ) nextBidder( seat int ) ( result int ) {
 	result = nextSeat( seat )
 	for state.Passed[ result ] {

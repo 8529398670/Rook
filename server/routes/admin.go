@@ -50,6 +50,7 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx ) ( err error ) {
 			"can_invite":   user.CanInvite,
 			"can_hint":     user.CanHint,
 			"can_undo":     user.CanUndo,
+			"can_reshuffle": user.CanReshuffle,
 			"icon":         user.Icon,
 			"color":        user.Color,
 			"superadmin":   user.ID == super_id,

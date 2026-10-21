@@ -28,6 +28,17 @@ const Settings = {
     } );
     this.renderWho();
     this.renderLevels();
+    const randomBots = Dom.get( "random-bots" );
+    randomBots.checked = me.random_bots === true;
+    randomBots.addEventListener( "change" , async function () {
+      try {
+        await Api.setRandomBots( randomBots.checked );
+        Settings.me.random_bots = randomBots.checked;
+      } catch ( error ) {
+        randomBots.checked = !randomBots.checked;
+        Toast.error( error );
+      }
+    } );
     Zoom.bind( Dom.get( "settings-zoom" ) );
   },
 
@@ -253,6 +264,21 @@ const Settings = {
       undoSwitch.checked = user.role === "admin" || user.can_undo === true;
       undoSwitch.disabled = user.role === "admin";
 
+      // Reshuffle a hand before bidding on it. Admins can always.
+      const reshuffleSwitch = Dom.el( "input" , {
+        attrs: { type: "checkbox" , role: "switch" , "aria-label": I18n.format( "admin.can_reshuffle_label" , { name: user.display_name } ) },
+        on: { change: async function ( event ) {
+          try {
+            await Api.setCanReshuffle( user.id , event.target.checked );
+          } catch ( error ) {
+            event.target.checked = !event.target.checked;
+            App.showError( error.message );
+          }
+        } },
+      } );
+      reshuffleSwitch.checked = user.role === "admin" || user.can_reshuffle === true;
+      reshuffleSwitch.disabled = user.role === "admin";
+
       const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
       Art.avatar( avatar , user );
 
@@ -298,6 +324,7 @@ const Settings = {
         Dom.el( "td" , { children: [ inviteSwitch ] } ),
         Dom.el( "td" , { children: [ hintSwitch ] } ),
         Dom.el( "td" , { children: [ undoSwitch ] } ),
+        Dom.el( "td" , { children: [ reshuffleSwitch ] } ),
         Dom.el( "td" , { children: [
           Dom.el( "div" , { class: "row-actions" , children: [
             action( "admin.reissue_button" , async function () {

@@ -26,6 +26,7 @@ const (
 	ErrBadOptions      Error = "bad_options"
 	ErrAlreadyReady    Error = "already_ready"
 	ErrBadDeck         Error = "bad_deck"
+	ErrAlreadyBid      Error = "already_bid"
 )
 
 // RookRank is where the bird sits inside trump.

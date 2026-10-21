@@ -45,6 +45,8 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		// a user-scoped key of the owner's is not the owner.
 		"owner":            actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
 		"can_undo":         user.CanUndo,
+		"can_reshuffle":    user.CanReshuffle,
+		"random_bots":      user.RandomBots,
 		"bot_level":        botLevelOf( user ),
 		"auto_play_level":  string( tables.AutoPlayLevelOf( user ) ),
 	}

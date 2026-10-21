@@ -168,7 +168,7 @@ const Trick = {
         run( function () { return Trick.fly( view , event.seat , event.card , start ); } );
       } else if ( event.kind === "trick" ) {
         run( function () { return Trick.collect( view , event.seat , event.card ); } );
-      } else if ( event.kind === "deal" ) {
+      } else if ( event.kind === "deal" || event.kind === "reshuffle" ) {
         run( function () { Trick.clear(); } );
       }
     } );

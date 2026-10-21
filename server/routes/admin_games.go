@@ -39,6 +39,11 @@ type setCanUndoRequest struct {
 	CSRFToken string `json:"csrf_token"`
 }
 
+type setCanReshuffleRequest struct {
+	CanReshuffle bool   `json:"can_reshuffle"`
+	CSRFToken    string `json:"csrf_token"`
+}
+
 type setCanHintRequest struct {
 	CanHint   bool   `json:"can_hint"`
 	CSRFToken string `json:"csrf_token"`
@@ -173,6 +178,28 @@ func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	if models.SetUserCanUndo( handlers.Store , user_id , body.CanUndo ) != nil {
+		err = notFound( c , "no such user" )
+		return
+	}
+	handlers.refreshTables( user_id )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// SetUserCanReshuffle switches a player's power to deal a hand again before
+// they bid. Their open tables are refreshed so the button appears or goes.
+func ( handlers *Handlers ) SetUserCanReshuffle( c fiber.Ctx ) ( err error ) {
+	var body setCanReshuffleRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
+	if parse_err != nil {
+		err = badRequest( c , "invalid user id" )
+		return
+	}
+	if models.SetUserCanReshuffle( handlers.Store , user_id , body.CanReshuffle ) != nil {
 		err = notFound( c , "no such user" )
 		return
 	}

@@ -62,11 +62,7 @@ const Observe = {
     [ 1 , 2 , 3 ].forEach( function ( position ) {
       const seat = Seats.seatAt( view , position );
       const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
-      if ( view.seats[ seat ].kind === "human" ) {
-        Art.avatar( avatar , view.seats[ seat ] );
-      } else {
-        Dom.text( avatar , I18n.get( "bots.badge" ) );
-      }
+      Seats.avatar( avatar , view.seats[ seat ] );
       const cards = Dom.el( "div" , { class: "row-cards" } );
       hands[ seat ].forEach( function ( id ) { cards.appendChild( Cards.el( id , { class: "row-card" } ) ); } );
       strip.appendChild( Dom.el( "div" , { class: "hand-row" , children: [

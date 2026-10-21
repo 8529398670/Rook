@@ -129,6 +129,9 @@ bots:
   name_2: "Edgar"
   name_3: "Poe"
   name_4: "Hugin"
+  # Where a bot's name comes from for a player who switched on random bots
+  # (Settings). Separated by commas; add or remove any.
+  random_names: "Captain Waffles, Ziggy, Marmalade, Biscuit, Professor Pickles, Noodle, Sir Reginald, Mango, Pip, Duchess, Gizmo, Tater Tot, Bubbles, Moose, Peaches, Rocket, Waldo, Pretzel, Banjo, Clementine, Fig, Dr. Snuggles, Taco, Juniper, Bingo, Scooter, Lady Fluff, Nacho, Pumpkin, Ozzy, Sprout, Cosmo, Muffin, Gus, Dottie, Chewie, Turbo, Olive, Barnaby, Popcorn, Ruby, Snickers, Hank, Dumpling, Jellybean, Mabel, Rascal, Sparky, Tink, Winston, Pickle, Goose, Zelda, Beans, Captain Crunch, Lulu, Bartholomew, Jojo, Mittens, Squiggles"
   add_heading: "Add a bot"
   add_description: "How well should it play? Your default from Settings is picked — press Enter for it. The host can change a bot later by tapping it."
   # How well a bot plays. The short names show under each bot's name.
@@ -303,6 +306,7 @@ events:
   deal: "Hand {hand}. {dealer} deals; {name} opens the bidding."
   bid: "{name} bids {amount}."
   pass: "{name} passes."
+  reshuffle: "{name} reshuffled — hand {hand} is dealt again and the bidding starts over."
   won_bid: "{name} takes the bid at {amount} and picks up the kitty."
   trump: "{name} buries five. {color} is trump."
   play: "{name} plays the {card}."
@@ -327,7 +331,7 @@ summary:
   game_won_us: "You win the game!"
   game_won_them: "The other team wins this one."
   game_won_team: "{team} wins the game."
-  rematch: "Play again"
+  rematch: "Start another Game"
   rematch_host: "The host can start another game."
   back_to_lobby: "Back to tables"
 
@@ -392,7 +396,7 @@ rules:
   kitty: "The winner adds the kitty to their hand, buries any five cards, names trump, and leads."
   play: "Follow the color led if you can; otherwise play anything. The Rook is the top trump (unless this table says otherwise). Highest trump wins the trick, or else the highest card of the color led."
   scoring: "Count the points in your tricks; the kitty goes to whoever takes the last trick. Make your bid and you score what you took; fall short and you lose the bid. The other team always scores what it took."
-  keyboard: "Keyboard: type a card — a color letter and its number, like r1, g10 or y14, or R for the Rook — then Enter to play it. Just the number does when only one card you could play has it. Tab or the arrow keys move through your playable cards, Shift on its own clears the choice, Ctrl+A turns auto play on or off, and F is full screen."
+  keyboard: "Keyboard: type a card — a color letter and its number, like r1, g10 or y14, or R for the Rook — then Enter to play it. Just the number does when only one card you could play has it. Tab or the arrow keys move through your playable cards, Shift on its own clears the choice, Ctrl+A turns auto play on or off, Ctrl+Z and Ctrl+Y undo and redo (when you have the undo buttons), and F is full screen."
   full_guide: "Full rules & strategy ↗"
   keyboard_kitty: "Burying: type each card (r1 g10 R) or ring one with Tab or the arrows and press Space to put it in or out of the five; t and a color letter names trump (tr is red). Enter then asks to confirm, and Enter again buries."
 
@@ -663,6 +667,8 @@ device_link:
 bot_default:
   heading: "Bots you add"
   description: "How well a bot plays when you add one to a table. Saved to your account. You can still pick another level each time."
+  random: "🎲 Random names, emojis & colors"
+  random_help: "Each bot you add gets a random character name, emoji and color instead of the usual bot name and 🤖."
 
 auto_play_settings:
   heading: "Auto play plays as"
@@ -700,6 +706,12 @@ global:
   empty: "Nobody has said anything yet."
   off: "Global chat is switched off by an admin."
   online_heading: "Online now · {count}"
+
+# The Reshuffle button, for players an admin allowed it: deals the hand again,
+# as often as they like, until they bid or pass.
+reshuffle:
+  button: "🔀 Reshuffle"
+  label: "Deal this hand again — everyone gets new cards and the bidding starts over"
 
 auto_play:
   heading: "⏩ Auto Play"
@@ -746,6 +758,8 @@ admin:
   can_hint_label: "Show {name} the hint button"
   table_can_undo: "Undo"
   can_undo_label: "Let {name} undo and redo moves at their own tables"
+  table_can_reshuffle: "Reshuffle"
+  can_reshuffle_label: "Let {name} reshuffle a hand before they bid"
   status_active: "active"
   status_disabled: "disabled"
   reissue_button: "New link"
@@ -821,6 +835,7 @@ errors:
   not_held: "The game isn't on hold."
   nothing_to_undo: "Nothing to undo."
   nothing_to_redo: "Nothing to redo."
+  already_bid: "You've already bid or passed this hand, so it can't be reshuffled."
   bad_history_point: "That point in the game doesn't exist."
   bad_action: "That move isn't recognised."
   bad_deck: "That deal isn't a valid deck."
@@ -953,9 +968,9 @@ hint:
 admin_game:
   undo: "↶ Undo"
   redo: "↷ Redo"
-  undo_label: "Undo the last move"
+  undo_label: "Undo the last move (Ctrl+Z)"
   resume_label: "Resume — let play carry on from here"
-  redo_label: "Redo the next move"
+  redo_label: "Redo the next move (Ctrl+Y)"
   history: "History"
   resume: "Resume"
   position: "Move {at} of {of}"
@@ -970,6 +985,7 @@ history:
   hand: "Hand {hand}"
   start: "Deal — {dealer} deals, {name} opens the bidding"
   continue: "{name} is ready for the next hand"
+  reshuffle: "{name} reshuffles"
   bidding: "Bidding"
   kitty: "Kitty & trump"
   trick: "Trick {number}"

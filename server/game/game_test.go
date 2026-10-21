@@ -3,6 +3,7 @@ package game
 import (
 	errors "errors"
 	rand "math/rand/v2"
+	slices "slices"
 	testing "testing"
 )
 
@@ -584,4 +585,44 @@ func TestBotGamesKeepEveryInvariant( t *testing.T ) {
 		}
 	}
 	t.Logf( "%d hands, average winning bid %d, bidders made it %d%% of the time" , hands_played , bid_total/hands_played , bids_made*100/hands_played )
+}
+
+func TestReshuffleDealsTheSameHandAgain( t *testing.T ) {
+	state , err := NewGame( DefaultOptions() , 1 , seeded( 3 ) )
+	if err != nil { t.Fatal( err ) }
+	if err = state.PlaceBid( 1 , 70 ); err != nil { t.Fatal( err ) }
+	before := slices.Clone( state.Hands[ 0 ] )
+
+	if err = state.Reshuffle( 0 , ShuffledDeck( seeded( 4 ) ) ); err != nil { t.Fatal( err ) }
+	if state.HandNumber != 1 || state.Phase != PhaseBidding || state.Turn != 1 || state.Bid != OpeningBid || state.HighBidder != -1 {
+		t.Fatalf( "after reshuffle: hand %d phase %s turn %d bid %d high %d" , state.HandNumber , state.Phase , state.Turn , state.Bid , state.HighBidder )
+	}
+	if state.LastBid[ 1 ] != 0 || len( state.ViewFor( 0 ).Auction ) != 0 {
+		t.Fatalf( "the old auction survived the reshuffle: %+v" , state.ViewFor( 0 ).Auction )
+	}
+	if len( state.Hands[ 0 ] ) != HandSize || len( state.Kitty ) != KittySize || state.CardsInPlay() != len( NewDeck() ) {
+		t.Fatalf( "a reshuffle must deal a whole deck" )
+	}
+	if slices.Equal( state.Hands[ 0 ] , before ) {
+		t.Fatalf( "the hand did not change" )
+	}
+
+	// Seat 1's bid is gone with the old cards, so it may reshuffle too --
+	// until it bids again.
+	if err = state.PlaceBid( 1 , 70 ); err != nil { t.Fatal( err ) }
+	if err = state.Reshuffle( 1 , ShuffledDeck( seeded( 5 ) ) ); !errors.Is( err , ErrAlreadyBid ) {
+		t.Fatalf( "reshuffle after bidding: %v" , err )
+	}
+	if err = state.Pass( 2 ); err != nil { t.Fatal( err ) }
+	if err = state.Reshuffle( 2 , ShuffledDeck( seeded( 5 ) ) ); !errors.Is( err , ErrAlreadyBid ) {
+		t.Fatalf( "reshuffle after passing: %v" , err )
+	}
+	if err = state.Reshuffle( 3 , []Card{} ); !errors.Is( err , ErrBadDeck ) {
+		t.Fatalf( "reshuffle with a bad deck: %v" , err )
+	}
+
+	state.Phase = PhasePlaying
+	if err = state.Reshuffle( 3 , ShuffledDeck( seeded( 6 ) ) ); !errors.Is( err , ErrWrongPhase ) {
+		t.Fatalf( "reshuffle outside the auction: %v" , err )
+	}
 }

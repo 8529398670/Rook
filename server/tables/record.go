@@ -142,6 +142,12 @@ func ( table *Table ) record() ( record GameRecord , err error ) {
 				hands = append( hands , newRecordHand( state ) )
 			}
 			return
+		case ActionReshuffle:
+			// The same hand dealt again: what was bid on the old cards is gone.
+			if len( hands ) > 0 && state.HandNumber == current().Hand {
+				hands[ len( hands )-1 ] = newRecordHand( state )
+			}
+			return
 		}
 		if len( hands ) == 0 { return }
 		hand := current()

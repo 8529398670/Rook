@@ -505,6 +505,8 @@ const Chat = {
         return I18n.format( "events.bid" , { name: name , amount: event.amount } );
       case "pass":
         return I18n.format( "events.pass" , { name: name } );
+      case "reshuffle":
+        return I18n.format( "events.reshuffle" , { name: name , hand: event.amount } );
       case "won_bid":
         return I18n.format( "events.won_bid" , { name: name , amount: event.amount } );
       case "trump":

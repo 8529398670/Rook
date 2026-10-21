@@ -78,6 +78,24 @@ func ( handlers *Handlers ) ContinueHand( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// Reshuffle deals the hand again, for an admin or a player given
+// can_reshuffle, before they have bid or passed in it.
+func ( handlers *Handlers ) Reshuffle( c fiber.Ctx ) ( err error ) {
+	var body csrfOnlyRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	actor := security.ActorFrom( c )
+	if actor == nil || ( actor.IsAdmin() == false && actor.User.CanReshuffle == false ) {
+		err = forbidden( c , "forbidden" )
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.Reshuffle( id , actor.User ) )
+	return
+}
+
 type autoPlayRequest struct {
 	On        bool   `json:"on"`
 	CSRFToken string `json:"csrf_token"`

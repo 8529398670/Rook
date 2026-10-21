@@ -2,6 +2,7 @@ package tables
 
 import (
 	rand "math/rand/v2"
+	strconv "strconv"
 	strings "strings"
 	time "time"
 	unicode "unicode"
@@ -108,6 +109,47 @@ func ( hub *Hub ) SetAutoPlay( id string , user *models.User , on bool ) ( err e
 // AddBot fills an empty seat with a computer player of the given level ("" is
 // Normal). Anyone seated may do it, before a game or to unpause one.
 func ( hub *Hub ) AddBot( id string , user *models.User , seat int , level string ) ( err error ) {
+	err = hub.AddBotLooking( id , user , seat , level , BotLook{} )
+	return
+}
+
+// BotLook is what a bot with a random look is drawn from, for a player who
+// switched random bots on: a name from Names and an icon from Icons, neither
+// already in use at the table, and any hue. Empty lists keep the usual name
+// and the robot badge.
+type BotLook struct {
+	Names []string
+	Icons []string
+}
+
+// pickUnused draws one of choices that is not in used, or any of them when
+// every one is taken.
+func pickUnused( choices []string , used map[ string ]bool ) ( result string ) {
+	free := []string{}
+	for _ , choice := range choices {
+		if used[ choice ] == false { free = append( free , choice ) }
+	}
+	if len( free ) == 0 { free = choices }
+	if len( free ) > 0 { result = free[ rand.IntN( len( free ) ) ] }
+	return
+}
+
+// dress gives a new bot seat a random name, icon and color from look.
+func ( table *Table ) dress( bot *Seat , look BotLook ) {
+	names , icons := map[ string ]bool{} , map[ string ]bool{}
+	for _ , seat := range table.Seats {
+		names[ seat.shownName() ] = true
+		icons[ seat.Icon ] = true
+	}
+	if len( look.Names ) > 0 { bot.Name = pickUnused( look.Names , names ) }
+	if len( look.Icons ) > 0 {
+		bot.Icon = pickUnused( look.Icons , icons )
+		bot.Color = "h" + strconv.Itoa( rand.IntN( 360 ) )
+	}
+}
+
+// AddBotLooking is AddBot with a random look (see BotLook).
+func ( hub *Hub ) AddBotLooking( id string , user *models.User , seat int , level string , look BotLook ) ( err error ) {
 	parsed , ok := game.ParseLevel( level )
 	if ok == false {
 		err = game.ErrBadLevel
@@ -123,7 +165,9 @@ func ( hub *Hub ) AddBot( id string , user *models.User , seat int , level strin
 			fn_err = ErrSeatTaken
 			return
 		}
-		table.Seats[ seat ] = Seat{ Kind: KindBot , Bot: table.nextBotNumber() , Level: parsed }
+		bot := Seat{ Kind: KindBot , Bot: table.nextBotNumber() , Level: parsed }
+		table.dress( &bot , look )
+		table.Seats[ seat ] = bot
 		return
 	} )
 	return
@@ -386,6 +430,13 @@ func ( hub *Hub ) Bury( id string , user *models.User , card_ids []string , trum
 func ( hub *Hub ) Play( id string , user *models.User , card_id string ) ( err error ) {
 	if _ , err = game.ParseCard( card_id ); err != nil { return }
 	err = hub.play( id , user , Action{ Kind: ActionPlay , Card: card_id } )
+	return
+}
+
+// Reshuffle deals the hand again, for a player who has not bid or passed in
+// it yet. The route checks that they may.
+func ( hub *Hub ) Reshuffle( id string , user *models.User ) ( err error ) {
+	err = hub.play( id , user , Action{ Kind: ActionReshuffle } )
 	return
 }
 

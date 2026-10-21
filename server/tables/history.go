@@ -25,6 +25,8 @@ const (
 	ActionBury     = "bury"
 	ActionPlay     = "play"
 	ActionContinue = "continue"
+	// ActionReshuffle deals the hand again before its player has bid.
+	ActionReshuffle = "reshuffle"
 )
 
 type Action struct {
@@ -86,6 +88,9 @@ func ( action Action ) apply( state *game.State , options game.Options ) ( next 
 		err = state.PlayCard( action.Seat , card )
 	case ActionContinue:
 		dealt , err = state.Continue( action.Seat , action.Deck )
+	case ActionReshuffle:
+		err = state.Reshuffle( action.Seat , action.Deck )
+		dealt = err == nil
 	default:
 		err = ErrBadAction
 	}
@@ -100,7 +105,7 @@ func ( table *Table ) perform( action Action ) ( err error ) {
 		err = ErrHeld
 		return
 	}
-	if action.Kind == ActionStart || action.Kind == ActionContinue {
+	if action.Kind == ActionStart || action.Kind == ActionContinue || action.Kind == ActionReshuffle {
 		action.Deck = game.ShuffledDeck( nil )
 	}
 	if table.Game != nil && action.Kind != ActionStart {

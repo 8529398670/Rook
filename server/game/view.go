@@ -152,7 +152,7 @@ func ( state *State ) auction() ( entries []AuctionEntry ) {
 	if state.Phase != PhaseBidding && state.Phase != PhaseKitty { return }
 	start := 0
 	for index := len( state.Events ) - 1; index >= 0; index-- {
-		if state.Events[ index ].Kind == "deal" {
+		if kind := state.Events[ index ].Kind; kind == "deal" || kind == "reshuffle" {
 			start = index + 1
 			break
 		}

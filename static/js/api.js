@@ -104,6 +104,7 @@ const Api = {
 
   setCanHint( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-hint" , { can_hint: flag } ); },
   setCanUndo( userId , flag )  { return this.post( "/api/admin/users/" + userId + "/can-undo" , { can_undo: flag } ); },
+  setCanReshuffle( userId , flag ) { return this.post( "/api/admin/users/" + userId + "/can-reshuffle" , { can_reshuffle: flag } ); },
   getSettings()                { return this.request( "/api/admin/settings" ); },
   saveSettings( settings )     { return this.post( "/api/admin/settings" , settings ); },
   // Sign-up links: anyone who may invite manages their own; admins see all.
@@ -124,6 +125,7 @@ const Api = {
   setPin( pin )                { return this.post( "/api/account/pin" , { pin: pin } ); },
   setDefaultBotLevel( level )  { return this.post( "/api/account/bot-level" , { level: level } ); },
   setAutoPlayLevel( level )    { return this.post( "/api/account/auto-play-level" , { level: level } ); },
+  setRandomBots( on )          { return this.post( "/api/account/random-bots" , { random_bots: on } ); },
 
   // Join links and multi-use sign-up links. The sign-up credential goes in
   // the body, never the URL, so it stays out of server logs.
@@ -155,6 +157,7 @@ const Api = {
   history( id )                { return this.request( this.tablePath( id , "history" ) ); },
   undo( id )                   { return this.post( this.tablePath( id , "undo" ) ); },
   redo( id )                   { return this.post( this.tablePath( id , "redo" ) ); },
+  reshuffle( id )              { return this.post( this.tablePath( id , "reshuffle" ) ); },
   resetTo( id , to )           { return this.post( this.tablePath( id , "reset" ) , { to: to } ); },
   resume( id )                 { return this.post( this.tablePath( id , "resume" ) ); },
   setObservers( id , seeAll )  { return this.post( this.tablePath( id , "observers" ) , { see_all: seeAll } ); },

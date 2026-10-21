@@ -86,6 +86,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	account.Post( "/account/pin" , handlers.SetPin )
 	account.Post( "/account/bot-level" , handlers.SetBotLevel )
 	account.Post( "/account/auto-play-level" , handlers.SetAutoPlayLevel )
+	account.Post( "/account/random-bots" , handlers.SetRandomBots )
 	account.Post( "/join/:code" , handlers.JoinTable )
 	// The chat everyone shares, and who is online (see global.go).
 	account.Get( "/global" , handlers.GetGlobal )
@@ -141,6 +142,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/can-invite" , handlers.RequireOwner , handlers.SetUserCanInvite )
 	admin.Post( "/users/:user_id/can-hint" , handlers.RequireOwner , handlers.SetUserCanHint )
 	admin.Post( "/users/:user_id/can-undo" , handlers.RequireOwner , handlers.SetUserCanUndo )
+	admin.Post( "/users/:user_id/can-reshuffle" , handlers.RequireOwner , handlers.SetUserCanReshuffle )
 	admin.Post( "/users/:user_id/role" , handlers.RequireOwner , handlers.AdminSetRole )
 	admin.Post( "/users/:user_id/rename" , handlers.RequireOwner , handlers.AdminRenameUser )
 	admin.Post( "/users/:user_id/avatar" , handlers.RequireOwner , handlers.AdminSetAvatar )
@@ -186,6 +188,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/bury" , handlers.Bury )
 	game_tables.Post( "/:table_id/play" , handlers.PlayCard )
 	game_tables.Post( "/:table_id/continue" , handlers.ContinueHand )
+	game_tables.Post( "/:table_id/reshuffle" , handlers.Reshuffle )
 	game_tables.Post( "/:table_id/auto-play" , handlers.SetAutoPlay )
 	game_tables.Post( "/:table_id/chat" , handlers.ChatAtTable )
 	game_tables.Post( "/:table_id/chat/:seq/edit" , handlers.EditChatAtTable )

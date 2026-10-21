@@ -143,6 +143,13 @@ func NewGameWithDeck( options Options , first_bidder int , deck []Card ) ( state
 
 func ( state *State ) deal( deck []Card ) {
 	state.HandNumber++
+	state.redeal( deck )
+	state.log( Event{ Kind: "deal" , Seat: state.BidStarter , Amount: state.HandNumber } )
+}
+
+// redeal puts the cards out afresh and starts the auction over, without
+// moving on to a new hand: deal and Reshuffle both use it.
+func ( state *State ) redeal( deck []Card ) {
 	for seat := 0; seat < 4; seat++ {
 		hand := make( []Card , HandSize )
 		copy( hand , deck[ seat*HandSize : ( seat+1 )*HandSize ] )
@@ -165,8 +172,6 @@ func ( state *State ) deal( deck []Card ) {
 	state.Taken = [2]int{}
 	state.TricksWon = [2]int{}
 	state.Ready = [4]bool{}
-
-	state.log( Event{ Kind: "deal" , Seat: state.BidStarter , Amount: state.HandNumber } )
 }
 
 func ( state *State ) log( event Event ) {

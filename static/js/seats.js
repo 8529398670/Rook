@@ -44,6 +44,22 @@ const Seats = {
     return seat.name;
   },
 
+  // A seat's badge: a person's avatar, a bot's random look when it was
+  // given one (random bots, in Settings), else the robot.
+  avatar( element , seat ) {
+    if ( seat && ( seat.kind === "human" || ( seat.kind === "bot" && seat.icon ) ) ) {
+      Art.avatar( element , seat );
+      return;
+    }
+    Dom.text( element , seat && seat.kind === "bot" ? I18n.get( "bots.badge" ) : "" );
+    element.classList.remove( "has-icon" );
+  },
+
+  // The bot badge, or its own emoji, for a line of text.
+  badge( seat ) {
+    return seat.icon || I18n.get( "bots.badge" );
+  },
+
   // The dealer sits just before whoever opens the bidding: the auction
   // starts on the dealer's left.
   dealerOf( firstBidder ) {
@@ -127,12 +143,7 @@ const Seats = {
       } else {
         [ "data-manageable" , "role" , "tabindex" , "aria-label" , "title" ].forEach( function ( name ) { avatar.removeAttribute( name ); } );
       }
-      if ( info.kind === "human" ) {
-        Art.avatar( avatar , info );
-      } else {
-        Dom.text( avatar , info.kind === "bot" ? I18n.get( "bots.badge" ) : "" );
-        avatar.classList.remove( "has-icon" );
-      }
+      this.avatar( avatar , info );
 
       // A ⏩ after the name while auto play is playing that person's cards.
       const nameLine = element.querySelector( ".seat-name" );

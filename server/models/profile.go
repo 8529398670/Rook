@@ -206,6 +206,11 @@ var Icons = []string{
 	"🏴󠁧󠁢󠁷󠁬󠁳󠁿",
 }
 
+// BotIcons is the hand-picked first part of Icons (animals, plants, food,
+// objects and a few faces, up to the full standard set that follows), which
+// is what a bot with a random look wears: no hands, body parts or flags.
+var BotIcons = Icons[ :129 ]
+
 // Colors are names, not hex values, so the frontend picks tones that work in
 // both themes. Besides these, a color may be a custom hue, "h0" to "h359":
 // still only a hue, so the frontend's saturation and lightness keep it
@@ -291,6 +296,26 @@ func SetUserAutoPlayLevel( store *db.Store , user_id uint64 , level string ) ( e
 		func() any { return &User{} } ,
 		func( item any ) ( mutate_err error ) {
 			item.( *User ).AutoPlayLevel = level
+			return
+		} )
+	return
+}
+
+func SetUserCanReshuffle( store *db.Store , user_id uint64 , can_reshuffle bool ) ( err error ) {
+	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
+		func() any { return &User{} } ,
+		func( item any ) ( mutate_err error ) {
+			item.( *User ).CanReshuffle = can_reshuffle
+			return
+		} )
+	return
+}
+
+func SetUserRandomBots( store *db.Store , user_id uint64 , random_bots bool ) ( err error ) {
+	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
+		func() any { return &User{} } ,
+		func( item any ) ( mutate_err error ) {
+			item.( *User ).RandomBots = random_bots
 			return
 		} )
 	return

@@ -69,12 +69,8 @@ const Games = {
 
   avatar( seat ) {
     const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
-    if ( seat.kind === "human" ) {
-      Art.avatar( avatar , seat );
-    } else {
-      avatar.classList.add( "is-" + ( seat.kind || "empty" ) );
-      Dom.text( avatar , seat.kind === "bot" ? I18n.get( "bots.badge" ) : "" );
-    }
+    if ( seat.kind !== "human" && !seat.icon ) avatar.classList.add( "is-" + ( seat.kind || "empty" ) );
+    Seats.avatar( avatar , seat );
     return avatar;
   },
 
