@@ -262,6 +262,19 @@ func ( handlers *Handlers ) RenameSeat( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// ShuffleSeatBot gives a bot a new random name, emoji and color.
+func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx ) ( err error ) {
+	var body seatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	look := tables.BotLook{ Names: handlers.randomBotNames() , Icons: models.BotIcons }
+	err = handlers.tableResult( c , id , handlers.Hub.ShuffleBot( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , look ) )
+	return
+}
+
 // RequestTakeover asks the host to let a watcher replace a bot.
 func ( handlers *Handlers ) RequestTakeover( c fiber.Ctx ) ( err error ) {
 	var body seatRequest

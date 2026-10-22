@@ -1044,33 +1044,34 @@ const Table = {
     return I18n.get( "bots.random_names" ).split( "," ).map( function ( name ) { return name.trim(); } ).filter( Boolean );
   },
 
-  // A bot only: another name from the random list, one nobody at the table
-  // has. The sheet stays open so the host can keep rolling until one sticks.
-  shuffleSeatName() {
-    const view = this.view;
-    if ( !view ) return;
-    const used = view.seats.map( function ( seat ) { return Seats.name( seat ); } );
-    const names = this.randomNames();
-    let free = names.filter( function ( name ) { return used.indexOf( name ) < 0; } );
-    if ( free.length === 0 ) free = names.filter( function ( name ) { return name !== this.manageSeatName; } , this );
-    if ( free.length === 0 ) return;
-    this.renameSeat( free[ Math.floor( Math.random() * free.length ) ] , { keepOpen: true } );
+  // A bot only: a new random name, emoji and color, none of them one the
+  // table already has. The sheet stays open so the host can keep rolling
+  // until one sticks.
+  async shuffleSeatName() {
+    const seat = this.manageSeatIndex;
+    const before = this.manageSeatName;
+    try {
+      const view = await Api.shuffleBot( this.id , seat );
+      this.apply( view );
+      const info = view.seats[ seat ];
+      if ( !info || info.kind !== "bot" ) return;
+      this.manageSeatName = Seats.name( info );
+      Seats.avatar( Dom.get( "seat-sheet-avatar" ) , info );
+      Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
+      Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
+      Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+      Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: this.manageSeatName } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
-  async renameSeat( name , options ) {
+  async renameSeat( name ) {
     const before = this.manageSeatName;
-    const keepOpen = Boolean( options && options.keepOpen );
     try {
       const view = await Api.renameSeat( this.id , this.manageSeatIndex , name.trim() );
-      if ( !keepOpen ) Sheet.close( true );
+      Sheet.close( true );
       this.apply( view );
-      if ( keepOpen ) {
-        const info = view.seats[ this.manageSeatIndex ];
-        this.manageSeatName = Seats.name( info );
-        Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
-        Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
-        Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
-      }
       Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: Seats.name( view.seats[ this.manageSeatIndex ] ) } ) );
     } catch ( error ) {
       Toast.error( error );

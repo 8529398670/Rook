@@ -246,6 +246,32 @@ func ( hub *Hub ) RenameSeat( id string , caller *models.User , admin bool , sea
 	return
 }
 
+// ShuffleBot gives a bot a fresh random look -- name, emoji and color --
+// none of them what it or anyone else at the table has now: the host's call,
+// or an admin's. A name the host gave it is dropped for the new one.
+func ( hub *Hub ) ShuffleBot( id string , caller *models.User , admin bool , seat int , look BotLook ) ( err error ) {
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind != KindBot {
+			fn_err = ErrNotABot
+			return
+		}
+		bot := table.Seats[ seat ]
+		table.dress( &bot , look )
+		bot.Alias = ""
+		table.Seats[ seat ] = bot
+		return
+	} )
+	return
+}
+
 // SetBotLevel changes how well a computer player plays: the host's call, or
 // an admin's, at any point. Mid-hand the bot simply plays its next move at
 // the new level.

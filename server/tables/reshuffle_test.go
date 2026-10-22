@@ -96,3 +96,29 @@ func TestRandomBotLook( t *testing.T ) {
 		t.Fatalf( "a plain bot was dressed: %+v" , plain )
 	}
 }
+
+func TestShuffleBotLook( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id , err := hub.Create( ana , "Shuffle" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , ana , 1 , "" ); err != nil { t.Fatal( err ) }
+	if err = hub.RenameSeat( id , ana , false , 1 , "Boss" ); err != nil { t.Fatal( err ) }
+	look := BotLook{ Names: []string{ "Pip" , "Fig" } , Icons: models.BotIcons }
+	if err = hub.ShuffleBot( id , ben , false , 1 , look ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host shuffle: %v" , err ) }
+	if err = hub.ShuffleBot( id , ana , false , 0 , look ); errors.Is( err , ErrNotABot ) == false { t.Fatalf( "shuffle a person: %v" , err ) }
+	before := ""
+	for range 5 {
+		if err = hub.ShuffleBot( id , ana , false , 1 , look ); err != nil { t.Fatal( err ) }
+		view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+		bot := view.Seats[ 1 ]
+		if slices.Contains( look.Names , bot.Name ) == false || bot.Renamed || bot.Name == before {
+			t.Fatalf( "name %q after %q (renamed %v)" , bot.Name , before , bot.Renamed )
+		}
+		if slices.Contains( models.BotIcons , bot.Icon ) == false || models.ValidColor( bot.Color ) == false {
+			t.Fatalf( "look %q %q" , bot.Icon , bot.Color )
+		}
+		before = bot.Name
+	}
+}

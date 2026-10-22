@@ -171,6 +171,7 @@ const Api = {
   assignSeat( id , seat , userId ) { return this.post( this.tablePath( id , "assign" ) , { seat: seat , user_id: userId } ); },
   removePlayer( id , seat )    { return this.post( this.tablePath( id , "seat/remove" ) , { seat: seat } ); },
   renameSeat( id , seat , name ) { return this.post( this.tablePath( id , "seat/rename" ) , { seat: seat , name: name } ); },
+  shuffleBot( id , seat )      { return this.post( this.tablePath( id , "seat/shuffle" ) , { seat: seat } ); },
   // dealer: a seat number or "random" for a new table's first deal; left
   // out, whoever pressed Deal deals (and a rematch just moves the deal on).
   start( id , dealer ) {
