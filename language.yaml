@@ -365,6 +365,9 @@ seat_manage:
   level_set: "{name} now plays at {level}."
   rename_label: "Name at this table"
   rename: "Rename"
+  # A bot only: swap its name for another from bots.random_names.
+  shuffle: "🎲"
+  shuffle_title: "Pick another random name"
   reset: "Use their own name"
   renamed: "{old} is now {name} at this table."
   remove: "Remove from seat"

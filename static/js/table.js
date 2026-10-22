@@ -86,6 +86,7 @@ const Table = {
       Table.renameSeat( Dom.get( "seat-sheet-rename" ).value );
     } );
     Dom.get( "seat-sheet-reset" ).addEventListener( "click" , function () { Table.renameSeat( "" ); } );
+    Dom.get( "seat-sheet-shuffle" ).addEventListener( "click" , function () { Table.shuffleSeatName(); } );
 
     Dom.all( "[data-menu]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () {
@@ -1016,6 +1017,7 @@ const Table = {
     Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
     Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
     Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+    Dom.show( Dom.get( "seat-sheet-shuffle" ) , info.kind === "bot" && this.randomNames().length > 0 );
     Dom.show( Dom.get( "seat-sheet-level-box" ) , info.kind === "bot" );
     if ( info.kind === "bot" ) this.renderBotLevel( info );
 
@@ -1037,12 +1039,38 @@ const Table = {
     Sheet.open( "sheet-seat" , { focus: false } );
   },
 
-  async renameSeat( name ) {
+  // bots.random_names in language.yaml, separated by commas.
+  randomNames() {
+    return I18n.get( "bots.random_names" ).split( "," ).map( function ( name ) { return name.trim(); } ).filter( Boolean );
+  },
+
+  // A bot only: another name from the random list, one nobody at the table
+  // has. The sheet stays open so the host can keep rolling until one sticks.
+  shuffleSeatName() {
+    const view = this.view;
+    if ( !view ) return;
+    const used = view.seats.map( function ( seat ) { return Seats.name( seat ); } );
+    const names = this.randomNames();
+    let free = names.filter( function ( name ) { return used.indexOf( name ) < 0; } );
+    if ( free.length === 0 ) free = names.filter( function ( name ) { return name !== this.manageSeatName; } , this );
+    if ( free.length === 0 ) return;
+    this.renameSeat( free[ Math.floor( Math.random() * free.length ) ] , { keepOpen: true } );
+  },
+
+  async renameSeat( name , options ) {
     const before = this.manageSeatName;
+    const keepOpen = Boolean( options && options.keepOpen );
     try {
       const view = await Api.renameSeat( this.id , this.manageSeatIndex , name.trim() );
-      Sheet.close( true );
+      if ( !keepOpen ) Sheet.close( true );
       this.apply( view );
+      if ( keepOpen ) {
+        const info = view.seats[ this.manageSeatIndex ];
+        this.manageSeatName = Seats.name( info );
+        Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
+        Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
+        Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+      }
       Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: Seats.name( view.seats[ this.manageSeatIndex ] ) } ) );
     } catch ( error ) {
       Toast.error( error );
