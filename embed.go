@@ -22,6 +22,12 @@ var embeddedStaticRoot embed.FS
 //go:embed language.yaml
 var embeddedLanguage []byte
 
+// The names random bots can be given, used when bot_names_file is left at
+// its default and the file is not on disk (see routes.LoadBotNames).
+//
+//go:embed misc/biblical-persons.csv
+var embeddedBotNames []byte
+
 // embeddedStatic re-roots the embedded tree at ./static, so a request for
 // "css/style.css" does not have to know it lives at "static/css/style.css"
 // inside the binary. This makes it interchangeable with the os.Root

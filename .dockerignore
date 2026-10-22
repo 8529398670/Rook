@@ -11,3 +11,4 @@ dist/
 old_php_version/
 .DS_Store
 .claude/
+misc/all-names.csv

@@ -136,4 +136,7 @@ max_tables: 50
 # total_count columns; other columns are ignored, and a name listed twice
 # (once per sex, say) counts once with its totals added. Read at startup, so
 # restart after changing it. A relative path is from where the server runs.
+# A copy of the default file is compiled into the binary and used when the
+# default path has nothing on disk (in Docker, say); a path you set yourself
+# must exist.
 bot_names_file: ./misc/biblical-persons.csv

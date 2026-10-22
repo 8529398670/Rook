@@ -38,6 +38,12 @@ const (
 	LanguageFileName  = "language.yaml"
 )
 
+// DefaultBotNamesFile is where bot_names_file points unless told otherwise.
+// A copy is compiled into the binary (see embed.go), which is used when
+// nothing is on disk there -- in the container, or a binary run from
+// anywhere but the project root.
+const DefaultBotNamesFile = "./misc/biblical-persons.csv"
+
 type Config struct {
 	ProjectName string
 
@@ -152,7 +158,8 @@ type Config struct {
 	// BotNamesFile is a CSV of names (with name and total_count columns)
 	// that random bots can be named from instead of the built-in list, when
 	// the owner picks it in Game settings. Read once at startup; a relative
-	// path is from the working directory, like StaticDir.
+	// path is from the working directory, like StaticDir. Left at
+	// DefaultBotNamesFile and missing, the embedded copy is used.
 	BotNamesFile string
 
 	// SecretKeySource describes how the key was obtained, for the startup log
@@ -455,7 +462,7 @@ func Load() ( cfg *Config , err error ) {
 		BotDelay:            time.Duration( r.integer( "BOT_DELAY_MS" , "bot_delay_ms" , 900 ) ) * time.Millisecond,
 		TableRetention:      time.Duration( r.integer( "TABLE_RETENTION_HOURS" , "table_retention_hours" , 72 ) ) * time.Hour,
 		MaxTables:           r.integer( "MAX_TABLES" , "max_tables" , 50 ),
-		BotNamesFile:        r.str( "BOT_NAMES_FILE" , "bot_names_file" , "./misc/biblical-persons.csv" ),
+		BotNamesFile:        r.str( "BOT_NAMES_FILE" , "bot_names_file" , DefaultBotNamesFile ),
 	}
 	if cfg.EventStreamLifetime > 25*time.Second {
 		cfg.EventStreamLifetime = 25 * time.Second

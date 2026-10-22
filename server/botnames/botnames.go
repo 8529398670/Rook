@@ -28,7 +28,13 @@ func Load( path string ) ( names []string , err error ) {
 	file , err := os.Open( path )
 	if err != nil { return }
 	defer file.Close()
-	reader := csv.NewReader( file )
+	names , err = Parse( file )
+	return
+}
+
+// Parse is Load for a CSV already open, or compiled into the binary.
+func Parse( source io.Reader ) ( names []string , err error ) {
+	reader := csv.NewReader( source )
 	reader.FieldsPerRecord = -1
 	header , err := reader.Read()
 	if err != nil { return }

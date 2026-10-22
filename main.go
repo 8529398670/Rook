@@ -114,6 +114,7 @@ func run() ( err error ) {
 
 	guard := security.New( store , cfg )
 	handlers := routes.New( store , cfg , guard , lang , static_server , hub )
+	handlers.LoadBotNames( embeddedBotNames )
 
 	app := fiber.New( fiber.Config{
 		AppName: cfg.ProjectName,

@@ -9,6 +9,9 @@
 package routes
 
 import (
+	bytes "bytes"
+	errors "errors"
+	fs "io/fs"
 	log "log"
 
 	fiber "github.com/gofiber/fiber/v3"
@@ -46,16 +49,29 @@ func New( store *db.Store , cfg *config.Config , guard *security.Guard , lang *l
 		Static:   static_server,
 		Hub:      hub,
 	}
-	if cfg.BotNamesFile != "" {
-		names , load_err := botnames.Load( cfg.BotNamesFile )
-		if load_err != nil {
-			log.Printf( "[bots] no names from %s: %v" , cfg.BotNamesFile , load_err )
-		} else {
-			handlers.FileBotNames = names
-			log.Printf( "[bots] %d names from %s" , len( names ) , cfg.BotNamesFile )
-		}
-	}
 	return
+}
+
+// LoadBotNames reads bot_names_file from disk. When that is the default
+// path and nothing is there, embedded -- the copy compiled into the binary --
+// stands in, the same disk-first rule as the frontend. A path someone set
+// themselves never falls back, so a typo shows in the log instead of quietly
+// giving biblical names.
+func ( handlers *Handlers ) LoadBotNames( embedded []byte ) {
+	path := handlers.Config.BotNamesFile
+	if path == "" { return }
+	names , err := botnames.Load( path )
+	source := path
+	if errors.Is( err , fs.ErrNotExist ) && path == config.DefaultBotNamesFile && len( embedded ) > 0 {
+		names , err = botnames.Parse( bytes.NewReader( embedded ) )
+		source = "embedded " + path
+	}
+	if err != nil {
+		log.Printf( "[bots] no names from %s: %v" , source , err )
+		return
+	}
+	handlers.FileBotNames = names
+	log.Printf( "[bots] %d names from %s" , len( names ) , source )
 }
 
 // Register wires every route. Read it top to bottom to see the whole surface
