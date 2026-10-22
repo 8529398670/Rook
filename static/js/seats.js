@@ -44,15 +44,27 @@ const Seats = {
     return seat.name;
   },
 
-  // A seat's badge: a person's avatar, a bot's random look when it was
-  // given one (random bots, in Settings), else the robot.
+  // A seat's badge: a person's avatar, a bot's own look when it has one
+  // (random bots in Settings, or picked by the host), else the robot.
   avatar( element , seat ) {
-    if ( seat && ( seat.kind === "human" || ( seat.kind === "bot" && seat.icon ) ) ) {
-      Art.avatar( element , seat );
+    if ( this.hasLook( seat ) ) {
+      Art.avatar( element , this.look( seat ) );
       return;
     }
     Dom.text( element , seat && seat.kind === "bot" ? I18n.get( "bots.badge" ) : "" );
     element.classList.remove( "has-icon" );
+  },
+
+  // Whether a seat is drawn as an avatar rather than the plain robot.
+  hasLook( seat ) {
+    return Boolean( seat ) && ( seat.kind === "human" || ( seat.kind === "bot" && Boolean( seat.icon || seat.color ) ) );
+  },
+
+  // A seat as Art.avatar draws it: a bot with a color but no emoji of its
+  // own keeps the robot on that color.
+  look( seat ) {
+    if ( seat.kind !== "bot" || seat.icon ) return seat;
+    return Object.assign( {} , seat , { icon: I18n.get( "bots.badge" ) } );
   },
 
   // The bot badge, or its own emoji, for a line of text.

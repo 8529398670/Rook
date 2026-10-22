@@ -9,8 +9,11 @@
 package routes
 
 import (
+	log "log"
+
 	fiber "github.com/gofiber/fiber/v3"
 
+	botnames "rook/server/botnames"
 	config "rook/server/config"
 	db "rook/server/db"
 	language "rook/server/language"
@@ -29,6 +32,9 @@ type Handlers struct {
 	Language *language.Language
 	Static   *static.Server
 	Hub      *tables.Hub
+	// FileBotNames is cfg.BotNamesFile's names, most popular first, or empty
+	// when there is no such file. See randomBotNames.
+	FileBotNames []string
 }
 
 func New( store *db.Store , cfg *config.Config , guard *security.Guard , lang *language.Language , static_server *static.Server , hub *tables.Hub ) ( handlers *Handlers ) {
@@ -39,6 +45,15 @@ func New( store *db.Store , cfg *config.Config , guard *security.Guard , lang *l
 		Language: lang,
 		Static:   static_server,
 		Hub:      hub,
+	}
+	if cfg.BotNamesFile != "" {
+		names , load_err := botnames.Load( cfg.BotNamesFile )
+		if load_err != nil {
+			log.Printf( "[bots] no names from %s: %v" , cfg.BotNamesFile , load_err )
+		} else {
+			handlers.FileBotNames = names
+			log.Printf( "[bots] %d names from %s" , len( names ) , cfg.BotNamesFile )
+		}
 	}
 	return
 }
@@ -182,6 +197,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/seat/remove" , handlers.RemovePlayer )
 	game_tables.Post( "/:table_id/seat/rename" , handlers.RenameSeat )
 	game_tables.Post( "/:table_id/seat/shuffle" , handlers.ShuffleSeatBot )
+	game_tables.Post( "/:table_id/seat/look" , handlers.SetSeatBotLook )
 	game_tables.Post( "/:table_id/start" , handlers.StartTable )
 	game_tables.Post( "/:table_id/restart" , handlers.RestartTable )
 	game_tables.Post( "/:table_id/delete" , handlers.DeleteTable )

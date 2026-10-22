@@ -372,6 +372,7 @@ input[type="checkbox"][role="switch"]:disabled { opacity: 0.55; cursor: default;
 .pause-row { flex-wrap: wrap; row-gap: 0.4rem; }
 .pause-row > span { flex: 1 1 12rem; }
 .pause-row select { flex: 0 0 auto; width: auto; min-width: 6.5rem; }
+.pause-row .top-input { flex: 0 0 6.5rem; width: 6.5rem; }
 .switch-help { display: block; font-weight: 400; font-size: 0.85rem; color: var(--fg-muted); }
 
 /* -------------------------------------------------------------- chips */

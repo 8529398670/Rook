@@ -44,10 +44,12 @@ const Profile = {
   // Fill an icon grid and a color grid for one person. handlers.person()
   // is who is being edited ({ display_name, icon, color }), preview( person )
   // draws a trial look while the hue slider moves, and save( icon , color )
-  // stores a choice (resolving once saved). Returns { mark } to redraw
-  // which choice is checked.
+  // stores a choice (resolving once saved). handlers.blank( person ), when
+  // given, is what the "no icon" choice shows instead of the initials.
+  // Returns { mark } to redraw which choice is checked.
   picker( icons , colors , handlers ) {
     const current = function () { return handlers.person() || {}; };
+    const blank = handlers.blank || function ( person ) { return Art.initials( person.display_name ); };
     const choose = async function ( icon , color ) {
       await handlers.save( icon , color );
       mark();
@@ -58,7 +60,7 @@ const Profile = {
     [ "" ].concat( this.options.icons ).forEach( function ( icon ) {
       const button = Dom.el( "button" , {
         class: "icon-choice" + ( icon === "" ? " is-initials" : "" ),
-        text: icon || Art.initials( current().display_name ),
+        text: icon || blank( current() ),
         attrs: { type: "button" , role: "radio" , "aria-label": icon || I18n.get( "profile.initials" ) },
         on: { click: function () { choose( icon , current().color || "" ); } },
       } );
@@ -104,7 +106,7 @@ const Profile = {
       const person = current();
       Dom.all( ".icon-choice" , icons ).forEach( function ( button ) {
         button.setAttribute( "aria-checked" , String( button.getAttribute( "data-icon" ) === ( person.icon || "" ) ) );
-        if ( button.classList.contains( "is-initials" ) ) Dom.text( button , Art.initials( person.display_name ) );
+        if ( button.classList.contains( "is-initials" ) ) Dom.text( button , blank( person ) );
       } );
       Dom.all( ".color-choice[data-color]" , grid ).forEach( function ( button ) {
         button.setAttribute( "aria-checked" , String( button.getAttribute( "data-color" ) === ( person.color || "" ) ) );

@@ -219,6 +219,12 @@ var Colors = []string{ "teal" , "coral" , "plum" , "gold" , "forest" , "sky" , "
 
 var huePattern = regexp.MustCompile( `^h(0|[1-9][0-9]{0,2})$` )
 
+// ValidIcon accepts "" (no icon) or one of Icons.
+func ValidIcon( icon string ) ( ok bool ) {
+	ok = validChoice( icon , Icons )
+	return
+}
+
 // ValidColor accepts "", a named color, or a custom hue.
 func ValidColor( color string ) ( ok bool ) {
 	if validChoice( color , Colors ) {
@@ -252,7 +258,7 @@ func validChoice( value string , choices []string ) ( ok bool ) {
 // SetUserAvatar saves an icon and color; empty strings go back to initials
 // on an automatic color.
 func SetUserAvatar( store *db.Store , user_id uint64 , icon string , color string ) ( err error ) {
-	if validChoice( icon , Icons ) == false || ValidColor( color ) == false {
+	if ValidIcon( icon ) == false || ValidColor( color ) == false {
 		err = ErrBadProfile
 		return
 	}

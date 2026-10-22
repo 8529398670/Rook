@@ -20,6 +20,7 @@ The Rook card game, for four players in two teams, played in the browser. Any em
 - [Project layout](#project-layout)
 - [Development and tests](#development-and-tests)
 - [HTTP API](#http-api)
+- [Credits](#credits)
 
 ## Features
 
@@ -298,6 +299,7 @@ Commonly changed settings:
 | `session_ttl_seconds` | 90 days | how long a sign-in lasts |
 | `encrypt_at_rest` | `true` | encrypt every database value with `secret.key` |
 | `api_keys` | `true` | allow API keys at all |
+| `bot_names_file` | `./misc/biblical-persons.csv` | a CSV of names random bots can use, once the owner picks it in Game settings |
 | `trust_proxy`, `trusted_proxies` | off | believe a reverse proxy's client-address header |
 
 ## Changing the wording
@@ -367,3 +369,7 @@ The actions under `/api/tables/:id/...` are:
 - **Seats:** `sit`, `leave`, `bot` (with a `level`), `bot/remove`, `bot/level`, `seat/rename`.
 - **The game:** `start`, `bid`, `bury`, `play`, `continue`, `auto-play`, `hint`.
 - **Around it:** `chat`, `history`, `undo`, `redo`.
+
+## Credits
+
+The biblical names in [`misc/biblical-persons.csv`](misc/biblical-persons.csv) were imported from the [babynames](https://github.com/dxdc/babynames) dataset by dxdc. They are the rows of its `all-names.csv` whose `biblical` column is `Person`, keeping `sex`, `name` and `total_count`. The owner can have random bots named from them in **Settings → Game settings → Random bot names**, using the most popular N (200 by default). Any CSV with `name` and `total_count` columns works the same way through `bot_names_file`.

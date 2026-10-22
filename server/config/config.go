@@ -149,6 +149,11 @@ type Config struct {
 	TableRetention time.Duration
 	// MaxTables caps open tables, so a signed-in user cannot fill memory.
 	MaxTables int
+	// BotNamesFile is a CSV of names (with name and total_count columns)
+	// that random bots can be named from instead of the built-in list, when
+	// the owner picks it in Game settings. Read once at startup; a relative
+	// path is from the working directory, like StaticDir.
+	BotNamesFile string
 
 	// SecretKeySource describes how the key was obtained, for the startup log
 	// and `manage paths`. SecretKeyOnDisk says whether it lives in
@@ -450,6 +455,7 @@ func Load() ( cfg *Config , err error ) {
 		BotDelay:            time.Duration( r.integer( "BOT_DELAY_MS" , "bot_delay_ms" , 900 ) ) * time.Millisecond,
 		TableRetention:      time.Duration( r.integer( "TABLE_RETENTION_HOURS" , "table_retention_hours" , 72 ) ) * time.Hour,
 		MaxTables:           r.integer( "MAX_TABLES" , "max_tables" , 50 ),
+		BotNamesFile:        r.str( "BOT_NAMES_FILE" , "bot_names_file" , "./misc/biblical-persons.csv" ),
 	}
 	if cfg.EventStreamLifetime > 25*time.Second {
 		cfg.EventStreamLifetime = 25 * time.Second

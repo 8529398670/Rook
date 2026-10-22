@@ -40,6 +40,7 @@
 # bot_delay_ms              BOT_DELAY_MS
 # table_retention_hours     TABLE_RETENTION_HOURS
 # max_tables                MAX_TABLES
+# bot_names_file            BOT_NAMES_FILE
 
 # 127.0.0.1 answers only this machine, which is what a development run and a
 # server behind a reverse proxy on the same host both want. Use 0.0.0.0 to
@@ -128,3 +129,11 @@ table_retention_hours: 72
 
 # The most tables that can exist at once.
 max_tables: 50
+
+# A CSV of names that random bots can be named from instead of the built-in
+# list, once the owner picks "Names file" in Game settings (along with how
+# many of the most popular to use). It needs a header row with name and
+# total_count columns; other columns are ignored, and a name listed twice
+# (once per sex, say) counts once with its totals added. Read at startup, so
+# restart after changing it. A relative path is from where the server runs.
+bot_names_file: ./misc/biblical-persons.csv

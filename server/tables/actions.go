@@ -272,6 +272,33 @@ func ( hub *Hub ) ShuffleBot( id string , caller *models.User , admin bool , sea
 	return
 }
 
+// SetBotLook picks a bot's emoji and background color by hand: the host's
+// call, or an admin's. "" for either is the robot badge and the usual color.
+func ( hub *Hub ) SetBotLook( id string , caller *models.User , admin bool , seat int , icon string , color string ) ( err error ) {
+	if models.ValidIcon( icon ) == false || models.ValidColor( color ) == false {
+		err = ErrBadLook
+		return
+	}
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind != KindBot {
+			fn_err = ErrNotABot
+			return
+		}
+		table.Seats[ seat ].Icon = icon
+		table.Seats[ seat ].Color = color
+		return
+	} )
+	return
+}
+
 // SetBotLevel changes how well a computer player plays: the host's call, or
 // an admin's, at any point. Mid-hand the bot simply plays its next move at
 // the new level.

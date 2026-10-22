@@ -5,6 +5,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	botnames "rook/server/botnames"
 	models "rook/server/models"
 	security "rook/server/security"
 )
@@ -121,8 +122,28 @@ func ( handlers *Handlers ) SetTableTrickPause( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// settingsResponse is the app-wide settings, plus what the Game settings
+// screen needs to offer the names file: where it is, and how many names it
+// had (0 when it is missing or unreadable).
+type settingsResponse struct {
+	models.AppSettings
+	BotNamesFile      string `json:"bot_names_file"`
+	BotNamesAvailable int    `json:"bot_names_available"`
+	BotNamesDefault   int    `json:"bot_names_default_top"`
+}
+
+func ( handlers *Handlers ) settingsResult( c fiber.Ctx ) ( err error ) {
+	err = c.JSON( settingsResponse{
+		AppSettings:       handlers.Hub.Settings(),
+		BotNamesFile:      handlers.Config.BotNamesFile,
+		BotNamesAvailable: len( handlers.FileBotNames ),
+		BotNamesDefault:   botnames.DefaultTop,
+	} )
+	return
+}
+
 func ( handlers *Handlers ) GetSettings( c fiber.Ctx ) ( err error ) {
-	err = c.JSON( handlers.Hub.Settings() )
+	err = handlers.settingsResult( c )
 	return
 }
 
@@ -136,7 +157,7 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "bad_trick_pause" )
 		return
 	}
-	if models.ValidRookRank( body.RookRank ) == false {
+	if models.ValidRookRank( body.RookRank ) == false || models.ValidBotNames( body.BotNames , body.BotNamesTop ) == false {
 		err = badRequest( c , "bad_options" )
 		return
 	}
@@ -144,7 +165,7 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 		err = serverError( c )
 		return
 	}
-	err = c.JSON( handlers.Hub.Settings() )
+	err = handlers.settingsResult( c )
 	return
 }
 

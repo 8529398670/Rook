@@ -363,8 +363,11 @@ seat_manage:
   level_label: "How well it plays"
   # {name} is the bot's name, {level} the level's short name.
   level_set: "{name} now plays at {level}."
+  # Saved as soon as the box loses focus or Enter is pressed.
   rename_label: "Name at this table"
-  rename: "Rename"
+  # A bot only: its emoji and background color, saved as they're picked.
+  icon_label: "Emoji"
+  color_label: "Background color"
   # A bot only: a new name from bots.random_names, emoji and background color.
   shuffle: "🎲"
   shuffle_title: "Pick another random name, emoji and color"
@@ -750,6 +753,12 @@ guide:
       points:
         - "The Rules tab explains how to play, and the Strategy tab how to play well."
         - "The Bots tab explains the computer players and their six levels."
+    - id: credits
+      heading: "Credits"
+      lead: "The biblical names that bots can be given (Game settings → Random bot names) come from the babynames dataset by dxdc: the people named in the Bible, ranked by how many US babies were given each name."
+      links:
+        - text: "github.com/dxdc/babynames"
+          url: "https://github.com/dxdc/babynames"
     - id: source
       heading: "Open source"
       lead: "The code, the full documentation and how everything works are on GitHub."
@@ -1159,6 +1168,16 @@ game_settings:
   rook_anytime_help: "Official rule: even when you could follow the color led. Applies to tables created from now on."
   rook_first_trick_help: "Turn off to keep the bird out of the hand's opening trick. Applies to tables created from now on."
   rook_rank_help: "Highest beats every card; 10½ beats the 10 and loses to the 11; Lowest is the weakest trump. Applies to tables created from now on."
+  # Where random bots get their names (random bots in Settings, and 🎲).
+  bot_names: "Random bot names"
+  bot_names_builtin: "Built-in"
+  bot_names_file: "Names file"
+  # {file} is bot_names_file from config.yaml, {count} how many names it has.
+  bot_names_help: "Built-in is the list of silly names. Names file uses {file} ({count} names), set by bot_names_file in config.yaml."
+  bot_names_missing: "Built-in is the list of silly names. To use your own, point bot_names_file in config.yaml at a CSV with name and total_count columns and restart. {file} wasn't found or had no names."
+  bot_names_top: "Use the most popular"
+  # {count} is how many names the file has, {default} the starting number.
+  bot_names_top_help: "How many names to pick from, most popular first by total_count (of {count}). Starts at {default}."
   saved: "Saved."
 
 signup_links:

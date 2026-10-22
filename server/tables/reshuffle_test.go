@@ -122,3 +122,24 @@ func TestShuffleBotLook( t *testing.T ) {
 		before = bot.Name
 	}
 }
+
+func TestSetBotLook( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id , err := hub.Create( ana , "Look" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , ana , 1 , "" ); err != nil { t.Fatal( err ) }
+	icon := models.BotIcons[ 0 ]
+	if err = hub.SetBotLook( id , ben , false , 1 , icon , "teal" ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host: %v" , err ) }
+	if err = hub.SetBotLook( id , ana , false , 0 , icon , "teal" ); errors.Is( err , ErrNotABot ) == false { t.Fatalf( "a person: %v" , err ) }
+	if err = hub.SetBotLook( id , ana , false , 1 , "nope" , "teal" ); errors.Is( err , ErrBadLook ) == false { t.Fatalf( "bad icon: %v" , err ) }
+	if err = hub.SetBotLook( id , ana , false , 1 , icon , "h400" ); errors.Is( err , ErrBadLook ) == false { t.Fatalf( "bad color: %v" , err ) }
+	if err = hub.SetBotLook( id , ana , false , 1 , icon , "h200" ); err != nil { t.Fatal( err ) }
+	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	if view.Seats[ 1 ].Icon != icon || view.Seats[ 1 ].Color != "h200" { t.Fatalf( "look %+v" , view.Seats[ 1 ] ) }
+	// Back to the robot, keeping a color.
+	if err = hub.SetBotLook( id , ana , false , 1 , "" , "plum" ); err != nil { t.Fatal( err ) }
+	view , _ = hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+	if view.Seats[ 1 ].Icon != "" || view.Seats[ 1 ].Color != "plum" { t.Fatalf( "look %+v" , view.Seats[ 1 ] ) }
+}

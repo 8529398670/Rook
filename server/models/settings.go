@@ -37,6 +37,25 @@ type AppSettings struct {
 	// RookRank is where the bird sits in trump at every new table, copied
 	// in the same way. "" means game.RookHigh, as it always was.
 	RookRank game.RookRank `json:"rook_rank,omitempty"`
+	// BotNames is where a random bot's name comes from: "" for the built-in
+	// list in language.yaml, BotNamesFile for the names file in config.yaml
+	// (bot_names_file). BotNamesTop is how many of that file's most popular
+	// names are used; 0 means botnames.DefaultTop.
+	BotNames    string `json:"bot_names,omitempty"`
+	BotNamesTop int    `json:"bot_names_top,omitempty"`
+}
+
+// BotNamesFile is the BotNames choice for the names file.
+const BotNamesFile = "file"
+
+// MaxBotNamesTop bounds BotNamesTop, well past any names file's length.
+const MaxBotNamesTop = 100000
+
+// ValidBotNames accepts the built-in list or the file, and a top of 0 ("the
+// default") up to MaxBotNamesTop.
+func ValidBotNames( source string , top int ) ( ok bool ) {
+	ok = ( source == "" || source == BotNamesFile ) && top >= 0 && top <= MaxBotNamesTop
+	return
 }
 
 // ValidRookRank accepts "" ("the default") or one of the game's ranks.

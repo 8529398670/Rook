@@ -167,7 +167,7 @@ const Lobby = {
         attrs: { "aria-hidden": "true" },
         text: seat.kind === "" ? "" : ( seat.kind === "bot" ? Seats.badge( seat ) : Art.initials( Seats.name( seat ) ) ),
       } );
-      if ( seat.kind === "human" || seat.icon ) Art.avatar( dot , seat );
+      if ( Seats.hasLook( seat ) ) Art.avatar( dot , Seats.look( seat ) );
       compass.appendChild( dot );
     } );
 

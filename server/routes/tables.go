@@ -6,6 +6,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	botnames "rook/server/botnames"
 	game "rook/server/game"
 	models "rook/server/models"
 	security "rook/server/security"
@@ -203,9 +204,16 @@ func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-// randomBotNames is the list a random-looking bot's name comes from:
-// bots.random_names in language.yaml, separated by commas.
+// randomBotNames is the list a random-looking bot's name comes from: the
+// most popular names in the names file when the owner chose it in Game
+// settings (and it loaded), else bots.random_names in language.yaml,
+// separated by commas.
 func ( handlers *Handlers ) randomBotNames() ( names []string ) {
+	settings := handlers.Hub.Settings()
+	if settings.BotNames == models.BotNamesFile && len( handlers.FileBotNames ) > 0 {
+		names = botnames.Top( handlers.FileBotNames , settings.BotNamesTop )
+		return
+	}
 	for _ , name := range strings.Split( handlers.Language.Get( "bots.random_names" ) , "," ) {
 		if name = strings.TrimSpace( name ); name != "" { names = append( names , name ) }
 	}
@@ -272,6 +280,25 @@ func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx ) ( err error ) {
 	id := c.Params( "table_id" )
 	look := tables.BotLook{ Names: handlers.randomBotNames() , Icons: models.BotIcons }
 	err = handlers.tableResult( c , id , handlers.Hub.ShuffleBot( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , look ) )
+	return
+}
+
+type botLookRequest struct {
+	Seat      int    `json:"seat"`
+	Icon      string `json:"icon"`
+	Color     string `json:"color"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// SetSeatBotLook picks a bot's emoji and color by hand.
+func ( handlers *Handlers ) SetSeatBotLook( c fiber.Ctx ) ( err error ) {
+	var body botLookRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.SetBotLook( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Icon , body.Color ) )
 	return
 }
 

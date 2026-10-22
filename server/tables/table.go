@@ -58,6 +58,7 @@ const (
 	ErrSeatChanged    Error = "seat_changed"
 	ErrNotAPlayer     Error = "not_a_player"
 	ErrBadSeatName    Error = "bad_seat_name"
+	ErrBadLook        Error = "bad_avatar"
 	ErrNoSuchGame     Error = "no_such_game"
 	ErrBadGuestName   Error = "bad_guest_name"
 	ErrNotPlaying     Error = "not_playing"

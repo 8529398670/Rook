@@ -678,6 +678,23 @@
           </span>
           <input id="setting-rook-first-trick" type="checkbox" role="switch" />
         </label>
+        <label class="switch-row pause-row">
+          <span>
+            <span class="switch-title" data-i18n="game_settings.bot_names"></span>
+            <span class="switch-help" id="setting-bot-names-help"></span>
+          </span>
+          <select id="setting-bot-names" class="pause-select">
+            <option value="" data-i18n="game_settings.bot_names_builtin"></option>
+            <option value="file" data-i18n="game_settings.bot_names_file"></option>
+          </select>
+        </label>
+        <label id="setting-bot-names-top-row" class="switch-row pause-row" hidden>
+          <span>
+            <span class="switch-title" data-i18n="game_settings.bot_names_top"></span>
+            <span class="switch-help" id="setting-bot-names-top-help"></span>
+          </span>
+          <input id="setting-bot-names-top" class="top-input" type="number" min="1" max="100000" step="1" inputmode="numeric" />
+        </label>
       </div>
 
       <div class="card" id="admin-keys-panel" hidden>
@@ -784,14 +801,19 @@
         <div class="seat-rename-row">
           <input id="seat-sheet-rename" maxlength="40" />
           <button id="seat-sheet-shuffle" type="button" class="secondary" data-i18n="seat_manage.shuffle" data-i18n-attr="title:seat_manage.shuffle_title,aria-label:seat_manage.shuffle_title" hidden></button>
-          <button type="submit" class="secondary" data-i18n="seat_manage.rename"></button>
         </div>
         <button id="seat-sheet-reset" type="button" class="ghost small" data-i18n="seat_manage.reset"></button>
+      </div>
+      <div id="seat-sheet-look-box" hidden>
+        <h3 data-i18n="seat_manage.icon_label"></h3>
+        <div id="seat-sheet-icons" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:seat_manage.icon_label"></div>
+        <h3 data-i18n="seat_manage.color_label"></h3>
+        <div id="seat-sheet-colors" class="color-picker"></div>
       </div>
       <div id="seat-sheet-remove-box">
         <p id="seat-sheet-body" class="muted"></p>
         <div class="sheet-actions">
-          <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+          <button type="button" class="secondary" data-sheet-close data-i18n="common.done"></button>
           <button id="seat-sheet-remove" type="button" class="danger" data-i18n="seat_manage.remove"></button>
         </div>
       </div>

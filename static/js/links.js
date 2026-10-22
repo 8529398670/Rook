@@ -33,7 +33,7 @@ const Links = {
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
     this.fillPauses( Dom.get( "setting-trick-pause" ) );
-    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-rank" , "setting-rook-first-trick" ].forEach( function ( id ) {
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-rank" , "setting-rook-first-trick" , "setting-bot-names" , "setting-bot-names-top" ].forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
@@ -48,9 +48,33 @@ const Links = {
       Dom.get( "setting-rook-anytime" ).checked = settings.rook_anytime;
       Dom.get( "setting-rook-first-trick" ).checked = !settings.rook_first_trick_off;
       Dom.get( "setting-rook-rank" ).value = settings.rook_rank || "high";
+      this.renderBotNames( settings );
     } catch ( error ) {
       Toast.error( error );
     }
+  },
+
+  // Where random bots' names come from: the built-in list, or the names
+  // file from config.yaml (bot_names_file), which can only be picked when
+  // the server found names in it. With the file, how many of its most
+  // popular names to use.
+  botNamesDefaultTop: 200,
+
+  renderBotNames( settings ) {
+    const available = settings.bot_names_available || 0;
+    const select = Dom.get( "setting-bot-names" );
+    const fileOption = select.querySelector( "option[value=file]" );
+    this.botNamesDefaultTop = settings.bot_names_default_top || this.botNamesDefaultTop;
+    fileOption.disabled = available === 0 && settings.bot_names !== "file";
+    select.value = settings.bot_names === "file" ? "file" : "";
+    Dom.text( Dom.get( "setting-bot-names-help" ) , available > 0
+      ? I18n.format( "game_settings.bot_names_help" , { file: settings.bot_names_file , count: available.toLocaleString() } )
+      : I18n.format( "game_settings.bot_names_missing" , { file: settings.bot_names_file || "bot_names_file" } ) );
+    const top = Dom.get( "setting-bot-names-top" );
+    top.max = String( Math.max( 1 , available ) );
+    top.value = String( Math.min( settings.bot_names_top || this.botNamesDefaultTop , Math.max( 1 , available ) ) );
+    Dom.text( Dom.get( "setting-bot-names-top-help" ) , I18n.format( "game_settings.bot_names_top_help" , { count: available.toLocaleString() , default: this.botNamesDefaultTop } ) );
+    Dom.show( Dom.get( "setting-bot-names-top-row" ) , select.value === "file" );
   },
 
   async initSignupLinks( me ) {
@@ -67,9 +91,16 @@ const Links = {
     await this.refresh();
   },
 
+  // The top box as a whole number from 1 up; empty or nonsense is the
+  // default.
+  botNamesTop() {
+    const value = Math.floor( Number( Dom.get( "setting-bot-names-top" ).value ) );
+    return value >= 1 ? Math.min( value , 100000 ) : this.botNamesDefaultTop;
+  },
+
   async saveSettings() {
     try {
-      await Api.saveSettings( {
+      const saved = await Api.saveSettings( {
         allow_join_signup: Dom.get( "setting-join-signup" ).checked,
         observers_see_all: Dom.get( "setting-observers-all" ).checked,
         table_chat_off: !Dom.get( "setting-table-chat" ).checked,
@@ -78,7 +109,10 @@ const Links = {
         rook_anytime: Dom.get( "setting-rook-anytime" ).checked,
         rook_first_trick_off: !Dom.get( "setting-rook-first-trick" ).checked,
         rook_rank: Dom.get( "setting-rook-rank" ).value,
+        bot_names: Dom.get( "setting-bot-names" ).value,
+        bot_names_top: this.botNamesTop(),
       } );
+      this.renderBotNames( saved );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {
       Toast.error( error );

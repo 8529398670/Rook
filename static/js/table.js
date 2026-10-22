@@ -81,8 +81,13 @@ const Table = {
       if ( event.key === "Enter" ) event.preventDefault();
     } );
     Dom.get( "seat-sheet-remove" ).addEventListener( "click" , this.removeFromSeat.bind( this ) );
+    // The name saves itself: when the box loses focus, and on Enter, which
+    // just lets go of the box.
     Dom.get( "sheet-seat" ).addEventListener( "submit" , function ( event ) {
       event.preventDefault();
+      Dom.get( "seat-sheet-rename" ).blur();
+    } );
+    Dom.get( "seat-sheet-rename" ).addEventListener( "change" , function () {
       Table.renameSeat( Dom.get( "seat-sheet-rename" ).value );
     } );
     Dom.get( "seat-sheet-reset" ).addEventListener( "click" , function () { Table.renameSeat( "" ); } );
@@ -1006,20 +1011,22 @@ const Table = {
   },
 
   // The host or an admin clicked a player's avatar: rename them for this
-  // table, change how well a bot plays, or take them out of the seat.
+  // table, change how well a bot plays and how it looks, or take them out
+  // of the seat.
   manageSeat( seat ) {
     const view = this.view;
     const info = view && view.seats[ seat ];
     if ( !info || info.kind === "" ) return;
     this.manageSeatIndex = seat;
-    this.manageSeatName = Seats.name( info );
-    Seats.avatar( Dom.get( "seat-sheet-avatar" ) , info );
-    Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
-    Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
-    Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
-    Dom.show( Dom.get( "seat-sheet-shuffle" ) , info.kind === "bot" && this.randomNames().length > 0 );
+    this.lookPicker = null;
+    this.showManagedSeat( info );
+    Dom.show( Dom.get( "seat-sheet-shuffle" ) , info.kind === "bot" );
     Dom.show( Dom.get( "seat-sheet-level-box" ) , info.kind === "bot" );
-    if ( info.kind === "bot" ) this.renderBotLevel( info );
+    Dom.show( Dom.get( "seat-sheet-look-box" ) , false );
+    if ( info.kind === "bot" ) {
+      this.renderBotLevel( info );
+      this.renderBotLook();
+    }
 
     // Removing: anyone's seat but your own (that is Leave), person or bot,
     // at any point in the game.
@@ -1039,41 +1046,83 @@ const Table = {
     Sheet.open( "sheet-seat" , { focus: false } );
   },
 
-  // bots.random_names in language.yaml, separated by commas.
-  randomNames() {
-    return I18n.get( "bots.random_names" ).split( "," ).map( function ( name ) { return name.trim(); } ).filter( Boolean );
+  // The managed seat's avatar, name and name box, from the latest view.
+  showManagedSeat( info ) {
+    this.manageSeatName = Seats.name( info );
+    Seats.avatar( Dom.get( "seat-sheet-avatar" ) , info );
+    Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
+    Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
+    Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+    if ( this.lookPicker ) this.lookPicker.mark();
+  },
+
+  // The managed bot as it is now, or null once the seat holds no bot.
+  managedBot() {
+    const info = this.view && this.view.seats[ this.manageSeatIndex ];
+    return info && info.kind === "bot" ? info : null;
+  },
+
+  // A bot's emoji and background color, picked by hand with the same picker
+  // everyone has for their own avatar. Each pick saves at once.
+  lookPicker: null,
+
+  async renderBotLook() {
+    const seat = this.manageSeatIndex;
+    if ( !await Profile.loadOptions() || seat !== this.manageSeatIndex || !this.managedBot() ) return;
+    const person = function () {
+      const bot = Table.managedBot() || {};
+      return { kind: "bot" , name: Seats.name( bot ) , display_name: Seats.name( bot ) , icon: bot.icon || "" , color: bot.color || "" };
+    };
+    this.lookPicker = Profile.picker( Dom.get( "seat-sheet-icons" ) , Dom.get( "seat-sheet-colors" ) , {
+      person: person,
+      blank: function () { return I18n.get( "bots.badge" ); },
+      preview: function ( look ) { Seats.avatar( Dom.get( "seat-sheet-avatar" ) , look ); },
+      save: function ( icon , color ) { return Table.setBotLook( icon , color ); },
+    } );
+    Dom.show( Dom.get( "seat-sheet-look-box" ) , true );
+  },
+
+  async setBotLook( icon , color ) {
+    try {
+      this.apply( await Api.setBotLook( this.id , this.manageSeatIndex , icon , color ) );
+      const bot = this.managedBot();
+      if ( bot ) Seats.avatar( Dom.get( "seat-sheet-avatar" ) , bot );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 
   // A bot only: a new random name, emoji and color, none of them one the
   // table already has. The sheet stays open so the host can keep rolling
   // until one sticks.
   async shuffleSeatName() {
-    const seat = this.manageSeatIndex;
     const before = this.manageSeatName;
     try {
-      const view = await Api.shuffleBot( this.id , seat );
-      this.apply( view );
-      const info = view.seats[ seat ];
-      if ( !info || info.kind !== "bot" ) return;
-      this.manageSeatName = Seats.name( info );
-      Seats.avatar( Dom.get( "seat-sheet-avatar" ) , info );
-      Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
-      Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
-      Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+      this.apply( await Api.shuffleBot( this.id , this.manageSeatIndex ) );
+      const bot = this.managedBot();
+      if ( !bot ) return;
+      this.showManagedSeat( bot );
       Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: this.manageSeatName } ) );
     } catch ( error ) {
       Toast.error( error );
     }
   },
 
+  // Saves the name box as it is; an empty box gives the player their own
+  // name back. The sheet stays open.
   async renameSeat( name ) {
     const before = this.manageSeatName;
+    const info = this.view && this.view.seats[ this.manageSeatIndex ];
+    if ( !info || ( name.trim() === before && name.trim() !== "" ) ) return;
     try {
-      const view = await Api.renameSeat( this.id , this.manageSeatIndex , name.trim() );
-      Sheet.close( true );
-      this.apply( view );
-      Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: Seats.name( view.seats[ this.manageSeatIndex ] ) } ) );
+      this.apply( await Api.renameSeat( this.id , this.manageSeatIndex , name.trim() ) );
+      const after = this.view.seats[ this.manageSeatIndex ];
+      this.showManagedSeat( after );
+      if ( this.manageSeatName !== before ) {
+        Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: this.manageSeatName } ) );
+      }
     } catch ( error ) {
+      Dom.get( "seat-sheet-rename" ).value = before;
       Toast.error( error );
     }
   },
