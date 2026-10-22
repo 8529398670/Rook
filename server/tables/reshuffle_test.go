@@ -123,6 +123,43 @@ func TestShuffleBotLook( t *testing.T ) {
 	}
 }
 
+func TestUnshuffleBotLook( t *testing.T ) {
+	hub , store , _ := testHub( t )
+	ana := testUser( t , store , "Ana" )
+	ben := testUser( t , store , "Ben" )
+	id , err := hub.Create( ana , "Unshuffle" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.AddBot( id , ana , 1 , "" ); err != nil { t.Fatal( err ) }
+	if err = hub.RenameSeat( id , ana , false , 1 , "Boss" ); err != nil { t.Fatal( err ) }
+	seat := func() SeatInfo {
+		view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
+		return view.Seats[ 1 ]
+	}
+	if seat().CanUnshuffle { t.Fatal( "undo offered before any shuffle" ) }
+	if err = hub.UnshuffleBot( id , ana , false , 1 ); errors.Is( err , ErrNothingToUndo ) == false { t.Fatalf( "undo with no shuffle: %v" , err ) }
+	look := BotLook{ Names: []string{ "Pip" , "Fig" , "Sol" } , Icons: models.BotIcons }
+	looks := []SeatInfo{ seat() }
+	for range 3 {
+		if err = hub.ShuffleBot( id , ana , false , 1 , look ); err != nil { t.Fatal( err ) }
+		looks = append( looks , seat() )
+	}
+	if err = hub.UnshuffleBot( id , ben , false , 1 ); errors.Is( err , ErrNotHost ) == false { t.Fatalf( "non-host undo: %v" , err ) }
+	for step := len( looks ) - 2 ; step >= 0 ; step-- {
+		if got := seat(); got.CanUnshuffle == false || got.PreviousName != looks[ step ].Name {
+			t.Fatalf( "step %d: can %v previous %q, want %q" , step , got.CanUnshuffle , got.PreviousName , looks[ step ].Name )
+		}
+		if err = hub.UnshuffleBot( id , ana , false , 1 ); err != nil { t.Fatal( err ) }
+		got , want := seat() , looks[ step ]
+		if got.Name != want.Name || got.Renamed != want.Renamed || got.Icon != want.Icon || got.Color != want.Color {
+			t.Fatalf( "step %d: got %+v, want %+v" , step , got , want )
+		}
+	}
+	if got := seat(); got.Name != "Boss" || got.Renamed == false || got.CanUnshuffle {
+		t.Fatalf( "not back to the start: %+v" , got )
+	}
+	if err = hub.UnshuffleBot( id , ana , false , 1 ); errors.Is( err , ErrNothingToUndo ) == false { t.Fatalf( "undo past the start: %v" , err ) }
+}
+
 func TestSetBotLook( t *testing.T ) {
 	hub , store , _ := testHub( t )
 	ana := testUser( t , store , "Ana" )

@@ -110,7 +110,22 @@ type Seat struct {
 	// for this table only. It goes with the seat: whoever leaves it takes
 	// their own name back.
 	Alias string `json:"alias,omitempty"`
+	// Past is a bot's earlier looks, newest last: each 🎲 shuffle saves the
+	// one it replaces here, so the host can step back to it.
+	Past []BotDress `json:"past,omitempty"`
 }
+
+// BotDress is one look a bot had: its name, the host's name for it, and its
+// emoji and color.
+type BotDress struct {
+	Name  string `json:"name,omitempty"`
+	Alias string `json:"alias,omitempty"`
+	Icon  string `json:"icon,omitempty"`
+	Color string `json:"color,omitempty"`
+}
+
+// maxBotPast is how many shuffles back a bot's look can be undone.
+const maxBotPast = 20
 
 // shownName is the seat's name as everyone at the table sees it.
 func ( seat Seat ) shownName() ( result string ) {

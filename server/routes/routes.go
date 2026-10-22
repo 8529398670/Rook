@@ -213,6 +213,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	game_tables.Post( "/:table_id/seat/remove" , handlers.RemovePlayer )
 	game_tables.Post( "/:table_id/seat/rename" , handlers.RenameSeat )
 	game_tables.Post( "/:table_id/seat/shuffle" , handlers.ShuffleSeatBot )
+	game_tables.Post( "/:table_id/seat/unshuffle" , handlers.UnshuffleSeatBot )
 	game_tables.Post( "/:table_id/seat/look" , handlers.SetSeatBotLook )
 	game_tables.Post( "/:table_id/start" , handlers.StartTable )
 	game_tables.Post( "/:table_id/restart" , handlers.RestartTable )

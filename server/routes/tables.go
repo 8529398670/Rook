@@ -283,6 +283,18 @@ func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// UnshuffleSeatBot puts back the look a bot had before its last shuffle.
+func ( handlers *Handlers ) UnshuffleSeatBot( c fiber.Ctx ) ( err error ) {
+	var body seatRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	id := c.Params( "table_id" )
+	err = handlers.tableResult( c , id , handlers.Hub.UnshuffleBot( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat ) )
+	return
+}
+
 type botLookRequest struct {
 	Seat      int    `json:"seat"`
 	Icon      string `json:"icon"`

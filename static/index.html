@@ -511,6 +511,13 @@
           </span>
           <input type="checkbox" role="switch" data-player-scores-toggle />
         </label>
+        <label class="switch-row">
+          <span>
+            <span class="switch-title" data-i18n="led_glow.heading"></span>
+            <span class="switch-help" data-i18n="led_glow.description"></span>
+          </span>
+          <input type="checkbox" role="switch" data-led-glow-toggle />
+        </label>
       </div>
 
       <div class="card">
@@ -801,6 +808,7 @@
         <div class="seat-rename-row">
           <input id="seat-sheet-rename" maxlength="40" />
           <button id="seat-sheet-shuffle" type="button" class="secondary" data-i18n="seat_manage.shuffle" data-i18n-attr="title:seat_manage.shuffle_title,aria-label:seat_manage.shuffle_title" hidden></button>
+          <button id="seat-sheet-unshuffle" type="button" class="secondary" data-i18n="seat_manage.unshuffle" hidden></button>
         </div>
         <button id="seat-sheet-reset" type="button" class="ghost small" data-i18n="seat_manage.reset"></button>
       </div>
@@ -879,6 +887,13 @@
             <span class="switch-help" data-i18n="player_scores.description"></span>
           </span>
           <input type="checkbox" role="switch" data-player-scores-toggle />
+        </label>
+        <label class="switch-row menu-switch">
+          <span>
+            <span class="switch-title" data-i18n="led_glow.heading"></span>
+            <span class="switch-help" data-i18n="led_glow.description"></span>
+          </span>
+          <input type="checkbox" role="switch" data-led-glow-toggle />
         </label>
         <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
         <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>

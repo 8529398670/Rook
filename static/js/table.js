@@ -32,6 +32,8 @@ const Table = {
   // in localStorage (wrapped, like the chat dock: blocked storage means off).
   playerScoresKey: "rook.player_scores",
   playerScores: null,
+  ledGlowKey: "rook.led_glow",
+  ledGlow: null,
 
   init( me ) {
     this.me = me;
@@ -92,6 +94,7 @@ const Table = {
     } );
     Dom.get( "seat-sheet-reset" ).addEventListener( "click" , function () { Table.renameSeat( "" ); } );
     Dom.get( "seat-sheet-shuffle" ).addEventListener( "click" , function () { Table.shuffleSeatName(); } );
+    Dom.get( "seat-sheet-unshuffle" ).addEventListener( "click" , function () { Table.unshuffleSeatName(); } );
 
     Dom.all( "[data-menu]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () {
@@ -160,6 +163,11 @@ const Table = {
       toggle.checked = Table.showPlayerScores();
       toggle.addEventListener( "change" , function () { Table.setPlayerScores( toggle.checked ); } );
     } );
+    Dom.all( "[data-led-glow-toggle]" ).forEach( function ( toggle ) {
+      toggle.checked = Table.showLedGlow();
+      toggle.addEventListener( "change" , function () { Table.setLedGlow( toggle.checked ); } );
+    } );
+    document.body.classList.toggle( "show-led" , this.showLedGlow() );
   },
 
   // Auto play: the server plays the bot's choice of card for you on each of
@@ -229,6 +237,30 @@ const Table = {
     }
     Dom.all( "[data-player-scores-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
     if ( this.view ) this.renderBar( this.view );
+  },
+
+  // The first card of each trick outlined, on the table and in Last trick,
+  // when chosen in Settings. Remembered on this device; off until chosen.
+  showLedGlow() {
+    if ( this.ledGlow === null ) {
+      try {
+        this.ledGlow = window.localStorage.getItem( this.ledGlowKey ) === "on";
+      } catch ( error ) {
+        this.ledGlow = false;
+      }
+    }
+    return this.ledGlow;
+  },
+
+  setLedGlow( on ) {
+    this.ledGlow = on;
+    try {
+      window.localStorage.setItem( this.ledGlowKey , on ? "on" : "off" );
+    } catch ( error ) {
+      // Storage refused: the choice still applies for this page view.
+    }
+    Dom.all( "[data-led-glow-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
+    document.body.classList.toggle( "show-led" , on );
   },
 
   // target is { id } for #/t/<id> or { watch: code } for a watch link.
@@ -457,8 +489,11 @@ const Table = {
     if ( view.watchers > 0 ) {
       contract.appendChild( Dom.el( "span" , { class: "watchers-chip" , text: I18n.format( "observe.watchers" , { count: view.watchers } ) } ) );
     }
-    // The phone's copy, in its own row under the bar (see index.html).
-    Dom.get( "table-contract-row" ).replaceChildren( ...Array.from( contract.childNodes ).map( function ( node ) { return node.cloneNode( true ); } ) );
+    // The phone's copy, in its own row under the bar (see index.html). Who
+    // led the trick goes there too: the status line has no room for it.
+    const row = Dom.get( "table-contract-row" );
+    row.replaceChildren( ...Array.from( contract.childNodes ).map( function ( node ) { return node.cloneNode( true ); } ) );
+    if ( playing && game.phase === "playing" && game.trick.plays.length ) row.appendChild( this.leadLine( view , game.trick.plays[ 0 ] ) );
 
     this.renderStatus( view );
 
@@ -522,6 +557,7 @@ const Table = {
     status.appendChild( Dom.el( "span" , { class: "status-title" , text: title } ) );
     if ( hint ) status.appendChild( Dom.el( "span" , { class: "status-hint" , text: hint } ) );
     if ( game.phase === "playing" && view.status !== "held" && view.status !== "paused" ) {
+      if ( game.trick.plays.length ) status.appendChild( this.leadLine( view , game.trick.plays[ 0 ] ) );
       const us = view.you >= 0 ? view.you % 2 : 0;
       const numbers = { trick: game.trick_number , us: game.taken[ us ] , them: game.taken[ 1 - us ] };
       status.appendChild( Dom.el( "span" , { class: "status-progress status-long" , text: I18n.format( "play.progress" , numbers ) } ) );
@@ -529,6 +565,22 @@ const Table = {
     } else if ( lines[ 1 ] ) {
       status.appendChild( Dom.el( "span" , { class: "status-progress" , text: lines[ 1 ] } ) );
     }
+  },
+
+  // Who led the trick on the table and with what card: "Ana led ▮ Red 14",
+  // just the number beside the color on a phone.
+  leadLine( view , lead ) {
+    const name = Seats.name( view.seats[ lead.seat ] );
+    const card = Cards.parse( lead.card );
+    const label = I18n.format( "play.led" , { name: name , card: Cards.name( lead.card ) } );
+    return Dom.el( "span" , { class: "status-lead" , attrs: { title: label } , children: [
+      Dom.el( "span" , { class: "lead-name" , text: I18n.format( "play.led_by" , { name: name } ) } ),
+      Dom.el( "span" , { class: "lead-card trump-" + card.color , children: [
+        Art.glyphIcon( card.color ),
+        Dom.el( "span" , { class: "status-long" , text: Cards.name( lead.card ) } ),
+        Dom.el( "span" , { class: "status-short" , text: card.rook ? I18n.get( "colors.rook" ) : String( card.number ) } ),
+      ] } ),
+    ] } );
   },
 
   renderTray( view ) {
@@ -833,8 +885,8 @@ const Table = {
     Dom.show( Dom.get( "last-trick-empty" ) , !last );
     Dom.text( Dom.get( "last-trick-caption" ) , last ? I18n.format( "last_trick.caption" , { name: Seats.name( view.seats[ last.winner ] ) , points: last.points } ) : "" );
     if ( last ) {
-      last.plays.forEach( function ( play ) {
-        const figure = Dom.el( "figure" , { class: "mini-play" + ( play.seat === last.winner ? " is-winner" : "" ) , children: [
+      last.plays.forEach( function ( play , index ) {
+        const figure = Dom.el( "figure" , { class: "mini-play" + ( play.seat === last.winner ? " is-winner" : "" ) + ( index === 0 ? " is-led" : "" ) , children: [
           Cards.el( play.card , { class: "mini" } ),
           Dom.el( "figcaption" , { text: Seats.name( view.seats[ play.seat ] ) } ),
         ] } );
@@ -1053,6 +1105,14 @@ const Table = {
     Dom.text( Dom.get( "seat-sheet-name" ) , this.manageSeatName );
     Dom.get( "seat-sheet-rename" ).value = this.manageSeatName;
     Dom.show( Dom.get( "seat-sheet-reset" ) , info.renamed );
+    // Back a shuffle: only once the 🎲 has rolled, naming who it brings back.
+    const unshuffle = Dom.get( "seat-sheet-unshuffle" );
+    Dom.show( unshuffle , info.kind === "bot" && info.can_unshuffle === true );
+    if ( info.can_unshuffle ) {
+      const title = I18n.format( "seat_manage.unshuffle_title" , { name: info.previous_name || "" } );
+      unshuffle.setAttribute( "title" , title );
+      unshuffle.setAttribute( "aria-label" , title );
+    }
     if ( this.lookPicker ) this.lookPicker.mark();
   },
 
@@ -1099,6 +1159,21 @@ const Table = {
     const before = this.manageSeatName;
     try {
       this.apply( await Api.shuffleBot( this.id , this.manageSeatIndex ) );
+      const bot = this.managedBot();
+      if ( !bot ) return;
+      this.showManagedSeat( bot );
+      Toast.show( I18n.format( "seat_manage.renamed" , { old: before , name: this.manageSeatName } ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
+  // A bot only: the name, emoji and color it had before the last shuffle.
+  // Each press steps one shuffle further back.
+  async unshuffleSeatName() {
+    const before = this.manageSeatName;
+    try {
+      this.apply( await Api.unshuffleBot( this.id , this.manageSeatIndex ) );
       const bot = this.managedBot();
       if ( !bot ) return;
       this.showManagedSeat( bot );

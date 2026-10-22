@@ -233,6 +233,10 @@ play:
   waiting: "{name} to play…"
   progress: "Trick {trick} of 13 · points taken {us} – {them}"
   progress_short: "Trick {trick}/13 · {us}–{them}"
+  # Who led the trick on the table: the full line is the tooltip, the bar
+  # shows led_by beside the card's color chip.
+  led: "{name} led {card}"
+  led_by: "{name} led"
 
 colors:
   red: "Red"
@@ -371,6 +375,9 @@ seat_manage:
   # A bot only: a new name from bots.random_names, emoji and background color.
   shuffle: "🎲"
   shuffle_title: "Pick another random name, emoji and color"
+  # Steps back one 🎲 shuffle; {name} is the name it brings back.
+  unshuffle: "↩️"
+  unshuffle_title: "Back to the previous name, emoji and color ({name})"
   reset: "Use their own name"
   renamed: "{old} is now {name} at this table."
   remove: "Remove from seat"
@@ -856,6 +863,10 @@ player_scores:
   heading: "Players' points in the top bar"
   description: "Under each team's score, show the points each player has taken this hand. Remembered on this device."
   label: "{name}: {points} this hand"
+
+led_glow:
+  heading: "Outline the card that was led"
+  description: "Highlight the first card of each trick, so you can always see what color to follow. Remembered on this device."
 
 zoom:
   heading: "Card size"

@@ -23,6 +23,10 @@ type SeatInfo struct {
 	Color   string `json:"color"`
 	// AutoPlay: this person has the server playing their cards this hand.
 	AutoPlay bool `json:"auto_play"`
+	// CanUnshuffle: a bot whose last 🎲 shuffle can be undone, and the name
+	// that would bring back.
+	CanUnshuffle bool   `json:"can_unshuffle"`
+	PreviousName string `json:"previous_name,omitempty"`
 }
 
 // RequestInfo is one pending "let me take over this bot" request, shown to
@@ -146,7 +150,14 @@ func ( table *Table ) seatInfo() ( seats [4]SeatInfo ) {
 			Online:  seat.Kind == KindBot || ( seat.Kind == KindHuman && table.online( seat.UserID ) ),
 			AutoPlay: table.autoPlays( index ),
 		}
-		if seat.Kind == KindBot { seats[ index ].Level = string( table.moveLevel( index ) ) }
+		if seat.Kind == KindBot {
+			seats[ index ].Level = string( table.moveLevel( index ) )
+			if len( seat.Past ) > 0 {
+				last := seat.Past[ len( seat.Past ) - 1 ]
+				seats[ index ].CanUnshuffle = true
+				seats[ index ].PreviousName = Seat{ Name: last.Name , Alias: last.Alias }.shownName()
+			}
+		}
 	}
 	return
 }

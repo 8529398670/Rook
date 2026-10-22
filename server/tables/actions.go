@@ -264,8 +264,43 @@ func ( hub *Hub ) ShuffleBot( id string , caller *models.User , admin bool , sea
 			return
 		}
 		bot := table.Seats[ seat ]
+		past := append( []BotDress{} , bot.Past... )
+		past = append( past , BotDress{ Name: bot.Name , Alias: bot.Alias , Icon: bot.Icon , Color: bot.Color } )
+		if len( past ) > maxBotPast { past = past[ len( past ) - maxBotPast : ] }
 		table.dress( &bot , look )
 		bot.Alias = ""
+		bot.Past = past
+		table.Seats[ seat ] = bot
+		return
+	} )
+	return
+}
+
+// UnshuffleBot puts back the look a bot had before its last shuffle: the
+// host's call, or an admin's. Each call steps one shuffle further back.
+func ( hub *Hub ) UnshuffleBot( id string , caller *models.User , admin bool , seat int ) ( err error ) {
+	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if admin == false && table.HostID != caller.ID {
+			fn_err = ErrNotHost
+			return
+		}
+		if validSeat( seat ) == false {
+			fn_err = ErrBadSeat
+			return
+		}
+		if table.Seats[ seat ].Kind != KindBot {
+			fn_err = ErrNotABot
+			return
+		}
+		bot := table.Seats[ seat ]
+		if len( bot.Past ) == 0 {
+			fn_err = ErrNothingToUndo
+			return
+		}
+		last := bot.Past[ len( bot.Past ) - 1 ]
+		bot.Past = append( []BotDress{} , bot.Past[ : len( bot.Past ) - 1 ]... )
+		if len( bot.Past ) == 0 { bot.Past = nil }
+		bot.Name , bot.Alias , bot.Icon , bot.Color = last.Name , last.Alias , last.Icon , last.Color
 		table.Seats[ seat ] = bot
 		return
 	} )

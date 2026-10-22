@@ -90,6 +90,7 @@ const Trick = {
       Dom.vars( node , { tilt: ( ( seat * 37 ) % 9 - 4 ) + "deg" } );
       Trick.element.appendChild( node );
       pending.node = node;
+      Trick.markLead();
       Fling.remove( body );
       pending.body = null;
       const to = node.getBoundingClientRect();
@@ -120,7 +121,15 @@ const Trick = {
     Dom.vars( node , { tilt: ( ( seat * 37 ) % 9 - 4 ) + "deg" } );
     this.element.appendChild( node );
     this.shown.push( { seat: seat , card: card , node: node } );
+    this.markLead();
     return node;
+  },
+
+  // The card that led the trick carries is-led (outlined when chosen in
+  // Settings) -- your own predicted card too, when it is the first down.
+  markLead() {
+    this.shown.forEach( function ( entry , index ) { entry.node.classList.toggle( "is-led" , index === 0 ); } );
+    if ( this.pending && this.pending.node ) this.pending.node.classList.toggle( "is-led" , this.shown.length === 0 );
   },
 
   // Draw view's current trick with no animation.
@@ -192,6 +201,7 @@ const Trick = {
       this.pending = null;
       pending.node.classList.remove( "is-pending" );
       this.shown.push( { seat: seat , card: card , node: pending.node } );
+      this.markLead();
       return pending.landed;
     }
     const node = this.place( view , seat , card );

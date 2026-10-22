@@ -117,6 +117,11 @@
     padding: 0 4px 2px;
     font-size: 0.76rem;
   }
+  /* Who led moves down here, card name in full. */
+  .table-status .status-lead { display: none; }
+  .table-contract-row .status-lead::before { content: none; }
+  .table-contract-row .status-lead .status-long { display: inline; }
+  .table-contract-row .status-lead .status-short { display: none; }
 }
 
 /* What is happening right now: whose turn, and the trick count. */
@@ -132,11 +137,19 @@
 }
 
 .status-title { flex: 0 0 auto; font-weight: 700; color: var(--fg); }
-.status-hint { overflow: hidden; text-overflow: ellipsis; }
+/* The hint gives up its room first, before who led or the trick count. */
+.status-hint { flex: 0 100 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .status-hint::before { content: "— "; }
 .status-progress { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .status-progress::before { content: "·"; margin-right: 8px; }
 .status-short { display: none; }
+
+/* Who led the trick on the table, and the card: its color chip, then its
+   name (just the number on a phone). */
+.status-lead { display: inline-flex; flex: 0 0 auto; align-items: baseline; gap: 5px; }
+.status-lead::before { content: "·"; margin-right: 3px; }
+.lead-card { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 2px; padding: 0 6px; font-weight: 750; border-radius: 999px; background: var(--surface-2); }
+.lead-card .glyph { width: 0.8em; height: 0.8em; align-self: center; }
 
 .table-status.is-your-turn .status-title { color: var(--accent-strong); }
 .table-status.is-your-turn .status-title::before {
@@ -613,6 +626,13 @@
 
 .felt.is-card-drag .trick::before { opacity: 0.35; }
 .felt.is-drop-ready .trick::before { opacity: 0.85; scale: 1.04; background-color: rgba(255, 255, 255, 0.12); }
+
+/* The card that led the trick, when chosen in Settings: a gold outline, so
+   it still shows beside the winner's glow. */
+.show-led .trick-card.is-led {
+  outline: 3px solid var(--led-ring);
+  outline-offset: 2px;
+}
 
 .trick-card.is-winner {
   z-index: 5;
