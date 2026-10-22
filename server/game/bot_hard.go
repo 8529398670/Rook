@@ -361,7 +361,7 @@ func ( memory *botMemory ) hardFollow( legal []Card ) ( card Card ) {
 	}
 
 	if TeamOf( holding.Seat ) == TeamOf( seat ) {
-		if memory.threatened( holding.Card , led , after ) == false {
+		if memory.partnerSure() {
 			card = memory.feed( legal )
 			return
 		}
@@ -397,6 +397,18 @@ func ( memory *botMemory ) hardFollow( legal []Card ) ( card Card ) {
 		return
 	}
 	card = memory.cheapest( legal )
+	return
+}
+
+// partnerSure reports whether the partner holds the trick in progress and
+// nobody still to play can take it away.
+func ( memory *botMemory ) partnerSure() ( result bool ) {
+	state := memory.state
+	plays := state.Trick.Plays
+	if len( plays ) == 0 { return }
+	holding := plays[ state.winningPlay( plays ) ]
+	if TeamOf( holding.Seat ) != TeamOf( memory.seat ) { return }
+	result = memory.threatened( holding.Card , state.suitOf( plays[ 0 ].Card ) , state.stillToPlay( memory.seat ) ) == false
 	return
 }
 

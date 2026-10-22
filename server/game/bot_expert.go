@@ -241,6 +241,22 @@ func ( state *State ) expertPlay( seat int , reading bool ) ( card Card ) {
 	memory := state.remember( seat )
 	source := state.seedFor( seat )
 
+	// Never trump a trick the partner is sure to take while there is an
+	// off-color card to throw. The search would sometimes do it to take the
+	// lead and draw trump, which only pays because the imagined partner
+	// plays Hard and never leads trump back to the bidder. (Teaching Hard to
+	// lead trump back instead cost Expert 3.7 points a hand over 250 deals;
+	// this rule cost it nothing measurable over 300.)
+	if memory.partnerSure() && state.isTrump( state.Trick.Plays[ 0 ].Card ) == false {
+		others := []Card{}
+		for _ , candidate := range legal {
+			if state.isTrump( candidate ) == false { others = append( others , candidate ) }
+		}
+		if len( others ) > 0 && len( others ) < len( legal ) { legal = others }
+		card = legal[ 0 ]
+		if len( legal ) == 1 { return }
+	}
+
 	team := TeamOf( seat )
 	totals := make( []int , len( legal ) )
 	for _ , world := range memory.imagineMany( source , expertSamples , reading ) {
