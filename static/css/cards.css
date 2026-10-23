@@ -51,13 +51,13 @@ button.playing-card:active:not(:disabled) { transform: none; }
 }
 
 .mini-play.is-winner .playing-card {
-  outline: 3px solid var(--accent);
+  outline: 3px solid var(--win-ring);
   outline-offset: 2px;
 }
 
 .mini-play.is-winner figcaption { color: var(--accent); font-weight: 700; }
 
-/* The card that led, when chosen in Settings: gold, with the winner's ring
-   around it when it also took the trick. */
+/* The card that led, when chosen in Settings: black, with the winner's gold
+   ring around it when it also took the trick. */
 .show-led .mini-play.is-led .playing-card { outline: 3px solid var(--led-ring); outline-offset: 2px; }
-.show-led .mini-play.is-led.is-winner .playing-card { box-shadow: 0 0 0 8px var(--accent); }
+.show-led .mini-play.is-led.is-winner .playing-card { box-shadow: 0 0 0 8px var(--win-ring); }

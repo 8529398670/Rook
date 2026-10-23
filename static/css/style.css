@@ -36,7 +36,8 @@
   --accent-strong: #0f6676;
   --accent-fg: #ffffff;
   --accent-soft: #dcf0f3;
-  --led-ring: #e8a800;
+  --led-ring: #111111;
+  --win-ring: #e8a800;
   --danger: #c0392b;
   --danger-fg: #ffffff;
 
@@ -98,7 +99,8 @@
   --accent-strong: #79d6e4;
   --accent-fg: #062a31;
   --accent-soft: #123940;
-  --led-ring: #f5c04a;
+  --led-ring: #000000;
+  --win-ring: #f5c04a;
   --danger: #ef6b5c;
   --danger-fg: #2a0905;
 

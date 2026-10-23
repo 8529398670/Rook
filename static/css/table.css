@@ -627,8 +627,8 @@
 .felt.is-card-drag .trick::before { opacity: 0.35; }
 .felt.is-drop-ready .trick::before { opacity: 0.85; scale: 1.04; background-color: rgba(255, 255, 255, 0.12); }
 
-/* The card that led the trick, when chosen in Settings: a gold outline, so
-   it still shows beside the winner's glow. */
+/* The card that led the trick, when chosen in Settings: a black outline, so
+   it still shows beside the winner's gold glow. */
 .show-led .trick-card.is-led {
   outline: 3px solid var(--led-ring);
   outline-offset: 2px;
@@ -637,7 +637,7 @@
 .trick-card.is-winner {
   z-index: 5;
   --card-drop: 0 0 0 transparent;
-  filter: drop-shadow(0 0 6px var(--accent)) drop-shadow(0 0 2px var(--accent));
+  filter: drop-shadow(0 0 6px var(--win-ring)) drop-shadow(0 0 2px var(--win-ring));
 }
 
 /* ------------------------------------------------------- waiting room */
@@ -1646,7 +1646,7 @@
 
 .record-play figcaption { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .playing-card.record-card { --card-w: clamp(38px, 11vw, 54px); --card-drop: 0 1px 2px rgba(40, 25, 5, 0.25); }
-.record-play.is-winner .playing-card { outline: 2px solid var(--accent); outline-offset: 2px; }
+.record-play.is-winner .playing-card { outline: 2px solid var(--win-ring); outline-offset: 2px; }
 .record-play.is-winner figcaption { color: var(--accent-strong); font-weight: 700; }
 
 /* ------------------------------------------- taking over a bot's seat */
