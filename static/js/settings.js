@@ -40,15 +40,24 @@ const Settings = {
       }
     } );
     Zoom.bind( Dom.get( "settings-zoom" ) );
+    Dom.get( "settings-filter" ).addEventListener( "input" , () => this.applyFilter() );
   },
 
   async enter() {
     Dom.get( "display-name" ).value = this.me.display_name;
     this.renderTheme();
     await Profile.enter();
-    if ( this.ready ) return;
-    this.ready = true;
+    this.measureHeader();
+    if ( !this.ready ) {
+      this.ready = true;
+      await this.loadPanels();
+    }
+    // Panels this account may use have only now been revealed.
+    this.applyFilter();
+  },
 
+  // The cards only some accounts get, each filled by its own file.
+  async loadPanels() {
     // Each panel owns its own file and its own init(); this is the one line
     // that knows the API keys screen exists.
     await Keys.init( this.me );
@@ -70,6 +79,63 @@ const Settings = {
   },
 
   leave() {},
+
+  // The filter and the jump links only hide and scroll. A card is one thing
+  // to match; a section goes, with its link, once none of its cards is left.
+  // What the filter hides is a class, not [hidden], which stays the
+  // account's own: a card this account may not use is never shown by it.
+  applyFilter() {
+    const words = Dom.get( "settings-filter" ).value.trim().toLowerCase().split( /\s+/ ).filter( Boolean );
+    const jump = Dom.get( "settings-jump" );
+    Dom.clear( jump );
+    let shown = 0;
+    let total = 0;
+    Dom.all( "[data-settings-section]" ).forEach( ( section ) => {
+      let left = 0;
+      Dom.all( ":scope > .card" , section ).forEach( ( card ) => {
+        if ( card.hidden ) return;
+        total += 1;
+        const text = card.textContent.toLowerCase();
+        const match = words.every( ( word ) => text.includes( word ) );
+        card.classList.toggle( "settings-filtered" , !match );
+        if ( match ) left += 1;
+      } );
+      shown += left;
+      section.classList.toggle( "settings-filtered" , left === 0 );
+      if ( left === 0 ) return;
+      const title = section.querySelector( ".settings-section-title" );
+      jump.appendChild( Dom.el( "button" , {
+        class: "secondary",
+        text: title ? title.textContent : "",
+        attrs: { type: "button" },
+        on: { click: () => this.jumpTo( section ) },
+      } ) );
+    } );
+    let status = "";
+    if ( words.length > 0 ) {
+      status = shown === 0 ? I18n.get( "settings.filter_none" )
+        : I18n.format( "settings.filter_count" , { count: shown , total: total } );
+    }
+    Dom.text( Dom.get( "settings-filter-status" ) , status );
+  },
+
+  // By script rather than a #link, because the hash says which screen this
+  // is. Measured, because the header and the tools above stay on screen.
+  jumpTo( section ) {
+    const header = document.querySelector( "#screen-settings .page-header" );
+    const tools = document.querySelector( ".settings-tools" );
+    const sticky = getComputedStyle( tools ).position === "sticky";
+    const offset = header.getBoundingClientRect().bottom + ( sticky ? tools.offsetHeight : 0 ) + 8;
+    window.scrollTo( { top: window.scrollY + section.getBoundingClientRect().top - offset , behavior: "instant" } );
+    section.focus( { preventScroll: true } );
+  },
+
+  // The sticky tools sit just under the sticky header, whose height
+  // depends on the phone's notch.
+  measureHeader() {
+    const header = document.querySelector( "#screen-settings .page-header" );
+    if ( header ) Dom.get( "screen-settings" ).style.setProperty( "--settings-header-height" , header.offsetHeight + "px" );
+  },
 
   renderWho() {
     const roleKey = this.me.role === "admin" ? "account.role_admin" : "account.role_user";

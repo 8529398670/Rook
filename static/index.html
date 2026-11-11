@@ -347,382 +347,409 @@
     </header>
 
     <main class="settings-main">
-      <div class="card">
-        <h2 data-i18n="account.heading"></h2>
-        <p id="who-am-i" class="muted"></p>
-        <form id="rename-form" autocomplete="off">
-          <div class="field">
-            <label for="display-name" data-i18n="account.display_name_label"></label>
-            <input id="display-name" name="display_name" maxlength="80" required
-                   data-i18n-attr="placeholder:account.display_name_placeholder" />
+      <!-- Filter and jump links: the page is long, so find a setting by name
+           or skip to its section. Both only hide and scroll; nothing is saved. -->
+      <div class="settings-tools" role="search">
+        <div class="settings-filter-row">
+          <label for="settings-filter" class="visually-hidden" data-i18n="settings.filter_label"></label>
+          <input id="settings-filter" type="search" autocomplete="off" data-i18n-attr="placeholder:settings.filter_label" />
+          <span id="settings-filter-status" class="muted settings-filter-status" role="status"></span>
+        </div>
+        <nav id="settings-jump" class="settings-jump" data-i18n-attr="aria-label:settings.jump_label"></nav>
+      </div>
+
+      <section id="settings-section-account" class="settings-section" data-settings-section="account" tabindex="-1" aria-labelledby="settings-section-account-title">
+        <h2 id="settings-section-account-title" class="settings-section-title" data-i18n="settings.section_account"></h2>
+        <div class="card">
+          <h2 data-i18n="account.heading"></h2>
+          <p id="who-am-i" class="muted"></p>
+          <form id="rename-form" autocomplete="off">
+            <div class="field">
+              <label for="display-name" data-i18n="account.display_name_label"></label>
+              <input id="display-name" name="display_name" maxlength="80" required
+                     data-i18n-attr="placeholder:account.display_name_placeholder" />
+            </div>
+            <button type="submit" data-i18n="account.save_button"></button>
+          </form>
+          <p id="rename-saved" class="notice notice-ok" data-i18n="account.saved_notice" hidden></p>
+          <button id="logout-button" type="button" class="secondary" data-i18n="account.logout_button"></button>
+          <div id="delete-me-row" class="delete-me-row" hidden>
+            <button id="delete-me-button" type="button" class="ghost danger-text" data-i18n="account.delete_button"></button>
           </div>
-          <button type="submit" data-i18n="account.save_button"></button>
-        </form>
-        <p id="rename-saved" class="notice notice-ok" data-i18n="account.saved_notice" hidden></p>
-        <button id="logout-button" type="button" class="secondary" data-i18n="account.logout_button"></button>
-        <div id="delete-me-row" class="delete-me-row" hidden>
-          <button id="delete-me-button" type="button" class="ghost danger-text" data-i18n="account.delete_button"></button>
         </div>
-      </div>
 
-      <div class="card">
-        <h2 data-i18n="profile.heading"></h2>
-        <div class="avatar-preview-row">
-          <span id="avatar-preview" class="avatar avatar-large" aria-hidden="true"></span>
-          <p class="muted" data-i18n="profile.description"></p>
-        </div>
-        <h3 data-i18n="profile.icon"></h3>
-        <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
-        <h3 data-i18n="profile.color"></h3>
-        <div id="color-grid" class="color-picker"></div>
-      </div>
-
-      <!-- Signing in somewhere else: a one-time link to yourself. -->
-      <div class="card">
-        <h2 data-i18n="device_link.heading"></h2>
-        <p class="muted" data-i18n="device_link.description"></p>
-        <button id="device-link-button" type="button" data-i18n="device_link.button"></button>
-        <div id="device-link-box" class="notice notice-link" hidden>
-          <p id="device-link-notice"></p>
-          <code id="device-link-value"></code>
-          <button id="device-link-copy" type="button" class="secondary" data-i18n="device_link.copy"></button>
-          <span id="device-link-copied" class="muted" data-i18n="device_link.copied" hidden></span>
-        </div>
-      </div>
-
-      <div class="card" id="signup-links-panel" hidden>
-        <h2 data-i18n="signup_links.heading"></h2>
-        <p class="muted" data-i18n="signup_links.description"></p>
-        <form id="signup-link-form" autocomplete="off">
-          <div class="field">
-            <label for="signup-link-label" data-i18n="signup_links.label"></label>
-            <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
+        <div class="card">
+          <h2 data-i18n="profile.heading"></h2>
+          <div class="avatar-preview-row">
+            <span id="avatar-preview" class="avatar avatar-large" aria-hidden="true"></span>
+            <p class="muted" data-i18n="profile.description"></p>
           </div>
-          <div class="field">
-            <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
-            <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
+          <h3 data-i18n="profile.icon"></h3>
+          <div id="icon-grid" class="icon-grid" role="radiogroup" data-i18n-attr="aria-label:profile.icon"></div>
+          <h3 data-i18n="profile.color"></h3>
+          <div id="color-grid" class="color-picker"></div>
+        </div>
+
+        <!-- Signing in somewhere else: a one-time link to yourself. -->
+        <div class="card">
+          <h2 data-i18n="device_link.heading"></h2>
+          <p class="muted" data-i18n="device_link.description"></p>
+          <button id="device-link-button" type="button" data-i18n="device_link.button"></button>
+          <div id="device-link-box" class="notice notice-link" hidden>
+            <button type="button" class="icon-button box-close" data-box-close="device-link-button" data-i18n-attr="aria-label:common.close,title:common.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <p id="device-link-notice"></p>
+            <code id="device-link-value"></code>
+            <button id="device-link-copy" type="button" class="secondary" data-i18n="device_link.copy"></button>
+            <span id="device-link-copied" class="muted" data-i18n="device_link.copied" hidden></span>
           </div>
-          <div class="field">
-            <label for="signup-link-days" data-i18n="signup_links.days"></label>
-            <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="pin.heading"></h2>
+          <p class="muted" data-i18n="pin.description"></p>
+          <p id="pin-state" class="pin-state"></p>
+          <form id="pin-form" autocomplete="off">
+            <div class="field">
+              <label for="pin-input" data-i18n="pin.label"></label>
+              <input id="pin-input" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="new-password" />
+            </div>
+            <button type="submit" data-i18n="pin.save"></button>
+          </form>
+          <button id="pin-remove" type="button" class="secondary" data-i18n="pin.remove" hidden></button>
+        </div>
+
+        <!-- API keys: the non-browser way in, kept from the template. -->
+        <div class="card" id="api-keys-panel" hidden>
+          <h2 data-i18n="api_keys.heading"></h2>
+          <p class="muted" data-i18n="api_keys.description"></p>
+
+          <form id="create-key-form" autocomplete="off">
+            <div class="field">
+              <label for="key-name" data-i18n="api_keys.name_label"></label>
+              <input id="key-name" name="name" maxlength="80" required
+                     data-i18n-attr="placeholder:api_keys.name_placeholder" />
+            </div>
+            <div class="field" id="key-role-field" hidden>
+              <label for="key-role" data-i18n="api_keys.role_label"></label>
+              <select id="key-role" name="role">
+                <option value="user" data-i18n="api_keys.role_user"></option>
+                <option value="admin" data-i18n="api_keys.role_admin"></option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="key-days" data-i18n="api_keys.days_label"></label>
+              <input id="key-days" name="expires_in_days" type="number" min="0" max="3650" inputmode="numeric"
+                     data-i18n-attr="placeholder:api_keys.days_placeholder" />
+            </div>
+            <button type="submit" data-i18n="api_keys.create_button"></button>
+          </form>
+
+          <div id="key-secret-box" class="notice notice-link" hidden>
+            <button type="button" class="icon-button box-close" data-box-close="key-name" data-i18n-attr="aria-label:common.close,title:common.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <p data-i18n="api_keys.secret_notice"></p>
+            <code id="key-secret-value"></code>
+            <button id="copy-key-button" type="button" class="secondary" data-i18n="api_keys.copy_button"></button>
+            <span id="key-copied-notice" class="muted" data-i18n="api_keys.copied_notice" hidden></span>
           </div>
-          <button type="submit" data-i18n="signup_links.create"></button>
-        </form>
-        <div id="signup-link-box" class="notice notice-link" hidden>
-          <p data-i18n="signup_links.link_notice"></p>
-          <code id="signup-link-value"></code>
-          <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
-          <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
-        </div>
-        <div class="table-scroll">
-          <table id="signup-links-table">
-            <thead>
-              <tr>
-                <th data-i18n="signup_links.table_label"></th>
-                <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
-                <th data-i18n="signup_links.table_used"></th>
-                <th data-i18n="signup_links.table_status"></th>
-                <th data-i18n="signup_links.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
 
-      <div class="card">
-        <h2 data-i18n="pin.heading"></h2>
-        <p class="muted" data-i18n="pin.description"></p>
-        <p id="pin-state" class="pin-state"></p>
-        <form id="pin-form" autocomplete="off">
-          <div class="field">
-            <label for="pin-input" data-i18n="pin.label"></label>
-            <input id="pin-input" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required autocomplete="new-password" />
+          <div class="table-scroll">
+            <table id="keys-table">
+              <thead>
+                <tr>
+                  <th data-i18n="api_keys.table_name"></th>
+                  <th data-i18n="api_keys.table_role"></th>
+                  <th data-i18n="api_keys.table_status"></th>
+                  <th data-i18n="api_keys.table_last_used"></th>
+                  <th data-i18n="api_keys.table_expires"></th>
+                  <th data-i18n="api_keys.table_actions"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
-          <button type="submit" data-i18n="pin.save"></button>
-        </form>
-        <button id="pin-remove" type="button" class="secondary" data-i18n="pin.remove" hidden></button>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="bot_default.heading"></h2>
-        <p class="muted" data-i18n="bot_default.description"></p>
-        <div id="bot-default-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:bot_default.heading"></div>
-        <p id="bot-default-help" class="muted bot-default-help"></p>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="bot_default.random"></span>
-            <span class="switch-help" data-i18n="bot_default.random_help"></span>
-          </span>
-          <input id="random-bots" type="checkbox" role="switch" />
-        </label>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="auto_play_settings.heading"></h2>
-        <p class="muted" data-i18n="auto_play_settings.description"></p>
-        <div id="auto-play-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:auto_play_settings.heading"></div>
-        <p id="auto-play-help" class="muted bot-default-help"></p>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="appearance.heading"></h2>
-        <p class="muted" data-i18n="appearance.description"></p>
-        <div class="segmented" role="radiogroup" data-i18n-attr="aria-label:appearance.heading">
-          <button id="theme-light" type="button" role="radio" data-theme-choice="light" data-i18n="appearance.light"></button>
-          <button id="theme-dark" type="button" role="radio" data-theme-choice="dark" data-i18n="appearance.dark"></button>
         </div>
-      </div>
+      </section>
 
-      <div class="card">
-        <h2 data-i18n="chat_settings.heading"></h2>
-        <p class="muted" data-i18n="chat_settings.description"></p>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="chat_settings.table_shown"></span>
-            <span class="switch-help" data-i18n="chat_settings.table_shown_help"></span>
-          </span>
-          <input type="checkbox" role="switch" data-chat-shown="table" />
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="chat_settings.global_shown"></span>
-            <span class="switch-help" data-i18n="chat_settings.global_shown_help"></span>
-          </span>
-          <input type="checkbox" role="switch" data-chat-shown="global" />
-        </label>
-        <h3 data-i18n="chat_dock.heading"></h3>
-        <p class="muted" data-i18n="chat_dock.description"></p>
-        <div class="dock-choice">
-          <span class="switch-title" data-i18n="chat_dock.table"></span>
-          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="table" data-i18n-attr="aria-label:chat_dock.table"></div>
+      <section id="settings-section-play" class="settings-section" data-settings-section="play" tabindex="-1" aria-labelledby="settings-section-play-title">
+        <h2 id="settings-section-play-title" class="settings-section-title" data-i18n="settings.section_play"></h2>
+        <div class="card">
+          <h2 data-i18n="bot_default.heading"></h2>
+          <p class="muted" data-i18n="bot_default.description"></p>
+          <div id="bot-default-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:bot_default.heading"></div>
+          <p id="bot-default-help" class="muted bot-default-help"></p>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="bot_default.random"></span>
+              <span class="switch-help" data-i18n="bot_default.random_help"></span>
+            </span>
+            <input id="random-bots" type="checkbox" role="switch" />
+          </label>
         </div>
-        <div class="dock-choice">
-          <span class="switch-title" data-i18n="chat_dock.global"></span>
-          <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="global" data-i18n-attr="aria-label:chat_dock.global"></div>
+
+        <div class="card">
+          <h2 data-i18n="auto_play_settings.heading"></h2>
+          <p class="muted" data-i18n="auto_play_settings.description"></p>
+          <div id="auto-play-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:auto_play_settings.heading"></div>
+          <p id="auto-play-help" class="muted bot-default-help"></p>
         </div>
-      </div>
 
-      <div class="card">
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="player_scores.heading"></span>
-            <span class="switch-help" data-i18n="player_scores.description"></span>
-          </span>
-          <input type="checkbox" role="switch" data-player-scores-toggle />
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="led_glow.heading"></span>
-            <span class="switch-help" data-i18n="led_glow.description"></span>
-          </span>
-          <input type="checkbox" role="switch" data-led-glow-toggle />
-        </label>
-      </div>
-
-      <div class="card">
-        <h2 data-i18n="zoom.heading"></h2>
-        <p class="muted" data-i18n="zoom.description"></p>
-        <div id="settings-zoom" class="zoom-controls" data-zoom-controls></div>
-      </div>
-
-      <!-- API keys: the non-browser way in, kept from the template. -->
-      <div class="card" id="api-keys-panel" hidden>
-        <h2 data-i18n="api_keys.heading"></h2>
-        <p class="muted" data-i18n="api_keys.description"></p>
-
-        <form id="create-key-form" autocomplete="off">
-          <div class="field">
-            <label for="key-name" data-i18n="api_keys.name_label"></label>
-            <input id="key-name" name="name" maxlength="80" required
-                   data-i18n-attr="placeholder:api_keys.name_placeholder" />
+        <div class="card">
+          <h2 data-i18n="chat_settings.heading"></h2>
+          <p class="muted" data-i18n="chat_settings.description"></p>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="chat_settings.table_shown"></span>
+              <span class="switch-help" data-i18n="chat_settings.table_shown_help"></span>
+            </span>
+            <input type="checkbox" role="switch" data-chat-shown="table" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="chat_settings.global_shown"></span>
+              <span class="switch-help" data-i18n="chat_settings.global_shown_help"></span>
+            </span>
+            <input type="checkbox" role="switch" data-chat-shown="global" />
+          </label>
+          <h3 data-i18n="chat_dock.heading"></h3>
+          <p class="muted" data-i18n="chat_dock.description"></p>
+          <div class="dock-choice">
+            <span class="switch-title" data-i18n="chat_dock.table"></span>
+            <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="table" data-i18n-attr="aria-label:chat_dock.table"></div>
           </div>
-          <div class="field" id="key-role-field" hidden>
-            <label for="key-role" data-i18n="api_keys.role_label"></label>
-            <select id="key-role" name="role">
-              <option value="user" data-i18n="api_keys.role_user"></option>
-              <option value="admin" data-i18n="api_keys.role_admin"></option>
+          <div class="dock-choice">
+            <span class="switch-title" data-i18n="chat_dock.global"></span>
+            <div class="segmented" role="radiogroup" data-chat-dock-controls data-kind="global" data-i18n-attr="aria-label:chat_dock.global"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="player_scores.heading"></span>
+              <span class="switch-help" data-i18n="player_scores.description"></span>
+            </span>
+            <input type="checkbox" role="switch" data-player-scores-toggle />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="led_glow.heading"></span>
+              <span class="switch-help" data-i18n="led_glow.description"></span>
+            </span>
+            <input type="checkbox" role="switch" data-led-glow-toggle />
+          </label>
+        </div>
+      </section>
+
+      <section id="settings-section-display" class="settings-section" data-settings-section="display" tabindex="-1" aria-labelledby="settings-section-display-title">
+        <h2 id="settings-section-display-title" class="settings-section-title" data-i18n="settings.section_display"></h2>
+        <div class="card">
+          <h2 data-i18n="appearance.heading"></h2>
+          <p class="muted" data-i18n="appearance.description"></p>
+          <div class="segmented" role="radiogroup" data-i18n-attr="aria-label:appearance.heading">
+            <button id="theme-light" type="button" role="radio" data-theme-choice="light" data-i18n="appearance.light"></button>
+            <button id="theme-dark" type="button" role="radio" data-theme-choice="dark" data-i18n="appearance.dark"></button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="zoom.heading"></h2>
+          <p class="muted" data-i18n="zoom.description"></p>
+          <div id="settings-zoom" class="zoom-controls" data-zoom-controls></div>
+        </div>
+      </section>
+
+      <section id="settings-section-admin" class="settings-section" data-settings-section="admin" tabindex="-1" aria-labelledby="settings-section-admin-title">
+        <h2 id="settings-section-admin-title" class="settings-section-title" data-i18n="settings.section_admin"></h2>
+        <div class="card" id="signup-links-panel" hidden>
+          <h2 data-i18n="signup_links.heading"></h2>
+          <p class="muted" data-i18n="signup_links.description"></p>
+          <form id="signup-link-form" autocomplete="off">
+            <div class="field">
+              <label for="signup-link-label" data-i18n="signup_links.label"></label>
+              <input id="signup-link-label" maxlength="80" required data-i18n-attr="placeholder:signup_links.label_placeholder" />
+            </div>
+            <div class="field">
+              <label for="signup-link-uses" data-i18n="signup_links.max_uses"></label>
+              <input id="signup-link-uses" type="number" min="1" max="1000" value="10" inputmode="numeric" required />
+            </div>
+            <div class="field">
+              <label for="signup-link-days" data-i18n="signup_links.days"></label>
+              <input id="signup-link-days" type="number" min="1" max="365" value="30" inputmode="numeric" required />
+            </div>
+            <button type="submit" data-i18n="signup_links.create"></button>
+          </form>
+          <div id="signup-link-box" class="notice notice-link" hidden>
+            <button type="button" class="icon-button box-close" data-box-close="signup-link-label" data-i18n-attr="aria-label:common.close,title:common.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <p data-i18n="signup_links.link_notice"></p>
+            <code id="signup-link-value"></code>
+            <button id="signup-link-copy" type="button" class="secondary" data-i18n="signup_links.copy"></button>
+            <span id="signup-link-copied" class="muted" data-i18n="signup_links.copied" hidden></span>
+          </div>
+          <div class="table-scroll">
+            <table id="signup-links-table">
+              <thead>
+                <tr>
+                  <th data-i18n="signup_links.table_label"></th>
+                  <th id="signup-links-by-head" data-i18n="signup_links.table_by" hidden></th>
+                  <th data-i18n="signup_links.table_used"></th>
+                  <th data-i18n="signup_links.table_status"></th>
+                  <th data-i18n="signup_links.table_actions"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="admin-panel" hidden>
+          <h2 data-i18n="admin.heading"></h2>
+          <p class="muted" data-i18n="admin.description"></p>
+
+          <form id="create-user-form" autocomplete="off">
+            <div class="field">
+              <label for="new-name" data-i18n="admin.new_name_label"></label>
+              <input id="new-name" name="display_name" maxlength="80" required
+                     data-i18n-attr="placeholder:admin.new_name_placeholder" />
+            </div>
+            <div class="field">
+              <label for="new-role" data-i18n="admin.new_role_label"></label>
+              <select id="new-role" name="role">
+                <option value="user" data-i18n="admin.role_user"></option>
+                <option value="admin" data-i18n="admin.role_admin"></option>
+              </select>
+            </div>
+            <button type="submit" data-i18n="admin.create_button"></button>
+          </form>
+
+          <div id="login-link-box" class="notice notice-link" hidden>
+            <button type="button" class="icon-button box-close" data-box-close="new-name" data-i18n-attr="aria-label:common.close,title:common.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <p data-i18n="admin.link_notice"></p>
+            <code id="login-link-value"></code>
+            <button id="copy-link-button" type="button" class="secondary" data-i18n="admin.copy_button"></button>
+            <span id="copied-notice" class="muted" data-i18n="admin.copied_notice" hidden></span>
+          </div>
+
+          <div class="table-scroll">
+            <table id="users-table">
+              <thead>
+                <tr>
+                  <th><span class="visually-hidden" data-i18n="admin.table_avatar"></span></th>
+                  <th data-i18n="admin.table_name"></th>
+                  <th data-i18n="admin.table_role"></th>
+                  <th data-i18n="admin.table_status"></th>
+                  <th data-i18n="admin.table_can_invite"></th>
+                  <th data-i18n="admin.table_can_hint"></th>
+                  <th data-i18n="admin.table_can_undo"></th>
+                  <th data-i18n="admin.table_can_reshuffle"></th>
+                  <th data-i18n="admin.table_actions"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="card" id="game-settings-panel" hidden>
+          <h2 data-i18n="game_settings.heading"></h2>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="game_settings.join_signup"></span>
+              <span class="switch-help" data-i18n="game_settings.join_signup_help"></span>
+            </span>
+            <input id="setting-join-signup" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="game_settings.observers_all"></span>
+              <span class="switch-help" data-i18n="game_settings.observers_all_help"></span>
+            </span>
+            <input id="setting-observers-all" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="game_settings.table_chat"></span>
+              <span class="switch-help" data-i18n="game_settings.table_chat_help"></span>
+            </span>
+            <input id="setting-table-chat" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="game_settings.global_chat"></span>
+              <span class="switch-help" data-i18n="game_settings.global_chat_help"></span>
+            </span>
+            <input id="setting-global-chat" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="trick_pause.heading"></span>
+              <span class="switch-help" data-i18n="trick_pause.global_help"></span>
+            </span>
+            <select id="setting-trick-pause" class="pause-select"></select>
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="options.rook_anytime"></span>
+              <span class="switch-help" data-i18n="game_settings.rook_anytime_help"></span>
+            </span>
+            <input id="setting-rook-anytime" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="options.rook_rank"></span>
+              <span class="switch-help" data-i18n="game_settings.rook_rank_help"></span>
+            </span>
+            <select id="setting-rook-rank" class="pause-select">
+              <option value="high" data-i18n="options.rook_high"></option>
+              <option value="ten_half" data-i18n="options.rook_ten_half"></option>
+              <option value="low" data-i18n="options.rook_low"></option>
             </select>
-          </div>
-          <div class="field">
-            <label for="key-days" data-i18n="api_keys.days_label"></label>
-            <input id="key-days" name="expires_in_days" type="number" min="0" max="3650" inputmode="numeric"
-                   data-i18n-attr="placeholder:api_keys.days_placeholder" />
-          </div>
-          <button type="submit" data-i18n="api_keys.create_button"></button>
-        </form>
-
-        <div id="key-secret-box" class="notice notice-link" hidden>
-          <p data-i18n="api_keys.secret_notice"></p>
-          <code id="key-secret-value"></code>
-          <button id="copy-key-button" type="button" class="secondary" data-i18n="api_keys.copy_button"></button>
-          <span id="key-copied-notice" class="muted" data-i18n="api_keys.copied_notice" hidden></span>
-        </div>
-
-        <div class="table-scroll">
-          <table id="keys-table">
-            <thead>
-              <tr>
-                <th data-i18n="api_keys.table_name"></th>
-                <th data-i18n="api_keys.table_role"></th>
-                <th data-i18n="api_keys.table_status"></th>
-                <th data-i18n="api_keys.table_last_used"></th>
-                <th data-i18n="api_keys.table_expires"></th>
-                <th data-i18n="api_keys.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" id="admin-panel" hidden>
-        <h2 data-i18n="admin.heading"></h2>
-        <p class="muted" data-i18n="admin.description"></p>
-
-        <form id="create-user-form" autocomplete="off">
-          <div class="field">
-            <label for="new-name" data-i18n="admin.new_name_label"></label>
-            <input id="new-name" name="display_name" maxlength="80" required
-                   data-i18n-attr="placeholder:admin.new_name_placeholder" />
-          </div>
-          <div class="field">
-            <label for="new-role" data-i18n="admin.new_role_label"></label>
-            <select id="new-role" name="role">
-              <option value="user" data-i18n="admin.role_user"></option>
-              <option value="admin" data-i18n="admin.role_admin"></option>
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="options.rook_first_trick"></span>
+              <span class="switch-help" data-i18n="game_settings.rook_first_trick_help"></span>
+            </span>
+            <input id="setting-rook-first-trick" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="game_settings.bot_names"></span>
+              <span class="switch-help" id="setting-bot-names-help"></span>
+            </span>
+            <select id="setting-bot-names" class="pause-select">
+              <option value="" data-i18n="game_settings.bot_names_builtin"></option>
+              <option value="file" data-i18n="game_settings.bot_names_file"></option>
             </select>
+          </label>
+          <label id="setting-bot-names-top-row" class="switch-row pause-row" hidden>
+            <span>
+              <span class="switch-title" data-i18n="game_settings.bot_names_top"></span>
+              <span class="switch-help" id="setting-bot-names-top-help"></span>
+            </span>
+            <input id="setting-bot-names-top" class="top-input" type="number" min="1" max="100000" step="1" inputmode="numeric" />
+          </label>
+        </div>
+
+        <div class="card" id="admin-keys-panel" hidden>
+          <h2 data-i18n="admin_keys.heading"></h2>
+          <p class="muted" data-i18n="admin_keys.description"></p>
+          <div class="table-scroll">
+            <table id="admin-keys-table">
+              <thead>
+                <tr>
+                  <th data-i18n="admin_keys.table_owner"></th>
+                  <th data-i18n="api_keys.table_name"></th>
+                  <th data-i18n="api_keys.table_role"></th>
+                  <th data-i18n="api_keys.table_status"></th>
+                  <th data-i18n="api_keys.table_last_used"></th>
+                  <th data-i18n="api_keys.table_actions"></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
           </div>
-          <button type="submit" data-i18n="admin.create_button"></button>
-        </form>
-
-        <div id="login-link-box" class="notice notice-link" hidden>
-          <p data-i18n="admin.link_notice"></p>
-          <code id="login-link-value"></code>
-          <button id="copy-link-button" type="button" class="secondary" data-i18n="admin.copy_button"></button>
-          <span id="copied-notice" class="muted" data-i18n="admin.copied_notice" hidden></span>
         </div>
-
-        <div class="table-scroll">
-          <table id="users-table">
-            <thead>
-              <tr>
-                <th><span class="visually-hidden" data-i18n="admin.table_avatar"></span></th>
-                <th data-i18n="admin.table_name"></th>
-                <th data-i18n="admin.table_role"></th>
-                <th data-i18n="admin.table_status"></th>
-                <th data-i18n="admin.table_can_invite"></th>
-                <th data-i18n="admin.table_can_hint"></th>
-                <th data-i18n="admin.table_can_undo"></th>
-                <th data-i18n="admin.table_can_reshuffle"></th>
-                <th data-i18n="admin.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="card" id="game-settings-panel" hidden>
-        <h2 data-i18n="game_settings.heading"></h2>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="game_settings.join_signup"></span>
-            <span class="switch-help" data-i18n="game_settings.join_signup_help"></span>
-          </span>
-          <input id="setting-join-signup" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="game_settings.observers_all"></span>
-            <span class="switch-help" data-i18n="game_settings.observers_all_help"></span>
-          </span>
-          <input id="setting-observers-all" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="game_settings.table_chat"></span>
-            <span class="switch-help" data-i18n="game_settings.table_chat_help"></span>
-          </span>
-          <input id="setting-table-chat" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="game_settings.global_chat"></span>
-            <span class="switch-help" data-i18n="game_settings.global_chat_help"></span>
-          </span>
-          <input id="setting-global-chat" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row pause-row">
-          <span>
-            <span class="switch-title" data-i18n="trick_pause.heading"></span>
-            <span class="switch-help" data-i18n="trick_pause.global_help"></span>
-          </span>
-          <select id="setting-trick-pause" class="pause-select"></select>
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="options.rook_anytime"></span>
-            <span class="switch-help" data-i18n="game_settings.rook_anytime_help"></span>
-          </span>
-          <input id="setting-rook-anytime" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row pause-row">
-          <span>
-            <span class="switch-title" data-i18n="options.rook_rank"></span>
-            <span class="switch-help" data-i18n="game_settings.rook_rank_help"></span>
-          </span>
-          <select id="setting-rook-rank" class="pause-select">
-            <option value="high" data-i18n="options.rook_high"></option>
-            <option value="ten_half" data-i18n="options.rook_ten_half"></option>
-            <option value="low" data-i18n="options.rook_low"></option>
-          </select>
-        </label>
-        <label class="switch-row">
-          <span>
-            <span class="switch-title" data-i18n="options.rook_first_trick"></span>
-            <span class="switch-help" data-i18n="game_settings.rook_first_trick_help"></span>
-          </span>
-          <input id="setting-rook-first-trick" type="checkbox" role="switch" />
-        </label>
-        <label class="switch-row pause-row">
-          <span>
-            <span class="switch-title" data-i18n="game_settings.bot_names"></span>
-            <span class="switch-help" id="setting-bot-names-help"></span>
-          </span>
-          <select id="setting-bot-names" class="pause-select">
-            <option value="" data-i18n="game_settings.bot_names_builtin"></option>
-            <option value="file" data-i18n="game_settings.bot_names_file"></option>
-          </select>
-        </label>
-        <label id="setting-bot-names-top-row" class="switch-row pause-row" hidden>
-          <span>
-            <span class="switch-title" data-i18n="game_settings.bot_names_top"></span>
-            <span class="switch-help" id="setting-bot-names-top-help"></span>
-          </span>
-          <input id="setting-bot-names-top" class="top-input" type="number" min="1" max="100000" step="1" inputmode="numeric" />
-        </label>
-      </div>
-
-      <div class="card" id="admin-keys-panel" hidden>
-        <h2 data-i18n="admin_keys.heading"></h2>
-        <p class="muted" data-i18n="admin_keys.description"></p>
-        <div class="table-scroll">
-          <table id="admin-keys-table">
-            <thead>
-              <tr>
-                <th data-i18n="admin_keys.table_owner"></th>
-                <th data-i18n="api_keys.table_name"></th>
-                <th data-i18n="api_keys.table_role"></th>
-                <th data-i18n="api_keys.table_status"></th>
-                <th data-i18n="api_keys.table_last_used"></th>
-                <th data-i18n="api_keys.table_actions"></th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
+      </section>
     </main>
   </section>
 

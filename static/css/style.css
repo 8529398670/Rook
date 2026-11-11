@@ -692,6 +692,46 @@ td .row-actions { display: flex; gap: 0.4rem; }
 .segmented.level-choices { display: grid; grid-template-columns: repeat(3, 1fr); }
 .bot-default-help { margin: 0.5rem 0 0; font-size: 0.85rem; }
 
+/* Settings is one long column: a filter and jump links sit at the top, and
+   the cards come in sections the links point at. */
+.settings-tools {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.25rem 0 0.5rem;
+  background: var(--bg);
+}
+.settings-filter-row { display: flex; align-items: center; gap: 0.6rem; }
+.settings-filter-row input { flex: 1 1 auto; min-width: 0; }
+.settings-filter-status { flex: 0 0 auto; margin: 0; white-space: nowrap; }
+.settings-jump { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.settings-jump button { flex: 0 0 auto; min-height: 36px; padding: 0.35rem 0.85rem; }
+.settings-section { display: flex; flex-direction: column; gap: var(--gap); scroll-margin-top: 1rem; }
+.settings-section:focus { outline: none; }
+.settings-section-title {
+  margin: 0.5rem 0 -0.25rem;
+  font-size: 0.8rem;
+  font-weight: 650;
+  color: var(--fg-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* What the filter hides, kept apart from [hidden] so it never shows a card
+   that is hidden because this account may not use it. */
+.settings-filtered { display: none !important; }
+.settings-no-match { margin: 0; text-align: center; }
+
+/* The close button on a box shown once. */
+.notice-link { position: relative; }
+.notice-link .box-close { position: absolute; top: 2px; right: 2px; min-height: 40px; width: 40px; min-width: 40px; }
+.notice-link .box-close svg { width: 18px; height: 18px; }
+.notice-link:has(> .box-close) > p:first-of-type { padding-right: 2.5rem; }
+/* On a roomy screen the tools stay in reach under the header while the
+   long list scrolls. */
+@media (min-width: 48rem) and (min-height: 700px) {
+  .settings-tools { position: sticky; top: var(--settings-header-height, 57px); z-index: 4; }
+}
+
 /* ------------------------------------------------- rules & strategy */
 
 .guide-main {

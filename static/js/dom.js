@@ -103,3 +103,18 @@ const Dom = {
     } , milliseconds || 2000 );
   },
 };
+
+// The close button on a box shown once (a login link, a new API key). The
+// value goes with the box rather than sitting hidden in the page. The value of
+// data-box-close is the field to hand the focus to, which would otherwise be
+// lost with the button.
+document.addEventListener( "click" , function ( event ) {
+  const button = event.target.closest( "[data-box-close]" );
+  if ( !button ) return;
+  const box = button.closest( ".notice" );
+  if ( !box ) return;
+  Dom.all( "code" , box ).forEach( function ( value ) { Dom.text( value , "" ); } );
+  Dom.show( box , false );
+  const next = Dom.get( button.getAttribute( "data-box-close" ) );
+  if ( next ) next.focus();
+} );

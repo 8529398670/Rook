@@ -775,6 +775,16 @@ guide:
 
 settings:
   heading: "Settings"
+  filter_label: "Filter settings"
+  # {count} of {total} cards are showing.
+  filter_count: "{count} of {total}"
+  filter_none: "No settings match."
+  jump_label: "Jump to a section"
+  # The section headings, which are also the jump links.
+  section_account: "Account"
+  section_play: "Playing"
+  section_display: "Display"
+  section_admin: "Invites & admin"
 
 account:
   heading: "Account"
