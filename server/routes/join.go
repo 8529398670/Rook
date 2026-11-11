@@ -94,7 +94,7 @@ func ( handlers *Handlers ) JoinSignup( c fiber.Ctx ) ( err error ) {
 		err = serverError( c )
 		return
 	}
-	if handlers.startSession( c , user.ID ) != nil {
+	if handlers.startSession( c , user.ID , "signed up through a table's join link" ) != nil {
 		err = serverError( c )
 		return
 	}

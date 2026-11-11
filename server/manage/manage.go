@@ -62,9 +62,9 @@ These work whether or not the server is running. With the server up the
 command is sent to it over the control socket in the app directory; with the
 server stopped the database is opened directly.
 
-Every command reads the same environment variables as the server
-(DATA_DIR, SECRET_KEY, ...). SECRET_KEY in particular must match, or
-the stored records cannot be decrypted.
+Every command reads the same config.yaml and secret.key as the server.
+The key in particular must match, or the stored records cannot be
+decrypted.
 `
 
 // Usage prints the command list. Exported so an entry point can show it for
@@ -176,11 +176,11 @@ func connect( cfg *config.Config ) ( back backend , err error ) {
 		if cfg.ControlSocketEnabled {
 			err = fmt.Errorf(
 				"could not reach a running server on %s, and could not open the database directly: %w\n"+
-					"If the server is running, it was started with CONTROL_SOCKET=false; restart it with the socket enabled or stop it first." ,
+					"If the server is running, it was started with server.control_socket: false; restart it with the socket enabled or stop it first." ,
 				cfg.ControlSocketPath , open_err )
 			return
 		}
-		err = fmt.Errorf( "database error (CONTROL_SOCKET is disabled, so the server must be stopped): %w" , open_err )
+		err = fmt.Errorf( "database error (server.control_socket is off, so the server must be stopped): %w" , open_err )
 		return
 	}
 	back = &directBackend{ store: store , cfg: cfg }
@@ -510,16 +510,13 @@ func commandPaths( cfg *config.Config ) ( err error ) {
 	fmt.Printf( "%-14s %s\n" , "storage" , cfg.StorageDir )
 	fmt.Printf( "%-14s %s%s\n" , "config" , cfg.ConfigFile , existsNote( cfg.ConfigFile ) )
 
-	// Report where the key actually came from, not just where a file would
-	// live. In a container the key arrives through the environment and no
-	// file exists -- printing the path alone would send someone hunting for
-	// a file that is deliberately not there.
-	fmt.Printf( "%-14s %s\n" , "secret key" , cfg.SecretKeySource )
+	// The key is always a file now, beside config.yaml.
+	fmt.Printf( "%-14s %s%s\n" , "secret key" , cfg.SecretFile , existsNote( cfg.SecretFile ) )
 
 	// Whether a server is live decides which route every other command
 	// takes, so report it here rather than making someone infer it.
 	if cfg.ControlSocketEnabled == false {
-		fmt.Printf( "%-14s %s\n" , "control" , "disabled (CONTROL_SOCKET=false)" )
+		fmt.Printf( "%-14s %s\n" , "control" , "disabled (server.control_socket: false)" )
 	} else if client , dial_err := control.Dial( cfg ); dial_err == nil {
 		client.Close()
 		fmt.Printf( "%-14s %s  (server running)\n" , "control" , cfg.ControlSocketPath )
@@ -528,13 +525,8 @@ func commandPaths( cfg *config.Config ) ( err error ) {
 	}
 
 	fmt.Println( "" )
-	fmt.Println( "Override the app dir with APP_DIR=/some/path." )
-	if cfg.SecretKeyOnDisk {
-		fmt.Println( "Back up the app dir as a unit -- app.db is unreadable without secret.key." )
-	} else {
-		fmt.Println( "The key is supplied externally and is NOT in the app dir." )
-		fmt.Println( "Back up the app dir AND whatever holds that key; either alone is useless." )
-	}
+	fmt.Println( "Move the app dir with server.app_dir in config.yaml." )
+	fmt.Println( "Back up the app dir AND secret.key together -- app.db is unreadable without the key." )
 	return
 }
 

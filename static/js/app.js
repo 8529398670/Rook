@@ -3,7 +3,9 @@
 //
 //   #/                 the lobby
 //   #/t/<id>           a table
-//   #/settings         account, theme, API keys, admin
+//   #/settings/<part>  one settings page: account, play, display,
+//                      invites or admin (bare #/settings is account)
+//   #/logs             the activity log (the owner's)
 //   #/games            the game history (#/games/<id> for one game)
 //   #/rules            the rules (#/strategy for the strategy tips, #/bots
 //                      for the computer players, #/about for the app)
@@ -58,6 +60,7 @@ const App = {
       Settings.init( me );
       Profile.init( me );
       Lobby.init( me );
+      Nav.init( me );
       Global.start( me );
     }
     window.addEventListener( "hashchange" , this.route.bind( this ) );
@@ -169,6 +172,11 @@ const App = {
       argument = match( "signup" );
     } else if ( hash === "#/settings" ) {
       next = Settings;
+    } else if ( match( "settings" ) ) {
+      next = Settings;
+      argument = match( "settings" );
+    } else if ( hash === "#/logs" && this.me && this.me.owner ) {
+      next = Logs;
     } else if ( [ "#/rules" , "#/strategy" , "#/bots" , "#/about" ].indexOf( hash ) >= 0 ) {
       next = Guide;
       argument = hash.slice( 2 );
@@ -192,8 +200,18 @@ const App = {
     Sheet.close( true );
     document.title = I18n.get( "app.title" ); // a table puts its own name here
     this.screen = next;
+    if ( this.me ) Nav.mark( this.navHash( hash ) );
     this.show( next.screenId );
     next.enter( argument );
+  },
+
+  // The sidebar link a hash belongs to: every page of the guide is Info, one
+  // game is Game history, and bare Settings is its first section.
+  navHash( hash ) {
+    if ( [ "#/rules" , "#/strategy" , "#/bots" , "#/about" ].indexOf( hash ) >= 0 ) return "#/rules";
+    if ( hash.indexOf( "#/games/" ) === 0 ) return "#/games";
+    if ( hash === "#/settings" ) return "#/settings/account";
+    return hash;
   },
 
   go( hash ) {

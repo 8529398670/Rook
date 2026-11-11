@@ -9,6 +9,8 @@
 //
 //	rook                     run the server
 //	rook manage list-users   account administration
+//	rook config check        create, check, or read config/config.yaml
+//	rook health              exit 0 if the local server answers
 //	rook version             build information
 package main
 
@@ -28,17 +30,23 @@ import (
 	config "rook/server/config"
 	control "rook/server/control"
 	db "rook/server/db"
+	healthcheck "rook/server/healthcheck"
 	language "rook/server/language"
+	logs "rook/server/logs"
 	manage "rook/server/manage"
 	middleware "rook/server/middleware"
 	models "rook/server/models"
 	routes "rook/server/routes"
 	security "rook/server/security"
 	static "rook/server/static"
+	stream "rook/server/stream"
 	tables "rook/server/tables"
 )
 
-// Stamped by build.sh via -ldflags. The defaults are what you get from a
+// A few browsers with the Activity log open is all there should ever be.
+const logStreamLimit = 8
+
+// Stamped by scripts/build.sh via -ldflags. The defaults are what you get from a
 // plain `go build`, which is a useful signal in itself.
 var (
 	version   = "dev"
@@ -57,13 +65,27 @@ func main() {
 				os.Exit( 1 )
 			}
 			return
+		case "config":
+			if err := config.RunCommand( os.Args[ 2: ] ); err != nil {
+				fmt.Fprintf( os.Stderr , "error: %v\n" , err )
+				os.Exit( 1 )
+			}
+			return
+		case "health":
+			if err := healthcheck.Run(); err != nil {
+				fmt.Fprintf( os.Stderr , "unhealthy: %v\n" , err )
+				os.Exit( 1 )
+			}
+			return
 		case "version" , "-version" , "--version":
 			fmt.Printf( "Rook %s (commit %s, built %s, %s/%s, %s)\n" ,
 				version , commit , buildDate , runtime.GOOS , runtime.GOARCH , runtime.Version() )
 			return
 		case "-h" , "--help" , "help":
-			fmt.Printf( "Rook %s\n\nUsage:\n  rook                 run the web server\n  rook manage <cmd>    account administration\n  rook version         build information\n\n" , version )
+			fmt.Printf( "Rook %s\n\nUsage:\n  rook                 run the web server\n  rook manage <cmd>    account administration\n  rook config <cmd>    create, check, or read config.yaml\n  rook health          exit 0 if the local server answers\n  rook version         build information\n\n" , version )
 			manage.Usage()
+			fmt.Println( "" )
+			config.CommandUsage()
 			return
 		}
 	}
@@ -76,6 +98,10 @@ func main() {
 func run() ( err error ) {
 	cfg , err := config.Load()
 	if err != nil { return }
+	if cfg.RotationPending {
+		err = config.ErrRotationPending
+		return
+	}
 
 	embedded , err := embeddedStatic()
 	if err != nil { return }
@@ -112,8 +138,20 @@ func run() ( err error ) {
 	if err != nil { return }
 	defer hub.Close()
 
+	// The activity log writes from its own goroutine; Close, deferred here,
+	// runs after the server has stopped, so the last requests make it to disk.
+	logger := logs.New( cfg.Logs , cfg.SecretKey , cfg.EncryptAtRest )
+	log_stream := stream.NewHub( logStreamLimit )
+	logger.OnFlushed( func() { log_stream.Publish( "changed" , "1" ) } )
+	logger.Start()
+	defer logger.Close()
+	logger.System( logs.LevelInfo , "server started" , map[string]any{ "version": version } )
+	defer logger.System( logs.LevelInfo , "server stopped" , nil )
+
 	guard := security.New( store , cfg )
 	handlers := routes.New( store , cfg , guard , lang , static_server , hub )
+	handlers.Logs = logger
+	handlers.LogStream = log_stream
 	handlers.LoadBotNames( embeddedBotNames )
 
 	app := fiber.New( fiber.Config{
@@ -150,9 +188,13 @@ func run() ( err error ) {
 		},
 	} )
 
+	// RequestID comes first, outside Recover: a panic still has to carry a
+	// reference the activity log can find.
+	app.Use( middleware.RequestID() )
 	app.Use( middleware.Recover( cfg ) )
 	app.Use( middleware.SecurityHeaders( cfg ) )
 	app.Use( middleware.RateLimit( cfg ) )
+	app.Use( middleware.RequestLog( logger ) )
 
 	handlers.Register( app )
 
@@ -170,13 +212,37 @@ func run() ( err error ) {
 		// come through, and letting a manage command start against a
 		// database that is about to close would fail confusingly.
 		control_server.Close()
+		// Streams never finish by themselves, so the drain would wait out its
+		// whole timeout for any Activity log screen left open.
+		log_stream.Close()
 		hub.Close()
 		app.ShutdownWithTimeout( 10 * time.Second )
 	}()
 
 	log.Printf( "[start] %s %s listening on %s (secure cookies: %v)" , cfg.ProjectName , version , cfg.ListenAddress() , cfg.SecureCookies )
+	log.Printf( "[url]    %s  (from %s)" , cfg.URL , cfg.URLSource )
+	if cfg.ConfigCreated {
+		log.Printf( "[config] %s (created)" , cfg.ConfigFile )
+	} else {
+		log.Printf( "[config] %s" , cfg.ConfigFile )
+	}
+	switch {
+	case cfg.SecretAdopted != "":
+		log.Printf( "[secret] %s (copied from %s, where Rook kept it before config/; that file is left as it was)" , cfg.SecretFile , cfg.SecretAdopted )
+	case cfg.SecretMigrated:
+		log.Printf( "[secret] %s (moved out of %s)" , cfg.SecretFile , cfg.ConfigFile )
+	case cfg.SecretCreated:
+		log.Printf( "[secret] %s (created, with a new key -- back it up)" , cfg.SecretFile )
+	default:
+		log.Printf( "[secret] %s" , cfg.SecretFile )
+	}
+	if cfg.ConfigWarning != "" {
+		log.Printf( "[config] warning: %s" , cfg.ConfigWarning )
+	}
 	log.Printf( "[state]  %s" , cfg.AppDir )
-	log.Printf( "[secret] %s" , cfg.SecretKeySource )
+	if logger.Enabled() {
+		log.Printf( "[logs]   %s (keeping %d days, up to %d MB)" , cfg.Logs.Dir , cfg.Logs.RetentionDays , cfg.Logs.MaxTotalBytes / 1024 / 1024 )
+	}
 	log.Printf( "[assets] %s" , bundle.Source )
 	log.Printf( "[control] %s" , control_server.Path() )
 	err = app.Listen( cfg.ListenAddress() , fiber.ListenConfig{ DisableStartupMessage: true } )

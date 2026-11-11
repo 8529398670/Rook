@@ -58,20 +58,20 @@ func PrintAPIKey( cfg *config.Config , label string , credential string , expire
 	fmt.Println( line )
 }
 
-// PrintLoginLink writes the one moment a credential is ever visible. It is
-// shown as a path because the server genuinely does not know its public
-// origin -- behind a reverse proxy it sees an internal address, and printing
-// a confidently wrong URL is worse than printing an obviously partial one.
+// PrintLoginLink writes the one moment a credential is ever visible, as a
+// whole link: server.public_url when it is set, otherwise the address this
+// server listens on, and it says which, so a link built from 127.0.0.1 is not
+// mistaken for one other people can open.
 func PrintLoginLink( cfg *config.Config , label string , credential string ) {
 	line := strings.Repeat( "-" , 72 )
 	fmt.Println( line )
 	fmt.Printf( "  ONE-TIME LOGIN LINK -- %s\n" , label )
 	fmt.Println( line )
-	fmt.Printf( "  /login/%s\n" , credential )
+	fmt.Printf( "  %s/login/%s\n" , cfg.URL , credential )
 	fmt.Println( line )
-	fmt.Printf( "  Valid once, for %s. Prepend your real scheme and host, e.g.\n" , cfg.LoginTokenTTL )
-	fmt.Printf( "    https://your-host.example.com/login/%s\n" , credential )
+	fmt.Printf( "  Valid once, for %s. Address from %s.\n" , cfg.LoginTokenTTL , cfg.URLSource )
 	fmt.Println( "  It is not stored anywhere and cannot be shown again -- if you lose" )
-	fmt.Println( "  it, mint another with: rook manage reissue-login -user-id <id>" )
+	fmt.Println( "  it, mint another with scripts/login.sh (or: rook manage" )
+	fmt.Println( "  reissue-login -user-id <id>)." )
 	fmt.Println( line )
 }

@@ -6,6 +6,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	logs "rook/server/logs"
 	models "rook/server/models"
 )
 
@@ -58,12 +59,13 @@ func ( handlers *Handlers ) RedeemLoginLink( c fiber.Ctx ) ( err error ) {
 	}
 
 	credential := strings.Trim( strings.TrimSpace( body.Credential ) , "/" )
-	session_credential , _ , redeem_err := models.RedeemLoginToken( handlers.Store , credential , handlers.Config.SessionTTL )
+	session_credential , user_id , redeem_err := models.RedeemLoginToken( handlers.Store , credential , handlers.Config.SessionTTL )
 	if redeem_err != nil {
 		// Expired, already spent, never existed, wrong secret, or a disabled
 		// account all get the same answer. Telling them apart would let
 		// someone probe which links are real.
 		if errors.Is( redeem_err , models.ErrLoginTokenInvalid ) {
+			handlers.auditAs( c , logs.Anonymous() , logs.KindAuth , logs.LevelWarn , "sign-in refused: invalid login link" , nil )
 			err = badRequest( c , "invalid login link" )
 			return
 		}
@@ -78,19 +80,30 @@ func ( handlers *Handlers ) RedeemLoginLink( c fiber.Ctx ) ( err error ) {
 		err = serverError( c )
 		return
 	}
+	handlers.recordSignIn( c , session_credential , user_id , "signed in with a login link" )
 	err = c.JSON( fiber.Map{ "ok": true } )
 	return
+}
+
+// recordSignIn is how every way in ends once the cookie is set: the device
+// goes on the account's "where you're signed in" list, and the sign-in goes
+// in the activity log.
+func ( handlers *Handlers ) recordSignIn( c fiber.Ctx , session_credential string , user_id uint64 , how string ) {
+	models.RecordSessionDevice( handlers.Store , session_credential , c.IP() , logs.Truncate( c.Get( fiber.HeaderUserAgent ) , models.SessionUserAgentMax ) )
+	handlers.auditAs( c , handlers.logUser( user_id , "session" ) , logs.KindAuth , logs.LevelInfo , how , nil )
 }
 
 // startSession signs the browser in as user_id: a session record plus the
 // cookie that carries it. Join-link sign-ups and sign-up links end here; a
 // login link goes through RedeemLoginLink, which makes its session in the
 // same transaction that spends the link.
-func ( handlers *Handlers ) startSession( c fiber.Ctx , user_id uint64 ) ( err error ) {
+// how is what the activity log says happened.
+func ( handlers *Handlers ) startSession( c fiber.Ctx , user_id uint64 , how string ) ( err error ) {
 	credential , _ , err := models.CreateSession( handlers.Store , user_id , handlers.Config.SessionTTL )
 	if err != nil { return }
 	handlers.destroyCookieSession( c )
-	err = handlers.Guard.SetSessionCookie( c , credential )
+	if err = handlers.Guard.SetSessionCookie( c , credential ); err != nil { return }
+	handlers.recordSignIn( c , credential , user_id , how )
 	return
 }
 

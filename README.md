@@ -47,51 +47,53 @@ The Rook card game, for four players in two teams, played in the browser. Any em
 - Accounts with no passwords: you sign in with one-time links. Sign-up links let people join, with an optional PIN on each account. API keys let scripts use the same API.
 - Light theme by default, with an opt-in dark theme.
 - Adjustable card sizes, and chat docks you can put beside your hand.
-- Every sentence on screen comes from [`language.yaml`](language.yaml), including the Rules and Strategy guide.
+- Every sentence on screen comes from [`config/language.yaml`](config/language.yaml), including the Rules and Strategy guide.
 
 ## Quick start
 
 You need Go 1.26 or newer.
 
 ```bash
-./run.sh
+scripts/run.sh
 ```
 
-`run.sh` builds this machine's binary into `dist/` and starts it. If a copy started earlier by `run.sh` is still running, it stops that copy first.
+`scripts/run.sh` builds `./rook` and starts it in this terminal (Ctrl-C stops it). Running it again from anywhere stops the copy this checkout started and takes over, so the loop is: edit, `scripts/run.sh`, reload. `scripts/run.sh stop` stops it.
 
-On the very first run there are no accounts yet. The server prints a **one-time login link** for the first admin:
+**The first run** writes `config/config.yaml` and `config/secret.key` (both gitignored, mode 0600) and stops, so you can look at them first. If Rook has run on this machine before, its key is in `~/.config/rook/secret.key`: the first run copies it into `config/secret.key`, so the existing database stays readable, and leaves the old file where it was. Run `scripts/run.sh` again to start.
 
+On a new database the server prints a **one-time login link** for the owner. Any time after that:
+
+```bash
+scripts/login.sh          # a login link for the owner (user 1)
+scripts/login.sh 3        # for user 3
 ```
-ONE-TIME LOGIN LINK -- first-run admin "Admin"
-  /login/<token>
-```
 
-Open `http://localhost:8080/login/<token>` and you are signed in as the owner. From there you can create a table, add bots, and invite people.
+It prints a whole link (`http://127.0.0.1:9384/login/...`), from the local server if one is running, otherwise from the Docker container, otherwise by starting one.
 
-> Over plain `http://localhost`, set `secure_cookies: false` (or `SECURE_COOKIES=false`). Browsers silently drop a Secure cookie on http, so the login appears to succeed and then does nothing.
+> Over plain `http://localhost`, set `server.secure_cookies: false` in `config/config.yaml`. Browsers silently drop a Secure cookie on http, so the login appears to succeed and then does nothing. `scripts/run.sh` warns about this.
 
-The server prints where it keeps its state on startup (the `[state]` line). By default that is `~/.config/rook/`, holding `app.db`, `secret.key` and an optional `config.yaml`. Back up `app.db` and `secret.key` together: the database is encrypted at rest, and losing the key makes it unreadable.
+The database lives in the app directory, `~/.config/rook/` unless `server.app_dir` says otherwise: `app.db`, `storage/` and the activity log in `logs/`. Back up the app directory and `config/secret.key` together: the database is encrypted at rest, and losing the key makes it unreadable.
 
 ## Building and deploying
 
-**Portable binaries.** `build.sh` cross-compiles self-contained executables into `dist/`. Each one has the frontend embedded, no libc dependency, and nothing else to install.
+**Portable binaries.** `scripts/build.sh` cross-compiles self-contained executables into `dist/`. Each one has the frontend embedded, no libc dependency, and nothing else to install. Run one anywhere and it keeps its config, key and database in `~/.config/rook/`.
 
 ```bash
-./build.sh
+scripts/build.sh
 ```
 
-That builds every target. `./build.sh linux/arm64` builds just one.
+That builds every target in `build.targets`. `scripts/build.sh linux/arm64` builds just one.
 
-**Docker.** `dockerBuild.sh` builds the image, and `dockerRun.sh` builds it and runs it hardened: a read-only filesystem, dropped capabilities, and state in `./data` next to the script.
+**Docker.** `docker/build.sh` builds the image, and `docker/run.sh` builds it and runs it hardened: a read-only filesystem, dropped capabilities, `config/config.yaml` and `config/secret.key` mounted in, and the database in `docker.data_dir` (`./data`).
 
 ```bash
-./dockerRun.sh
+docker/run.sh
 ```
 
 **Account administration from the shell.** The same binary has a `manage` subcommand. It works whether the server is running (it talks to the server over a control socket) or stopped (it opens the database directly).
 
 ```bash
-./dist/rook_darwin_arm64 manage list-users
+scripts/run.sh manage list-users
 ```
 
 The commands are:
@@ -106,6 +108,8 @@ The commands are:
 | `revoke-access -user-id 3` | end every session, login link and API key |
 | `list-keys`, `create-key`, `revoke-key` | manage API keys |
 | `paths` | where the app keeps its state |
+
+The binary also answers `config check` (validate `config/config.yaml` and the key), `config shell server` (every resolved path and the URL), `config example` (rewrite `config/config.example.yaml` from the defaults) and `health`.
 
 ## How the game is played
 
@@ -269,6 +273,10 @@ The tests use fixed seeds so failures can be reproduced. That code never runs in
 - **Sign-up links** (for players allowed to invite) let several people create accounts from one link, within a set number of uses and days.
 - When someone signs in through a sign-up link and picks an existing account, that account's **PIN** (if it has one) is asked for.
 - **Sign in on another device:** any player can mint a one-time link to themselves from Settings.
+- **Where you're signed in:** Settings → Account lists every device signed in to your account, with when it was last seen, and signs out any of them (or every one but this).
+
+**The menu**
+- The ☰ button beside the lobby's logo opens the sidebar: the lobby, Game history, Info (rules & strategy), Invites (for anyone allowed to invite), and each part of Settings, which for the owner adds Admin (players, game settings, everyone's API keys) and the activity log. On a wide screen it stays open beside the lobby once opened (remembered in this browser); on a phone it slides in over the page.
 
 **Roles and permissions**
 - The **owner** is the account the server was set up with. It always stays an admin and manages players and app-wide settings.
@@ -278,44 +286,51 @@ The tests use fixed seeds so failures can be reproduced. That code never runs in
 **API keys**
 - A key carries a role from the same set as users, and never outranks the account that owns it.
 - Send it as `Authorization: Bearer <key>`.
-- Keys can be switched off completely with `api_keys: false`.
+- Keys can be switched off completely with `auth.api_keys: false`.
+
+**Activity log**
+- The owner's **Activity log** (sidebar → Admin) records every request, sign-in and sign-out, one day at a time, searchable (`kind:auth`, `status:5xx`, `user:ana`), with a Live switch. Login links, keys and PINs are never written. It lives in `logs/` in the app directory, encrypted like the database, and old days are compressed and then deleted (`logs.*` in `config/config.yaml`).
 
 ## Configuration
 
-Everything has a working default, so nothing needs configuring.
+Everything is configured in one file, `config/config.yaml`. Nothing reads environment variables. Every key is optional and falls back to [`config/defaults.yaml`](config/defaults.yaml); [`config/config.example.yaml`](config/config.example.yaml) is the same with every key and its comment, safe to commit. An unknown key is an error, not a silently ignored typo. `scripts/run.sh config check` validates it, and the server reads it when it starts.
 
-- Put a `config.yaml` in the app directory to change settings (see [`config.example.yaml`](config.example.yaml) for every key with comments). It is **not** read from the project root.
-- Every key also has an environment variable (`port` / `PORT`), and the environment always wins.
+Where it is read from, first match wins: `./config/config.yaml` in a checkout (and in the container, where `docker/run.sh` mounts it), otherwise `~/.config/rook/config.yaml` for a portable binary run anywhere else.
 
 Commonly changed settings:
 
 | Key | Default | Meaning |
 |---|---|---|
-| `port` / `host` | `8080` / `127.0.0.1` | where to listen (`0.0.0.0` for the network, with TLS in front) |
-| `secure_cookies` | `true` | `false` only for plain `http://localhost` |
-| `bot_delay_ms` | `900` | how long a bot "thinks" before moving |
-| `table_retention_hours` | `72` | finished or idle tables are removed after this |
-| `max_tables` | `50` | the most tables at once |
-| `session_ttl_seconds` | 90 days | how long a sign-in lasts |
-| `encrypt_at_rest` | `true` | encrypt every database value with `secret.key` |
-| `api_keys` | `true` | allow API keys at all |
-| `bot_names_file` | `./misc/biblical-persons.csv` | a CSV of names random bots can use, once the owner picks it in Game settings |
-| `trust_proxy`, `trusted_proxies` | off | believe a reverse proxy's client-address header |
+| `server.port` / `server.host` | `9384` / `127.0.0.1` | where to listen (`0.0.0.0` for the network, with TLS in front) |
+| `server.public_url` | empty | the address people use, for printed login links |
+| `server.secure_cookies` | `true` | `false` only for plain `http://localhost` |
+| `server.app_dir` | `~/.config/rook/` | where the database lives |
+| `server.encrypt_at_rest` | `true` | encrypt every database value and log line with `secret.key` |
+| `server.trust_proxy`, `server.trusted_proxies` | off | believe a reverse proxy's client-address header |
+| `auth.session_ttl_seconds` | 90 days | how long a sign-in lasts |
+| `auth.login_token_ttl_seconds` | 3 days | how long a login link lasts |
+| `auth.api_keys` | `true` | allow API keys at all |
+| `logs.enabled`, `logs.retention_days` | on, 30 | the owner's activity log |
+| `game.bot_delay_ms` | `900` | how long a bot "thinks" before moving |
+| `game.table_retention_hours` | `72` | finished or idle tables are removed after this |
+| `game.max_tables` | `50` | the most tables at once |
+| `game.bot_names_file` | `misc/biblical-persons.csv` | a CSV of names random bots can use, once the owner picks it in Game settings |
+| `docker.*`, `build.*` | | read by `docker/run.sh` and `scripts/build.sh` |
 
 ## Changing the wording
 
-Every word on screen comes from [`language.yaml`](language.yaml). That covers buttons, errors, the bots' names and level descriptions, and the whole Rules & strategy guide. The server sends codes such as `not_your_turn`, never sentences, and the page looks each one up. Rewording the app is therefore a YAML edit.
+Every word on screen comes from [`config/language.yaml`](config/language.yaml). That covers buttons, errors, the bots' names and level descriptions, and the whole Rules & strategy guide. The server sends codes such as `not_your_turn`, never sentences, and the page looks each one up. Rewording the app is therefore a YAML edit.
 
-To try changes without rebuilding, point the server at files on disk:
-- With `LANGUAGE_FILE=language.yaml` and `STATIC_DIR=static`, the server reads those files from disk instead of the copies embedded in the binary.
-- In Docker, mount your own `language.yaml` into `/app/data/`.
+In a checkout the server reads `static/` and `config/language.yaml` from disk, so a reload shows an edit with no rebuild. A built binary uses its embedded copies, unless a `language.yaml` sits in the app directory (`server.language_file` names another).
 
 ## Project layout
 
 ```
-main.go, embed.go       entry point; the frontend is embedded with go:embed
-cmd/manage/             the standalone account-administration tool
-language.yaml           every string the app shows
+main.go, embed.go       entry point; the frontend and config defaults are embedded
+config/                 language.yaml (every string the app shows), defaults.yaml,
+                        config.example.yaml; config.yaml and secret.key are yours
+scripts/                run.sh, login.sh, build.sh (and .bat twins); art helpers
+docker/                 Dockerfile, build.sh, run.sh
 static/                 the frontend: plain JS, no build step (js/, css/, index.html)
 server/
   game/                 the rules engine: pure, no I/O. Dealing, bidding, kitty,
@@ -328,7 +343,7 @@ server/
   security/, middleware/  sessions, CSRF, API keys, rate limiting
   config/, bootstrap/   configuration and first-run setup
   manage/, control/     the manage commands and the control socket they use
-scripts/                vendoring, favicon and art helpers
+  logs/, stream/        the owner's activity log and its live updates
 old_php_version/        the original PHP game this one replaces
 ```
 

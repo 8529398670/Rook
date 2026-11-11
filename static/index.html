@@ -25,7 +25,7 @@
 
     Four screens, one visible at a time, switched by the hash router in
     js/app.js: signed-out, lobby (#/), a table (#/t/<id>), settings
-    (#/settings).
+    (#/settings/<part>, one page per section).
   -->
 
   <!-- ===================================================== signed out -->
@@ -116,25 +116,58 @@
     </div>
   </section>
 
+  <!-- ======================================================== sidebar -->
+  <!-- The menu the lobby's hamburger opens (js/nav.js): a slide-in panel on
+       a phone, a column beside the lobby on a wide screen. Each link is a
+       hash the router in js/app.js already knows; nav.js hides the ones this
+       account may not use and marks the one showing. -->
+  <div id="sidebar-backdrop" class="sidebar-backdrop" hidden></div>
+  <aside id="sidebar" class="app-sidebar" tabindex="-1" aria-labelledby="sidebar-title" hidden>
+    <div class="sidebar-head">
+      <h2 id="sidebar-title" class="sidebar-title" data-i18n="app.title"></h2>
+      <button id="sidebar-close" type="button" class="icon-button" data-i18n-attr="aria-label:nav.close,title:nav.close">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+    <nav id="sidebar-nav" class="sidebar-nav" data-i18n-attr="aria-label:nav.sidebar_label">
+      <a class="sidebar-link" href="#/" data-nav="#/"><span data-i18n="nav.lobby"></span></a>
+      <a class="sidebar-link" href="#/games" data-nav="#/games"><span data-i18n="games.heading"></span></a>
+      <a class="sidebar-link" href="#/rules" data-nav="#/rules"><span data-i18n="nav.info"></span></a>
+      <a id="sidebar-invites" class="sidebar-link" href="#/settings/invites" data-nav="#/settings/invites" hidden><span data-i18n="settings.section_invites"></span></a>
+      <h3 class="sidebar-heading" data-i18n="nav.settings"></h3>
+      <a class="sidebar-link" href="#/settings/account" data-nav="#/settings/account"><span data-i18n="settings.section_account"></span></a>
+      <a class="sidebar-link" href="#/settings/play" data-nav="#/settings/play"><span data-i18n="settings.section_play"></span></a>
+      <a class="sidebar-link" href="#/settings/display" data-nav="#/settings/display"><span data-i18n="settings.section_display"></span></a>
+      <div id="sidebar-admin" class="sidebar-group" hidden>
+        <a class="sidebar-link" href="#/settings/admin" data-nav="#/settings/admin"><span data-i18n="settings.section_admin"></span></a>
+        <a class="sidebar-link" href="#/logs" data-nav="#/logs"><span data-i18n="nav.logs"></span></a>
+      </div>
+    </nav>
+    <a class="sidebar-foot" href="#/settings/account">
+      <span id="sidebar-avatar" class="avatar" aria-hidden="true"></span>
+      <span id="sidebar-user" class="sidebar-user"></span>
+    </a>
+  </aside>
+
   <!-- ========================================================== lobby -->
   <section id="screen-lobby" class="screen screen-lobby" hidden>
     <header class="lobby-header">
-      <div class="lobby-brand">
-        <div class="lobby-bird" data-art="bird"></div>
-        <div class="lobby-wordmark" data-art="wordmark"></div>
+      <div class="lobby-header-start">
+        <!-- The menu: opens the sidebar (js/nav.js). Everything that used to
+             sit behind the avatar button is a link in there now. -->
+        <button id="sidebar-toggle" type="button" class="icon-button sidebar-toggle" aria-controls="sidebar" aria-expanded="false" data-i18n-attr="aria-label:nav.menu,title:nav.menu">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5h16M4 12h16M4 17.5h16" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg>
+        </button>
+        <div class="lobby-brand">
+          <div class="lobby-bird" data-art="bird"></div>
+          <div class="lobby-wordmark" data-art="wordmark"></div>
+        </div>
       </div>
       <div class="lobby-header-actions">
         <button id="lobby-fullscreen" type="button" class="icon-button bar-fullscreen" data-fullscreen data-i18n-attr="aria-label:table.fullscreen,title:table.fullscreen">
           <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           <svg class="fs-exit" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4v5H4M20 9h-5V4M15 20v-5h5M4 15h5v5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <button id="open-guide" type="button" class="icon-button" data-i18n-attr="aria-label:guide.button,title:guide.button">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M12 11v6" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/><circle cx="12" cy="7.6" r="1.4" fill="currentColor"/></svg>
-        </button>
-        <button id="open-games" type="button" class="icon-button" data-i18n-attr="aria-label:games.heading,title:games.heading">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.5 12a8.5 8.5 0 1 0 2.5-6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M3 4v4.5h4.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 7.5V12l3 2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </button>
-        <button id="open-settings" type="button" class="avatar-button" data-i18n-attr="aria-label:nav.settings,title:nav.settings"></button>
       </div>
     </header>
 
@@ -236,6 +269,40 @@
         <div id="games-detail-head" class="game-detail-head"></div>
         <ol id="games-detail-record" class="chat-list log-list game-detail-record"></ol>
       </div>
+    </main>
+  </section>
+
+  <!-- =================================================== activity log -->
+  <!-- The owner's record of every request, sign-in and admin action
+       (js/logs.js, server/logs). Reached from the sidebar's Settings group. -->
+  <section id="screen-logs" class="screen screen-logs" hidden>
+    <header class="page-header">
+      <button id="logs-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+      <h1 data-i18n="logs.heading"></h1>
+    </header>
+
+    <main class="lobby-main logs-main">
+      <p class="muted" data-i18n="logs.description"></p>
+      <p id="logs-off" class="notice notice-warn" data-i18n="logs.off" hidden></p>
+      <div id="logs-body" class="card logs-tools">
+        <form id="logs-search-form" class="logs-search" role="search" autocomplete="off">
+          <label for="logs-search" data-i18n="logs.search_label"></label>
+          <input id="logs-search" type="search" data-i18n-attr="placeholder:logs.search_placeholder" />
+          <p class="muted" data-i18n="logs.search_help"></p>
+        </form>
+        <div class="logs-day-row">
+          <label for="logs-day" data-i18n="logs.day_label"></label>
+          <select id="logs-day"></select>
+          <label class="logs-live"><input id="logs-live" type="checkbox" role="switch" /> <span data-i18n="logs.live_button"></span></label>
+          <a id="logs-download" class="logs-download" data-i18n="logs.download_button"></a>
+        </div>
+        <p id="logs-settings" class="muted"></p>
+      </div>
+      <ol id="logs-list" class="logs-list" aria-live="polite"></ol>
+      <p id="logs-empty" class="muted" data-i18n="logs.no_matches" hidden></p>
+      <button id="logs-more" type="button" class="secondary" data-i18n="logs.load_more" hidden></button>
     </main>
   </section>
 
@@ -343,23 +410,13 @@
       <button id="settings-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <h1 data-i18n="settings.heading"></h1>
+      <h1 id="settings-title" data-i18n="settings.heading"></h1>
     </header>
 
+    <!-- Each section is its own page, #/settings/<part>: js/settings.js
+         shows the one the hash names and hides the rest. -->
     <main class="settings-main">
-      <!-- Filter and jump links: the page is long, so find a setting by name
-           or skip to its section. Both only hide and scroll; nothing is saved. -->
-      <div class="settings-tools" role="search">
-        <div class="settings-filter-row">
-          <label for="settings-filter" class="visually-hidden" data-i18n="settings.filter_label"></label>
-          <input id="settings-filter" type="search" autocomplete="off" data-i18n-attr="placeholder:settings.filter_label" />
-          <span id="settings-filter-status" class="muted settings-filter-status" role="status"></span>
-        </div>
-        <nav id="settings-jump" class="settings-jump" data-i18n-attr="aria-label:settings.jump_label"></nav>
-      </div>
-
-      <section id="settings-section-account" class="settings-section" data-settings-section="account" tabindex="-1" aria-labelledby="settings-section-account-title">
-        <h2 id="settings-section-account-title" class="settings-section-title" data-i18n="settings.section_account"></h2>
+      <section id="settings-section-account" class="settings-section" data-settings-section="account" data-settings-title="settings.section_account" hidden>
         <div class="card">
           <h2 data-i18n="account.heading"></h2>
           <p id="who-am-i" class="muted"></p>
@@ -402,6 +459,16 @@
             <button id="device-link-copy" type="button" class="secondary" data-i18n="device_link.copy"></button>
             <span id="device-link-copied" class="muted" data-i18n="device_link.copied" hidden></span>
           </div>
+        </div>
+
+        <!-- Where you're signed in (js/sessions.js): every device with a live
+             session on this account, and a way to sign one out from here. -->
+        <div class="card" id="sessions-card">
+          <h2 data-i18n="sessions.heading"></h2>
+          <p class="muted" data-i18n="sessions.description"></p>
+          <ul id="sessions-list" class="session-list"></ul>
+          <p id="sessions-empty" class="muted" data-i18n="sessions.empty" hidden></p>
+          <button id="sessions-revoke-others" type="button" class="secondary" data-i18n="sessions.revoke_others_button" hidden></button>
         </div>
 
         <div class="card">
@@ -470,8 +537,7 @@
         </div>
       </section>
 
-      <section id="settings-section-play" class="settings-section" data-settings-section="play" tabindex="-1" aria-labelledby="settings-section-play-title">
-        <h2 id="settings-section-play-title" class="settings-section-title" data-i18n="settings.section_play"></h2>
+      <section id="settings-section-play" class="settings-section" data-settings-section="play" data-settings-title="settings.section_play" hidden>
         <div class="card">
           <h2 data-i18n="bot_default.heading"></h2>
           <p class="muted" data-i18n="bot_default.description"></p>
@@ -540,8 +606,7 @@
         </div>
       </section>
 
-      <section id="settings-section-display" class="settings-section" data-settings-section="display" tabindex="-1" aria-labelledby="settings-section-display-title">
-        <h2 id="settings-section-display-title" class="settings-section-title" data-i18n="settings.section_display"></h2>
+      <section id="settings-section-display" class="settings-section" data-settings-section="display" data-settings-title="settings.section_display" hidden>
         <div class="card">
           <h2 data-i18n="appearance.heading"></h2>
           <p class="muted" data-i18n="appearance.description"></p>
@@ -558,8 +623,7 @@
         </div>
       </section>
 
-      <section id="settings-section-admin" class="settings-section" data-settings-section="admin" tabindex="-1" aria-labelledby="settings-section-admin-title">
-        <h2 id="settings-section-admin-title" class="settings-section-title" data-i18n="settings.section_admin"></h2>
+      <section id="settings-section-invites" class="settings-section" data-settings-section="invites" data-settings-title="settings.section_invites" hidden>
         <div class="card" id="signup-links-panel" hidden>
           <h2 data-i18n="signup_links.heading"></h2>
           <p class="muted" data-i18n="signup_links.description"></p>
@@ -600,7 +664,9 @@
             </table>
           </div>
         </div>
+      </section>
 
+      <section id="settings-section-admin" class="settings-section" data-settings-section="admin" data-settings-title="settings.section_admin" hidden>
         <div class="card" id="admin-panel" hidden>
           <h2 data-i18n="admin.heading"></h2>
           <p class="muted" data-i18n="admin.description"></p>
@@ -968,6 +1034,18 @@
       </div>
     </div>
 
+    <!-- Signing a device out, or every other one. Never undoable: it is the
+         button for a lost phone. See js/sessions.js. -->
+    <div id="sheet-confirm-session" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <h2 id="session-confirm-heading"></h2>
+      <p id="session-confirm-body"></p>
+      <div class="sheet-actions">
+        <button type="button" class="secondary" data-sheet-close data-i18n="common.cancel"></button>
+        <button id="session-confirm-button" type="button" class="danger"></button>
+      </div>
+    </div>
+
     <div id="sheet-confirm-delete-me" class="sheet" hidden>
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2 data-i18n="account.delete_heading"></h2>
@@ -1157,6 +1235,7 @@
   <script src="/js/keys.js"></script>
   <script src="/js/settings.js"></script>
   <script src="/js/profile.js"></script>
+  <script src="/js/sessions.js"></script>
   <script src="/js/links.js"></script>
   <script src="/js/join.js"></script>
   <script src="/js/signup.js"></script>
@@ -1178,6 +1257,8 @@
   <script src="/js/table.js"></script>
   <script src="/js/games.js"></script>
   <script src="/js/guide.js"></script>
+  <script src="/js/logs.js"></script>
+  <script src="/js/nav.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

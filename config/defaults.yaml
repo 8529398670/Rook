@@ -1,0 +1,247 @@
+# rook -- the one configuration file.
+#
+# Everything is configured here: the server, the Docker container, and the
+# portable build. Nothing reads environment variables. Every key is optional;
+# a key you leave out takes the value shown in this file.
+#
+# It holds no secret. The secret key is in secret.key, beside this file: 64
+# hex characters, mode 0600, never committed (.gitignore), never baked into an
+# image (.dockerignore). Back the two up together with the app directory.
+#
+# Rook reads this file when the server starts, so a change takes effect on
+# the next scripts/run.sh (or docker/run.sh). `rook config check` validates
+# it first. Each key is tagged with what the template it came from would do:
+#
+#   [live]      could take effect while the server runs (Rook: on restart)
+#   [restart]   takes effect when the server restarts
+#   [scripts]   read by docker/run.sh or scripts/build.sh, not the server
+#
+# Where it is read from, first match wins:
+#
+#   ./config/config.yaml               a source checkout; also what every
+#                                      script in scripts/ and docker/ reads
+#   ~/.config/rook/config.yaml   a portable binary run anywhere else
+#
+# If neither exists the server writes the second one, and a secret.key beside
+# it, on first run. `rook config init` writes both into ./config/
+# the same way, and `rook config check` validates whichever is in use.
+#
+# Relative paths resolve against the project directory: the folder that holds
+# config/ (in a checkout, and /app in the container), or the folder holding
+# this file when it is not in a config/ folder (~/.config/rook/).
+#
+# An unknown key is an error, not a silently ignored typo.
+
+app:
+  # Shown in the page title and the startup log. [restart]
+  name: "Rook"
+
+  # Where this app's source lives, e.g. https://github.com/you/app -- just the
+  # repository, no /tree or /blob path. Links to files in it, such as the API
+  # reference on the API keys card, point there; empty points them at this
+  # server's own copy. scaffold.py fills it from --repo, or from a
+  # github.com/... module path.
+  # [live]
+  repo: ""
+
+  # One line on what this app is for, shown on the About screen. [live]
+  description: ""
+
+
+server:
+  # 127.0.0.1 answers only this machine, which is what a development run and
+  # a server behind a reverse proxy on the same host both want. Use 0.0.0.0
+  # to listen on every interface -- and then put TLS in front, because login
+  # links, cookies, and API keys all cross the wire. Ignored inside the
+  # container, which always listens on 0.0.0.0 (what is reachable from
+  # outside is docker.bind_address). [restart]
+  host: 127.0.0.1
+  # Rook's own port, so it can run beside the other local projects. [restart]
+  port: 9384
+
+  # The address people open this at, e.g. https://app.example.com -- just the
+  # origin, no path. Login, invite and API-key links are printed with it.
+  # Empty means the links use http://host:port above (inside the container,
+  # docker.bind_address:docker.host_port), which is right on this machine
+  # and wrong behind a reverse proxy: the server cannot see what is in front.
+  # [live]
+  public_url: ""
+
+  # Where the database, the control socket and app storage live. Empty means
+  # ~/.config/rook/. Ignored inside the container, which always
+  # uses /app/data (mounted from docker.data_dir) and keeps the socket on its
+  # tmpfs. [restart]
+  app_dir: ""
+
+  # Checked on disk first, embedded copy otherwise. Empty language_file means
+  # <app_dir>/language.yaml if it exists, else language.yaml beside this file
+  # (config/language.yaml in a checkout). [restart]
+  static_dir: ./static
+  language_file: ""
+
+  # Encrypt every database value and every activity-log line with the key in
+  # secret.key. Session cookies are always encrypted with it. [restart]
+  encrypt_at_rest: true
+
+  # false ONLY for plain http://localhost. A Secure cookie is silently dropped
+  # over http, so login appears to succeed and then does nothing. Also turns
+  # HSTS on. [live]
+  secure_cookies: true
+  # Browsers share cookies across every port on a host, so two local
+  # projects with the same name log each other out. Rook has always used
+  # "session", and changing it signs everyone out. [restart]
+  cookie_name: session
+
+  # Turn on when a reverse proxy you control is in front (the Docker setup
+  # assumes one), so the rate limiter sees each visitor's address instead of
+  # the proxy's. proxy_header is then believed only on connections from an
+  # address in trusted_proxies -- the address your proxy connects *from*, as
+  # this server sees it -- and read right to left, skipping trusted hops, so
+  # whatever a client wrote further left is ignored. trust_proxy without
+  # trusted_proxies is refused.
+  #
+  #   proxy on the same host, bare binary:  [127.0.0.1, "::1"]
+  #   proxy on the host, app in Docker:     [172.16.0.0/12] (the bridge
+  #                                         gateway; check with
+  #                                         `docker network inspect bridge`)
+  #
+  # This only holds if clients cannot reach this server except through the
+  # proxy. With a single-value header (X-Real-IP, CF-Connecting-IP) the proxy
+  # must also overwrite whatever the client sent rather than pass it on.
+  # [restart]
+  trust_proxy: false
+  trusted_proxies: []
+  proxy_header: X-Forwarded-For
+
+  # The largest request body accepted, and how many requests one address may
+  # make per window before getting 429s. Files the page loads (/js, /css,
+  # /vendor, images) do not count: index.html alone pulls in over twenty.
+  body_limit_bytes: 1048576        # 1 MiB [restart]
+  rate_limit_max: 120              # [live]
+  rate_limit_window_seconds: 60    # [live]
+
+  # Signing in and joining through an invite link have their own budget, out
+  # of the same window. Everyone behind one office network shares an address,
+  # and each person joining makes several of these calls, so raise this before
+  # handing an invite link to a large group in one room. [live]
+  rate_limit_signin_max: 60
+
+
+  # Lets `manage` and other processes reach the database through the running
+  # server, over a unix socket in the app directory, or on the tmpfs inside
+  # the container (bolt allows only one process to open the file). Off means `manage` needs the server stopped.
+  # [restart]
+  control_socket: true
+
+
+
+  # One line at the top of every signed-in page: planned downtime, say. Empty
+  # shows nothing. Anyone can dismiss it, and a changed message comes back.
+  # [live]
+  announcement: ""
+
+# How long a sign-in lasts, and a login link stays usable. [live]
+# A sign-in that is in use extends itself: session_ttl_seconds counts from the
+# last time it was used, so only an idle one ends then. session_max_age_seconds
+# is the limit on that, counted from signing in, so a stolen cookie cannot be
+# kept alive forever. Set the two equal for a fixed lifetime.
+# login_token_ttl_seconds is how long a one-time login link lasts when whoever
+# makes it does not pick an expiry; multi_use_login_token_ttl_seconds is the
+# same for a link that works more than once.
+#
+# Rook's are longer than the template's on purpose: signing back in means
+# asking an admin for a new link, which is a poor way to end a card night, and
+# an invite is usually sent by text and opened hours later.
+auth:
+  session_ttl_seconds: 7776000     # 90 days
+  session_max_age_seconds: 31536000 # 365 days -- Rook does not extend a sign-in in use yet, so a session ends at session_ttl_seconds
+  login_token_ttl_seconds: 259200  # 3 days
+  multi_use_login_token_ttl_seconds: 604800 # 7 days
+
+  # API keys let a script, a cron job, or another service call the API at the
+  # role of the account that owns them, never higher. false closes the surface
+  # completely: the Authorization header stops being believed, existing keys
+  # stop working (the rows survive), and the endpoints that mint keys 404.
+  # [live]
+  api_keys: true
+
+  # Lifetime of a new key when the request does not say. A key that never
+  # expires has to be asked for (expires_in_days: 0, or `-days 0`). [live]
+  api_key_ttl_seconds: 7776000     # 90 days
+
+
+
+
+# The activity log: every request, every sign-in and admin action, and what
+# people do on the page (see static/js/track.js). Only the owner can read it,
+# on the Logs screen. It is written as one file per UTC day under
+# <app_dir>/logs/, each line encrypted when server.encrypt_at_rest is on.
+# Login links, keys, PINs and anything typed are never written. [live]
+logs:
+  enabled: true                    # [restart]
+  retention_days: 30               # days older than this are deleted
+  max_total_mb: 500                # past this the oldest days are recycled, never today
+  max_file_mb: 50                  # a day past this continues in a new part file
+  compress_after_days: 1           # finished days older than this are gzipped; 0 = never
+  static_assets: false             # also log requests for /js, /css, /vendor files
+  ui_clicks: true                  # log every click; screen changes, submits and errors always are
+  echo: true                       # print a one-line summary of each request to stdout
+
+
+
+
+
+# The card tables. [restart]
+game:
+  # How long one lobby or table event stream stays open before the page
+  # reconnects. Capped at 25: proxies drop quiet connections around 30.
+  event_stream_seconds: 20
+  # The pause before a computer player bids or plays, so a person can follow.
+  bot_delay_ms: 900
+  # A finished or abandoned table is dropped once it has been idle this long.
+  table_retention_hours: 72
+  # The most tables open at once.
+  max_tables: 50
+  # A CSV of names random bots are given. The default, misc/biblical-persons.csv,
+  # is read from disk when it is there and from the copy in the binary when not.
+  bot_names_file: misc/biblical-persons.csv
+
+# [scripts] Read by docker/run.sh, which applies a change the next time it
+# runs. Edit these on the host: inside the container they are read-only.
+docker:
+  image: rook
+  container: rook
+
+  # The host side of the published port. 127.0.0.1 keeps it reachable only
+  # from this machine -- put nginx/Caddy/Traefik in front for TLS. The
+  # container side is server.port.
+  bind_address: 127.0.0.1
+  host_port: 9384
+
+  # Host directory mounted at /app/data: the database and app storage. This
+  # file and secret.key are mounted separately (secret.key read-only), so a
+  # backup of data_dir alone does not carry the key.
+  data_dir: ./data
+
+  restart: unless-stopped          # no | always | unless-stopped | on-failure[:N]
+
+  # Blast-radius limits. Raise them deliberately for real load.
+  memory: 256m
+  cpus: "1"
+  pids_limit: 128
+  tmpfs_size: 16m                  # the only writable path besides data_dir
+
+# [scripts] Read by scripts/build.sh.
+build:
+  binary_name: rook
+  output_dir: dist
+
+  # `scripts/build.sh <os/arch> ...` overrides this list for one run.
+  targets:
+    - darwin/amd64
+    - darwin/arm64
+    - linux/amd64
+    - linux/arm64
+    - linux/arm
+    - windows/amd64
+    - windows/arm64

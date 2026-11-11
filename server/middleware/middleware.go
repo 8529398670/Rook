@@ -5,6 +5,8 @@
 package middleware
 
 import (
+	errors "errors"
+	path "path"
 	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v3"
@@ -92,5 +94,27 @@ func RateLimit( cfg *config.Config ) ( handler fiber.Handler ) {
 // and a gift to an attacker if they ever reach a response body.
 func Recover( cfg *config.Config ) ( handler fiber.Handler ) {
 	handler = recoverer.New( recoverer.Config{ EnableStackTrace: cfg.SecureCookies == false } )
+	return
+}
+
+// errorStatus is the status a handler's error turns into: a fiber.Error's
+// own code, 500 for anything else. The activity log records it.
+func errorStatus( err error ) ( code int ) {
+	code = fiber.StatusInternalServerError
+	var fiber_err *fiber.Error
+	if errors.As( err , &fiber_err ) {
+		code = fiber_err.Code
+	}
+	return
+}
+
+// staticAsset is a request for one of the page's own files (/js, /css, ...),
+// which the activity log leaves out unless logs.static_assets is on.
+func staticAsset( method string , request_path string ) ( result bool ) {
+	if method != fiber.MethodGet && method != fiber.MethodHead { return }
+	for _ , prefix := range []string{ "/api/" , "/login/" , "/join/" } {
+		if strings.HasPrefix( request_path , prefix ) { return }
+	}
+	result = path.Ext( request_path ) != ""
 	return
 }

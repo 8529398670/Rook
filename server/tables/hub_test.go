@@ -13,10 +13,9 @@ import (
 
 func testHub( t *testing.T ) ( hub *Hub , store *db.Store , cfg *config.Config ) {
 	t.Helper()
-	t.Setenv( "APP_DIR" , t.TempDir() )
-	t.Setenv( "BOT_DELAY_MS" , "0" )
-	cfg , err := config.Load()
+	cfg , err := config.ForTest( t.TempDir() )
 	if err != nil { t.Fatal( err ) }
+	cfg.BotDelay = 0
 	store , err = db.Open( cfg )
 	if err != nil { t.Fatal( err ) }
 	t.Cleanup( func() { store.Close() } )

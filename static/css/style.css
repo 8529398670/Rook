@@ -692,46 +692,14 @@ td .row-actions { display: flex; gap: 0.4rem; }
 .segmented.level-choices { display: grid; grid-template-columns: repeat(3, 1fr); }
 .bot-default-help { margin: 0.5rem 0 0; font-size: 0.85rem; }
 
-/* Settings is one long column: a filter and jump links sit at the top, and
-   the cards come in sections the links point at. */
-.settings-tools {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  padding: 0.25rem 0 0.5rem;
-  background: var(--bg);
-}
-.settings-filter-row { display: flex; align-items: center; gap: 0.6rem; }
-.settings-filter-row input { flex: 1 1 auto; min-width: 0; }
-.settings-filter-status { flex: 0 0 auto; margin: 0; white-space: nowrap; }
-.settings-jump { display: flex; flex-wrap: wrap; gap: 0.4rem; }
-.settings-jump button { flex: 0 0 auto; min-height: 36px; padding: 0.35rem 0.85rem; }
-.settings-section { display: flex; flex-direction: column; gap: var(--gap); scroll-margin-top: 1rem; }
-.settings-section:focus { outline: none; }
-.settings-section-title {
-  margin: 0.5rem 0 -0.25rem;
-  font-size: 0.8rem;
-  font-weight: 650;
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-/* What the filter hides, kept apart from [hidden] so it never shows a card
-   that is hidden because this account may not use it. */
-.settings-filtered { display: none !important; }
-.settings-no-match { margin: 0; text-align: center; }
+/* Each settings page is one section: a column of cards. */
+.settings-section { display: flex; flex-direction: column; gap: var(--gap); }
 
 /* The close button on a box shown once. */
 .notice-link { position: relative; }
 .notice-link .box-close { position: absolute; top: 2px; right: 2px; min-height: 40px; width: 40px; min-width: 40px; }
 .notice-link .box-close svg { width: 18px; height: 18px; }
 .notice-link:has(> .box-close) > p:first-of-type { padding-right: 2.5rem; }
-/* On a roomy screen the tools stay in reach under the header while the
-   long list scrolls. */
-@media (min-width: 48rem) and (min-height: 700px) {
-  .settings-tools { position: sticky; top: var(--settings-header-height, 57px); z-index: 4; }
-}
-
 /* ------------------------------------------------- rules & strategy */
 
 .guide-main {
@@ -1053,3 +1021,201 @@ button.danger-text { color: var(--danger); }
 
 .match-name { flex: 1 1 auto; font-weight: 750; overflow-wrap: anywhere; }
 .match-note { flex: 0 0 auto; font-size: 0.8rem; font-weight: 600; color: var(--accent); }
+
+/* ------------------------------------------------------------ sidebar */
+/* js/nav.js. A slide-in panel over the page on a phone (body.sidebar-open),
+   a column beside the lobby on a wide screen (body.sidebar-docked, only
+   while the lobby shows, since that is where its button is). */
+
+.app-sidebar {
+  --sidebar-width: 17rem;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  width: min(var(--sidebar-width), 85vw);
+  padding: calc(8px + var(--safe-top)) 0 calc(12px + var(--safe-bottom)) var(--safe-left);
+  background: var(--card-bg);
+  border-right: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  transform: translateX(-105%);
+  visibility: hidden;
+  transition: transform 0.2s ease, visibility 0s linear 0.2s;
+  outline: none;
+}
+
+body.sidebar-open .app-sidebar {
+  transform: none;
+  visibility: visible;
+  transition: transform 0.2s ease;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 39;
+  background: rgba(20, 14, 6, 0.35);
+}
+
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px 8px 20px;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-title { margin: 0; font-size: 1.1rem; }
+
+.sidebar-nav {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 10px;
+  overflow-y: auto;
+}
+
+.sidebar-heading {
+  margin: 0.9rem 0 0.25rem;
+  padding: 0 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--fg-muted);
+}
+
+.sidebar-group { display: flex; flex-direction: column; gap: 2px; }
+.sidebar-group[hidden], .sidebar-link[hidden] { display: none; }
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-radius: 10px;
+  color: var(--fg);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.sidebar-link:hover { background: var(--surface-2); }
+.sidebar-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent-strong); }
+
+.sidebar-foot {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 10px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--fg);
+  text-decoration: none;
+  min-width: 0;
+}
+
+.sidebar-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+
+@media (min-width: 64rem) {
+  body.sidebar-docked[data-screen="screen-lobby"] .app-sidebar {
+    transform: none;
+    visibility: visible;
+    box-shadow: none;
+    transition: none;
+  }
+  body.sidebar-docked[data-screen="screen-lobby"] .screen-lobby { margin-left: var(--sidebar-docked-width, 17rem); }
+  body.sidebar-docked[data-screen="screen-lobby"] .fab-bar { left: var(--sidebar-docked-width, 17rem); }
+  /* The column has its own close button only on a phone; here the
+     hamburger beside it does that. */
+  body.sidebar-docked .sidebar-head #sidebar-close { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-sidebar, body.sidebar-open .app-sidebar { transition: none; }
+}
+
+/* ------------------------------------------------- where you're signed in */
+/* js/sessions.js */
+
+.session-list { list-style: none; margin: 0 0 0.75rem; padding: 0; display: flex; flex-direction: column; }
+
+.session-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--border);
+}
+
+.session-row:first-child { border-top: 0; }
+.session-main { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+.session-name { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; font-weight: 700; }
+
+.session-current {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.session-row > button { flex: 0 0 auto; }
+
+/* -------------------------------------------------------- activity log */
+/* js/logs.js */
+
+.logs-tools { display: flex; flex-direction: column; gap: 0.75rem; }
+.logs-search { gap: 0.35rem; }
+.logs-search p { margin: 0; font-size: 0.82rem; }
+.logs-day-row { display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.75rem; }
+.logs-day-row select { flex: 1 1 12rem; min-width: 0; }
+.logs-live { display: inline-flex; align-items: center; gap: 0.45rem; font-weight: 600; }
+
+.logs-download {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--card-bg);
+  color: var(--fg);
+  font-weight: 650;
+  text-decoration: none;
+}
+
+.logs-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+
+.log-row {
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--border);
+  border-radius: 10px;
+  background: var(--card-bg);
+  min-width: 0;
+}
+
+.log-row.log-warn  { border-left-color: var(--win-ring); }
+.log-row.log-error { border-left-color: var(--danger); }
+
+.log-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.35rem 0.6rem; font-size: 0.85rem; }
+.log-time { font-variant-numeric: tabular-nums; color: var(--fg-muted); }
+.log-kind {
+  padding: 0 0.45rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--surface-2);
+  color: var(--fg-muted);
+}
+.log-kind-auth, .log-kind-admin { background: var(--accent-soft); color: var(--accent-strong); }
+.log-kind-error { background: var(--error-bg); color: var(--error-fg); }
+.log-who { font-weight: 700; }
+.log-what { margin-top: 2px; overflow-wrap: anywhere; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.82rem; }
+.log-where { font-size: 0.78rem; overflow-wrap: anywhere; }

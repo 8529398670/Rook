@@ -18,6 +18,7 @@ import (
 	config "rook/server/config"
 	db "rook/server/db"
 	encryption "rook/server/encryption"
+	logs "rook/server/logs"
 	models "rook/server/models"
 )
 
@@ -151,6 +152,11 @@ func ( guard *Guard ) resolveSession( c fiber.Ctx ) ( actor *Actor ) {
 	session , user := models.LoadSession( guard.Store , credential )
 	if user == nil { return }
 
+	// "Last seen" on the devices list. Not for the event streams, which
+	// re-check their session every few seconds whether anyone is there.
+	if strings.HasSuffix( c.Path() , "/events" ) == false {
+		models.TouchSession( guard.Store , session )
+	}
 	actor = &Actor{ User: user , Session: session , Role: user.Role }
 	return
 }
@@ -246,6 +252,37 @@ func ( guard *Guard ) RequireSession( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	err = c.Next()
+	return
+}
+
+// StillOwner is true while credential is a live session of the owner -- the
+// account the server was set up with -- acting as an admin. The activity
+// log's stream asks it every few seconds, so signing out or losing admin ends
+// a Logs screen left open.
+func ( guard *Guard ) StillOwner( credential string ) ( ok bool ) {
+	_ , user := models.LoadSession( guard.Store , credential )
+	if user == nil || user.IsAdmin() == false { return }
+	owner_id , err := models.SuperAdminID( guard.Store )
+	ok = err == nil && owner_id != 0 && user.ID == owner_id
+	return
+}
+
+// LogActor is who the activity log says made a request: the account, how it
+// signed in, and the API key if that was the way in. Anonymous when nobody.
+func LogActor( actor *Actor ) ( result *logs.Actor ) {
+	if actor == nil || actor.User == nil {
+		result = logs.Anonymous()
+		return
+	}
+	result = &logs.Actor{
+		UserID: actor.User.ID,
+		Name:   actor.User.DisplayName,
+		Role:   actor.Role,
+		Method: actor.Method(),
+	}
+	if actor.APIKey != nil {
+		result.KeyID = actor.APIKey.ID
+	}
 	return
 }
 

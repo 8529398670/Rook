@@ -55,7 +55,7 @@ const maxRequestBytes = 64 * 1024
 //
 // This is worth checking by hand because the failure is otherwise a bare
 // "bind: invalid argument" from the kernel, which names neither the limit nor
-// the path that broke it. A deep APP_DIR is all it takes.
+// the path that broke it. A deep server.app_dir is all it takes.
 const maxSocketPathLength = 103
 
 // Server is the control listener. It is created after the database is open,
@@ -81,7 +81,7 @@ func Listen( store *db.Store , cfg *config.Config ) ( server *Server , err error
 	if len( cfg.ControlSocketPath ) > maxSocketPathLength {
 		err = fmt.Errorf(
 			"control socket path is %d characters, past the %d the kernel allows: %s\n"+
-				"Set APP_DIR to a shorter path, or set CONTROL_SOCKET=false to run without the socket -- manage will then need the server stopped." ,
+				"Set server.app_dir in config.yaml to a shorter path, or server.control_socket: false to run without the socket -- manage will then need the server stopped." ,
 			len( cfg.ControlSocketPath ) , maxSocketPathLength , cfg.ControlSocketPath )
 		return
 	}

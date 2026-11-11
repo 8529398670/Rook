@@ -33,9 +33,11 @@ const (
 	BucketTables      = "tables"
 	BucketSignupLinks = "signup_links"
 	BucketGames       = "games"
+	// What the owner calls an address, for the activity log.
+	BucketIPNames     = "ip_names"
 )
 
-var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks , BucketGames }
+var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks , BucketGames , BucketIPNames }
 
 type Store struct {
 	bolt          *bolt.DB
@@ -94,7 +96,7 @@ func ( store *Store ) decode( raw []byte , out any ) ( err error ) {
 	if store.encryptAtRest {
 		plain , err = encryption.ChaChaDecryptBytes( store.secretKey , raw )
 		if err != nil {
-			err = fmt.Errorf( "could not decrypt a stored record -- is SECRET_KEY the same one it was written with?: %w" , err )
+			err = fmt.Errorf( "could not decrypt a stored record -- is secret.key the same one it was written with?: %w" , err )
 			return
 		}
 	}

@@ -3,6 +3,7 @@ package routes
 import (
 	fiber "github.com/gofiber/fiber/v3"
 
+	logs "rook/server/logs"
 	models "rook/server/models"
 	security "rook/server/security"
 	tables "rook/server/tables"
@@ -109,6 +110,7 @@ func ( handlers *Handlers ) Logout( c fiber.Ctx ) ( err error ) {
 		err = forbidden( c , "invalid csrf token" )
 		return
 	}
+	handlers.audit( c , logs.KindAuth , "signed out" , nil )
 	handlers.destroyCookieSession( c )
 	handlers.Guard.ClearSessionCookie( c )
 	err = c.JSON( fiber.Map{ "ok": true } )

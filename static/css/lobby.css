@@ -17,6 +17,8 @@
   border-bottom: 1px solid var(--border);
 }
 
+.lobby-header-start { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.lobby-header-start .sidebar-toggle { margin-left: -10px; }
 .lobby-brand { display: flex; align-items: center; gap: 4px; }
 .lobby-header-actions { display: flex; align-items: center; gap: 6px; }
 .lobby-bird .bird-art { width: 46px; height: 46px; display: block; }
@@ -85,13 +87,28 @@
 .table-card-main:active:not(:disabled) { background: none; transform: none; }
 .table-card:has(.table-card-main:hover) { border-color: var(--accent); }
 
+/* The right-hand column: the status chip at the top, buttons below it. */
+.table-card-side {
+  flex: 0 0 auto;
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+.table-card-side .table-card-actions { margin: auto 0; }
+
 .table-card-actions { flex: 0 0 auto; display: flex; flex-direction: column; gap: 6px; }
 .table-card-actions button { min-height: 34px; padding: 0.25rem 0.9rem; font-size: 0.85rem; white-space: nowrap; }
 .table-card-actions button.table-card-delete { color: var(--danger); }
 
 @media (max-width: 480px) {
-  .table-card { flex-wrap: wrap; }
-  .table-card-main { flex-basis: calc(100% - 76px); }
+  /* On a phone the buttons drop to their own row under the card, and the
+     chip stays at the top right. */
+  .table-card { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 14px; row-gap: 10px; }
+  .table-card-side { display: contents; }
+  .table-card-side .status-chip { grid-column: 3; grid-row: 1; align-self: start; }
+  .table-card-side .table-card-actions { grid-column: 1 / -1; margin: 0; }
   .table-card-actions { flex-basis: 100%; flex-direction: row; justify-content: flex-end; }
 }
 

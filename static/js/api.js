@@ -66,6 +66,17 @@ const Api = {
 
   rename( displayName )        { return this.post( "/api/account/rename" , { display_name: displayName } ); },
   logout()                     { return this.post( "/api/logout" ); },
+  sessions()                   { return this.request( "/api/account/sessions" ); },
+  logDays( query )             { return this.request( "/api/owner/logs/days" + ( query ? "?q=" + encodeURIComponent( query ) : "" ) ); },
+  logDay( day , query , before ) {
+    const params = new URLSearchParams();
+    if ( query ) params.set( "q" , query );
+    if ( before !== null && before !== undefined ) params.set( "before" , String( before ) );
+    const tail = params.toString();
+    return this.request( "/api/owner/logs/days/" + encodeURIComponent( day ) + ( tail ? "?" + tail : "" ) );
+  },
+  revokeSession( id )          { return this.post( "/api/account/sessions/" + encodeURIComponent( id ) + "/revoke" ); },
+  revokeOtherSessions()        { return this.post( "/api/account/sessions/revoke-others" ); },
   listTeam()                   { return this.request( "/api/team" ); },
   listUsers()                  { return this.request( "/api/admin/users" ); },
   createUser( name , role )    { return this.post( "/api/admin/users" , { display_name: name , role: role } ); },

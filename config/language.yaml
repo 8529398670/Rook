@@ -22,6 +22,14 @@ app:
 nav:
   back: "Back"
   settings: "Settings"
+  # The sidebar the lobby's ☰ button opens (js/nav.js).
+  menu: "Menu"
+  close: "Close menu"
+  sidebar_label: "Main menu"
+  lobby: "Lobby"
+  # The guide: rules, strategy, bots and about.
+  info: "Info"
+  logs: "Activity log"
 
 signed_out:
   heading: "Welcome to the table"
@@ -428,8 +436,6 @@ rules:
 # Delete a section, or a line from it, and it is gone from the page.
 guide:
   heading: "Rules & strategy"
-  # The ⓘ button on the home screen, which opens the guide on Rules.
-  button: "Rules, strategy, bots & about"
   rules_tab: "Rules"
   strategy_tab: "Strategy"
   bots_tab: "Bots"
@@ -775,16 +781,12 @@ guide:
 
 settings:
   heading: "Settings"
-  filter_label: "Filter settings"
-  # {count} of {total} cards are showing.
-  filter_count: "{count} of {total}"
-  filter_none: "No settings match."
-  jump_label: "Jump to a section"
-  # The section headings, which are also the jump links.
+  # The settings pages, each its own page and sidebar link.
   section_account: "Account"
   section_play: "Playing"
   section_display: "Display"
-  section_admin: "Invites & admin"
+  section_invites: "Invites"
+  section_admin: "Admin"
 
 account:
   heading: "Account"
@@ -800,6 +802,55 @@ account:
   delete_heading: "Delete your account?"
   delete_body: "This can't be undone. Your sign-in links, sessions and API keys stop working, and you leave any table you are sitting at. Games already played keep your name."
   delete_confirm: "Delete my account"
+
+# The activity log (js/logs.js), the owner's alone.
+logs:
+  heading: "Activity log"
+  description: "Every request, sign-in and admin action, newest first. Only you, the owner, can see this. Links, keys and PINs are never recorded."
+  off: "The activity log is off (logs.enabled in config/config.yaml)."
+  search_label: "Search"
+  search_placeholder: "e.g. kind:auth or status:5xx or user:ana"
+  search_help: "Words match anywhere. Narrow with kind: user: status: path: ip: level: — commas mean or (kind:auth,admin), a leading minus excludes."
+  day_label: "Day"
+  # {date} is a day, {count} a number.
+  day_button: "{date} ({count} entries)"
+  day_matches: "{date} ({count} matches)"
+  live_button: "Live"
+  live_lost: "Live updates stopped. Tick Live to try again."
+  download_button: "Download day"
+  # {days} {used} {max} {gzip} come from config.yaml's logs section.
+  settings_line: "Keeping {days} days, up to {max} (now {used}). Days older than {gzip} are compressed."
+  encrypted: "Encrypted on disk."
+  not_encrypted: "Not encrypted on disk."
+  no_matches: "Nothing matches."
+  load_more: "Show older entries"
+  anonymous: "signed out"
+  kind_request: "Request"
+  kind_ui: "Page"
+  kind_auth: "Sign-in"
+  kind_admin: "Admin"
+  kind_error: "Error"
+  kind_system: "System"
+
+# "Where you're signed in" (js/sessions.js), a card in the Account section.
+sessions:
+  heading: "Where you're signed in"
+  description: "Every phone, tablet and computer signed in to your account. Sign out one you don't recognise, or one you've lost."
+  empty: "No other devices."
+  this_device: "This device"
+  # {browser} on {system}, e.g. "Safari on iOS".
+  device_name: "{browser} on {system}"
+  unknown_device: "Unknown device"
+  unknown: "unknown"
+  # One line under each device. {where} is its address.
+  details: "{where} · last seen {seen} · signed in {signed_in}"
+  revoke_button: "Sign out"
+  revoke_label: "Sign out {name}"
+  revoke_heading: "Sign this device out?"
+  revoke_confirm: "{name} will need a new login link to get back in."
+  revoke_others_button: "Sign out everywhere else"
+  revoke_others_heading: "Sign out every other device?"
+  revoke_others_confirm: "Every device but this one will need a new login link to get back in."
 
 device_link:
   heading: "Sign in on another device"

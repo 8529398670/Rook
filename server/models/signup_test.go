@@ -11,8 +11,7 @@ import (
 
 func testStore( t *testing.T ) ( store *db.Store ) {
 	t.Helper()
-	t.Setenv( "APP_DIR" , t.TempDir() )
-	cfg , err := config.Load()
+	cfg , err := config.ForTest( t.TempDir() )
 	if err != nil { t.Fatal( err ) }
 	store , err = db.Open( cfg )
 	if err != nil { t.Fatal( err ) }

@@ -1,14 +1,34 @@
+# What the build context leaves out. The context is the project root
+# (docker/lib.sh runs `docker build -f docker/Dockerfile .`). It lives at the
+# root, not beside the Dockerfile as Dockerfile.dockerignore, because only
+# BuildKit reads that name: the legacy builder still in use on some hosts reads
+# only this one, and would otherwise send data/ and config.yaml into the build.
 .git
 .gitignore
+.run/
 data/
+dist/
 *.db
+# The secret key, and this deployment's settings: never in an image layer,
+# which is forever. Both are mounted at run time (docker/run.sh).
+config/config.yaml
+config/secret.key
+**/secret.key
+**/secret.key.*
+config/config.yaml.*
+config/.config.yaml.*
+# Rook's older layout: a key and settings at the project root.
 .secret_key
+/config.yaml
 .env
 *.md
-Dockerfile
-dockerRun.sh
-dist/
+docker/
+scripts/
+# misc/biblical-persons.csv is compiled in (embed.go); the rest of misc/ is not.
+misc/all-names.csv
 old_php_version/
+temp/
 .DS_Store
 .claude/
-misc/all-names.csv
+/rook
+/rook.exe

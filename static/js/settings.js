@@ -1,6 +1,7 @@
 // The settings screen: your account, the light/dark choice, API keys, and --
-// for admins -- who can get in. This is the template's account/admin page,
-// moved off the front door now that the front door is the lobby.
+// for admins -- who can get in. Each section is its own page,
+// #/settings/<part>; one screen holds them all and shows only the one the
+// hash names, so the wiring below is done once whichever page opens first.
 const Settings = {
   screenId: "screen-settings",
   me: null,
@@ -40,20 +41,53 @@ const Settings = {
       }
     } );
     Zoom.bind( Dom.get( "settings-zoom" ) );
-    Dom.get( "settings-filter" ).addEventListener( "input" , () => this.applyFilter() );
+    // A session's own list: an API key has no device to show.
+    Dom.show( Dom.get( "sessions-card" ) , me.auth !== "api_key" );
+    Sessions.init();
   },
 
-  async enter() {
-    Dom.get( "display-name" ).value = this.me.display_name;
-    this.renderTheme();
-    await Profile.enter();
-    this.measureHeader();
+  async enter( part ) {
+    part = this.showPart( part );
+    if ( part === "account" ) {
+      Dom.get( "display-name" ).value = this.me.display_name;
+      await Profile.enter();
+      // Fresh each visit: a device signed in elsewhere since should show.
+      if ( this.me.auth !== "api_key" ) await Sessions.refresh();
+    }
+    if ( part === "display" ) this.renderTheme();
     if ( !this.ready ) {
       this.ready = true;
       await this.loadPanels();
     }
-    // Panels this account may use have only now been revealed.
-    this.applyFilter();
+  },
+
+  // The pages this account may open: Invites for anyone who may invite;
+  // Admin (players, game settings, everyone's API keys) for the owner alone.
+  parts() {
+    const parts = [ "account" , "play" , "display" ];
+    if ( this.me.can_invite ) parts.push( "invites" );
+    if ( this.me.owner ) parts.push( "admin" );
+    return parts;
+  },
+
+  // Show one section and hide the rest. A bare #/settings, an unknown part
+  // or one this account may not open lands on Account, and the address bar
+  // says so, so the sidebar marks the page actually showing.
+  showPart( part ) {
+    if ( this.parts().indexOf( part ) < 0 ) {
+      if ( part ) window.history.replaceState( null , "" , "#/settings/account" );
+      part = "account";
+      Nav.mark( "#/settings/account" );
+    }
+    let title = "";
+    Dom.all( "[data-settings-section]" ).forEach( function ( section ) {
+      const here = section.getAttribute( "data-settings-section" ) === part;
+      section.hidden = !here;
+      if ( here ) title = I18n.get( section.getAttribute( "data-settings-title" ) );
+    } );
+    Dom.text( Dom.get( "settings-title" ) , title );
+    document.title = title + " · " + I18n.get( "app.title" );
+    return part;
   },
 
   // The cards only some accounts get, each filled by its own file.
@@ -80,67 +114,10 @@ const Settings = {
 
   leave() {},
 
-  // The filter and the jump links only hide and scroll. A card is one thing
-  // to match; a section goes, with its link, once none of its cards is left.
-  // What the filter hides is a class, not [hidden], which stays the
-  // account's own: a card this account may not use is never shown by it.
-  applyFilter() {
-    const words = Dom.get( "settings-filter" ).value.trim().toLowerCase().split( /\s+/ ).filter( Boolean );
-    const jump = Dom.get( "settings-jump" );
-    Dom.clear( jump );
-    let shown = 0;
-    let total = 0;
-    Dom.all( "[data-settings-section]" ).forEach( ( section ) => {
-      let left = 0;
-      Dom.all( ":scope > .card" , section ).forEach( ( card ) => {
-        if ( card.hidden ) return;
-        total += 1;
-        const text = card.textContent.toLowerCase();
-        const match = words.every( ( word ) => text.includes( word ) );
-        card.classList.toggle( "settings-filtered" , !match );
-        if ( match ) left += 1;
-      } );
-      shown += left;
-      section.classList.toggle( "settings-filtered" , left === 0 );
-      if ( left === 0 ) return;
-      const title = section.querySelector( ".settings-section-title" );
-      jump.appendChild( Dom.el( "button" , {
-        class: "secondary",
-        text: title ? title.textContent : "",
-        attrs: { type: "button" },
-        on: { click: () => this.jumpTo( section ) },
-      } ) );
-    } );
-    let status = "";
-    if ( words.length > 0 ) {
-      status = shown === 0 ? I18n.get( "settings.filter_none" )
-        : I18n.format( "settings.filter_count" , { count: shown , total: total } );
-    }
-    Dom.text( Dom.get( "settings-filter-status" ) , status );
-  },
-
-  // By script rather than a #link, because the hash says which screen this
-  // is. Measured, because the header and the tools above stay on screen.
-  jumpTo( section ) {
-    const header = document.querySelector( "#screen-settings .page-header" );
-    const tools = document.querySelector( ".settings-tools" );
-    const sticky = getComputedStyle( tools ).position === "sticky";
-    const offset = header.getBoundingClientRect().bottom + ( sticky ? tools.offsetHeight : 0 ) + 8;
-    window.scrollTo( { top: window.scrollY + section.getBoundingClientRect().top - offset , behavior: "instant" } );
-    section.focus( { preventScroll: true } );
-  },
-
-  // The sticky tools sit just under the sticky header, whose height
-  // depends on the phone's notch.
-  measureHeader() {
-    const header = document.querySelector( "#screen-settings .page-header" );
-    if ( header ) Dom.get( "screen-settings" ).style.setProperty( "--settings-header-height" , header.offsetHeight + "px" );
-  },
-
   renderWho() {
     const roleKey = this.me.role === "admin" ? "account.role_admin" : "account.role_user";
     Dom.text( Dom.get( "who-am-i" ) , I18n.format( "account.signed_in_as" , { name: this.me.display_name , role: I18n.get( roleKey ) } ) );
-    Art.avatar( Dom.get( "open-settings" ) , this.me );
+    Nav.renderUser();
   },
 
   // Two levels saved to the account, so they follow the player to every

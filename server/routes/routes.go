@@ -20,8 +20,10 @@ import (
 	config "rook/server/config"
 	db "rook/server/db"
 	language "rook/server/language"
+	logs "rook/server/logs"
 	security "rook/server/security"
 	static "rook/server/static"
+	stream "rook/server/stream"
 	tables "rook/server/tables"
 )
 
@@ -38,6 +40,13 @@ type Handlers struct {
 	// FileBotNames is cfg.BotNamesFile's names, most popular first, or empty
 	// when there is no such file. See randomBotNames.
 	FileBotNames []string
+	// Logs is the activity log (see server/logs), and LogStream tells an open
+	// Activity log screen that more has been written. main.go sets both.
+	Logs      *logs.Logger
+	LogStream *stream.Hub
+	// uiEventBudget caps what one account's page may add to the log. See
+	// RecordUIEvents.
+	uiEventBudget eventBudget
 }
 
 func New( store *db.Store , cfg *config.Config , guard *security.Guard , lang *language.Language , static_server *static.Server , hub *tables.Hub ) ( handlers *Handlers ) {
@@ -62,7 +71,7 @@ func ( handlers *Handlers ) LoadBotNames( embedded []byte ) {
 	if path == "" { return }
 	names , err := botnames.Load( path )
 	source := path
-	if errors.Is( err , fs.ErrNotExist ) && path == config.DefaultBotNamesFile && len( embedded ) > 0 {
+	if errors.Is( err , fs.ErrNotExist ) && handlers.Config.BotNamesFileIsDefault && len( embedded ) > 0 {
 		names , err = botnames.Parse( bytes.NewReader( embedded ) )
 		source = "embedded " + path
 	}
@@ -129,6 +138,13 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// spelled out at the API keys group below.
 	account.Post( "/account/login-link" , handlers.Guard.RequireSession , handlers.CreateMyLoginLink )
 	account.Post( "/account/delete" , handlers.Guard.RequireSession , handlers.DeleteMyAccount )
+	// Your own signed-in devices (sessions.go). A session only: a key that
+	// could end sessions could lock its owner out of the screen that
+	// revokes it.
+	account.Get( "/account/sessions" , handlers.Guard.RequireSession , handlers.ListMySessions )
+	account.Post( "/account/sessions/revoke-others" , handlers.Guard.RequireSession , handlers.RevokeMyOtherSessions )
+	account.Post( "/account/sessions/:session_id/label" , handlers.Guard.RequireSession , handlers.LabelMySession )
+	account.Post( "/account/sessions/:session_id/revoke" , handlers.Guard.RequireSession , handlers.RevokeMySession )
 
 	// Sign-up links: anyone allowed to invite manages their own, admins
 	// everyone's (see signup_links.go).
@@ -178,6 +194,10 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	admin.Post( "/users/:user_id/rename" , handlers.RequireOwner , handlers.AdminRenameUser )
 	admin.Post( "/users/:user_id/avatar" , handlers.RequireOwner , handlers.AdminSetAvatar )
 	admin.Post( "/users/:user_id/delete" , handlers.RequireOwner , handlers.DeleteUser )
+	// Where someone is signed in, for ending one device rather than
+	// everything with revoke-access. A session only, like your own list.
+	admin.Get( "/users/:user_id/sessions" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.ListUserSessions )
+	admin.Post( "/users/:user_id/sessions/:session_id/revoke" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.RevokeUserSession )
 	// The app-wide game settings: the owner's, not every admin's.
 	admin.Get( "/settings" , handlers.RequireOwner , handlers.GetSettings )
 	admin.Post( "/settings" , handlers.RequireOwner , handlers.SaveSettings )
@@ -252,6 +272,22 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	games.Get( "/:game_id" , handlers.GetGame )
 	games.Post( "/:game_id/delete" , handlers.RequireOwner , handlers.DeleteGame )
 
+	// The activity log (logs.go): the owner only, from a browser session --
+	// not other admins, not any API key. Its own prefix, so nothing else
+	// picks up these rules by sharing the string.
+	if handlers.Logs.Enabled() {
+		owner_logs := app.Group( "/api/owner/logs" , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
+		owner_logs.Get( "/stream" , handlers.StreamLogs )
+		owner_logs.Get( "/days" , handlers.ListLogDays )
+		owner_logs.Get( "/days/:date" , handlers.GetLogDay )
+		owner_logs.Get( "/days/:date/download" , handlers.DownloadLogDay )
+		owner_logs.Post( "/days/:date/delete" , handlers.DeleteLogDay )
+		owner_logs.Post( "/prune" , handlers.PruneLogs )
+		owner_logs.Get( "/ip-names" , handlers.ListIPNames )
+		owner_logs.Post( "/ip-names" , handlers.SetIPName )
+		owner_logs.Post( "/ip-names/delete" , handlers.DeleteIPName )
+	}
+
 	lobby := app.Group( "/api/lobby" , handlers.Guard.RequireLogin )
 	lobby.Get( "/events" , handlers.LobbyEvents )
 
@@ -277,7 +313,41 @@ func forbidden( c fiber.Ctx , message string ) ( err error ) {
 	return
 }
 
-func serverError( c fiber.Ctx ) ( err error ) {
+// serverError answers 500 without saying why. A cause, when given, goes to
+// the server's log instead, where the operator can see it.
+func serverError( c fiber.Ctx , causes ...error ) ( err error ) {
+	for _ , cause := range causes {
+		if cause != nil {
+			log.Printf( "[error] %s %s: %v" , c.Method() , c.Path() , cause )
+		}
+	}
 	err = c.Status( fiber.StatusInternalServerError ).JSON( fiber.Map{ "error": "internal error" } )
+	return
+}
+
+func conflict( c fiber.Ctx , message string , extra fiber.Map ) ( err error ) {
+	body := fiber.Map{ "error": message }
+	for name , value := range extra {
+		body[ name ] = value
+	}
+	err = c.Status( fiber.StatusConflict ).JSON( body )
+	return
+}
+
+// refusal is a reason a request cannot go ahead, worked out before anything
+// is written. cause is why a 5xx happened: it goes to the log, never to the
+// caller.
+type refusal struct {
+	status  int
+	message string
+	cause   error
+}
+
+func ( refused *refusal ) send( c fiber.Ctx ) ( err error ) {
+	if refused.status >= 500 {
+		err = serverError( c , refused.cause )
+		return
+	}
+	err = c.Status( refused.status ).JSON( fiber.Map{ "error": refused.message } )
 	return
 }

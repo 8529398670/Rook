@@ -137,7 +137,7 @@ func ( handlers *Handlers ) SignupClaim( c fiber.Ctx ) ( err error ) {
 			return
 		}
 	}
-	if handlers.startSession( c , user.ID ) != nil {
+	if handlers.startSession( c , user.ID , "signed in through a sign-up link" ) != nil {
 		err = serverError( c )
 		return
 	}
@@ -170,7 +170,7 @@ func ( handlers *Handlers ) SignupCreate( c fiber.Ctx ) ( err error ) {
 		err = c.Status( fiber.StatusConflict ).JSON( fiber.Map{ "error": "signup_link_full" } )
 		return
 	}
-	if handlers.startSession( c , user.ID ) != nil {
+	if handlers.startSession( c , user.ID , "signed up through a sign-up link" ) != nil {
 		err = serverError( c )
 		return
 	}

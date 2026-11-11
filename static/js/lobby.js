@@ -13,11 +13,6 @@ const Lobby = {
 
   init( me ) {
     this.me = me;
-    Dom.get( "open-settings" ).addEventListener( "click" , function () { App.go( "#/settings" ); } );
-    Dom.get( "open-games" ).addEventListener( "click" , function () { App.go( "#/games" ); } );
-    // One button for the whole guide -- rules, strategy, bots and about --
-    // opening on the rules.
-    Dom.get( "open-guide" ).addEventListener( "click" , function () { App.go( "#/rules" ); } );
     Dom.get( "new-table-button" ).addEventListener( "click" , this.openCreate.bind( this ) );
     Dom.get( "sheet-new-table" ).addEventListener( "submit" , this.onCreate.bind( this ) );
 
@@ -195,7 +190,6 @@ const Lobby = {
         Dom.el( "div" , { class: "table-card-body" , children: [
           Dom.el( "div" , { class: "table-card-top" , children: [
             Dom.el( "span" , { class: "table-card-name" , text: table.name } ),
-            Dom.el( "span" , { class: "status-chip status-" + table.status , text: I18n.get( "status." + table.status ) } ),
           ] } ),
           Dom.el( "div" , { class: "table-card-status" , text: this.statusText( table ) } ),
           names,
@@ -220,9 +214,13 @@ const Lobby = {
       action( "lobby.delete" , "secondary table-card-delete" , function () { Table.confirmManage( "delete" , table.id ); } );
     }
 
-    const children = [ compass , main ];
-    if ( actions.childElementCount > 0 ) children.push( actions );
-    return Dom.el( "div" , { class: "table-card status-" + table.status , children: children } );
+    // The status chip sits in its own column at the card's right edge, above
+    // any buttons, so it lines up on every card whether or not Join is there.
+    const side = Dom.el( "div" , { class: "table-card-side" , children: [
+      Dom.el( "span" , { class: "status-chip status-" + table.status , text: I18n.get( "status." + table.status ) } ),
+    ] } );
+    if ( actions.childElementCount > 0 ) side.appendChild( actions );
+    return Dom.el( "div" , { class: "table-card status-" + table.status , children: [ compass , main , side ] } );
   },
 
   // The rule chips shown on lobby cards, in the waiting room, and on the

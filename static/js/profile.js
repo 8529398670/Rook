@@ -38,7 +38,7 @@ const Profile = {
 
   renderPreview() {
     Art.avatar( Dom.get( "avatar-preview" ) , this.me );
-    Art.avatar( Dom.get( "open-settings" ) , this.me );
+    Nav.renderUser();
   },
 
   // Fill an icon grid and a color grid for one person. handlers.person()

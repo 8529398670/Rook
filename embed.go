@@ -3,6 +3,8 @@ package main
 import (
 	embed "embed"
 	fs "io/fs"
+
+	config "rook/server/config"
 )
 
 // The frontend, compiled into the binary.
@@ -19,14 +21,29 @@ import (
 //go:embed all:static
 var embeddedStaticRoot embed.FS
 
-//go:embed language.yaml
+//go:embed config/language.yaml
 var embeddedLanguage []byte
+
+// The defaults every missing config.yaml key falls back to, and the note that
+// turns them into config/config.example.yaml. See server/config.
+//
+//go:embed config/defaults.yaml
+var embeddedDefaults []byte
+
+//go:embed config/example_header.yaml
+var embeddedExampleHeader []byte
 
 // The names random bots can be given, used when bot_names_file is left at
 // its default and the file is not on disk (see routes.LoadBotNames).
 //
 //go:embed misc/biblical-persons.csv
 var embeddedBotNames []byte
+
+// The config package needs the defaults before anything else runs -- every
+// subcommand, including `config init`, starts from them.
+func init() {
+	config.UseEmbedded( embeddedDefaults , embeddedExampleHeader )
+}
 
 // embeddedStatic re-roots the embedded tree at ./static, so a request for
 // "css/style.css" does not have to know it lives at "static/css/style.css"
