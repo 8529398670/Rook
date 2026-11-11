@@ -272,7 +272,7 @@
     </main>
   </section>
 
-  <!-- =================================================== activity log -->
+  <!-- =========================================================== logs -->
   <!-- The owner's record of every request, sign-in and admin action
        (js/logs.js, server/logs). Reached from the sidebar's Settings group. -->
   <section id="screen-logs" class="screen screen-logs" hidden>
@@ -283,26 +283,86 @@
       <h1 data-i18n="logs.heading"></h1>
     </header>
 
+    <!-- Full width: the day's log is a table, and a table gets the whole
+         width. The calendar opens from the date button rather than taking a
+         column beside it. -->
     <main class="lobby-main logs-main">
       <p class="muted" data-i18n="logs.description"></p>
       <p id="logs-off" class="notice notice-warn" data-i18n="logs.off" hidden></p>
-      <div id="logs-body" class="card logs-tools">
-        <form id="logs-search-form" class="logs-search" role="search" autocomplete="off">
-          <label for="logs-search" data-i18n="logs.search_label"></label>
-          <input id="logs-search" type="search" data-i18n-attr="placeholder:logs.search_placeholder" />
-          <p class="muted" data-i18n="logs.search_help"></p>
-        </form>
-        <div class="logs-day-row">
-          <label for="logs-day" data-i18n="logs.day_label"></label>
-          <select id="logs-day"></select>
-          <label class="logs-live"><input id="logs-live" type="checkbox" role="switch" /> <span data-i18n="logs.live_button"></span></label>
-          <a id="logs-download" class="logs-download" data-i18n="logs.download_button"></a>
-        </div>
-        <p id="logs-settings" class="muted"></p>
+      <div id="logs-body" class="logs-body">
+        <section class="card logs-tools">
+          <!-- Three columns: search, the date button, then Live and Prune. -->
+          <form id="logs-search-form" class="logs-bar" role="search" autocomplete="off">
+            <div class="logs-search">
+              <label for="logs-search" data-i18n="logs.search_label"></label>
+              <input id="logs-search" type="search" maxlength="200" data-i18n-attr="placeholder:logs.search_placeholder" />
+            </div>
+            <div id="logs-date-picker" class="log-date-picker">
+              <button type="button" id="logs-date-button" class="secondary" aria-haspopup="true" aria-expanded="false" data-i18n-attr="title:logs.calendar_label">
+                <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="5" width="17" height="15" rx="2.5" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 10h17M8 3v4M16 3v4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span id="logs-date-label"></span>
+              </button>
+              <div id="logs-cal-menu" class="log-cal-menu" hidden>
+                <div class="log-calendar" role="group" data-i18n-attr="aria-label:logs.calendar_label">
+                  <div class="log-cal-head">
+                    <button type="button" id="logs-cal-prev" class="secondary small" data-i18n-attr="aria-label:logs.prev_month,title:logs.prev_month">‹</button>
+                    <span id="logs-cal-title" class="log-cal-title" aria-live="polite"></span>
+                    <button type="button" id="logs-cal-next" class="secondary small" data-i18n-attr="aria-label:logs.next_month,title:logs.next_month">›</button>
+                    <button type="button" id="logs-cal-today" class="secondary small log-cal-today" data-i18n="logs.today_button"></button>
+                  </div>
+                  <div id="logs-cal-grid" class="log-cal-grid"></div>
+                </div>
+              </div>
+            </div>
+            <div class="logs-actions">
+              <button type="button" id="logs-live" class="secondary" aria-pressed="false">
+                <svg class="glyph" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.2" fill="currentColor"/><path d="M8 8a5.5 5.5 0 0 0 0 8M16 8a5.5 5.5 0 0 1 0 8M5 5a9.5 9.5 0 0 0 0 14M19 5a9.5 9.5 0 0 1 0 14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span data-i18n="logs.live_button"></span>
+              </button>
+              <button type="button" id="logs-prune" class="secondary" data-i18n="logs.prune_button"></button>
+            </div>
+          </form>
+          <p class="muted logs-help" data-i18n="logs.search_help"></p>
+          <div id="logs-kinds" class="logs-kinds" role="group" data-i18n-attr="aria-label:logs.kinds_label"></div>
+          <p id="logs-settings" class="muted logs-settings"></p>
+        </section>
+
+        <!-- What the owner calls addresses. Clicking an address in a row
+             fills the form here. -->
+        <details id="ip-names" class="card logs-names">
+          <summary id="ip-names-summary" class="logs-names-summary"></summary>
+          <div class="table-scroll">
+            <table id="ip-names-table" class="logs-names-table">
+              <thead>
+                <tr>
+                  <th scope="col" data-i18n="logs.table_ip_name"></th>
+                  <th scope="col" data-i18n="logs.table_ip_target"></th>
+                  <th scope="col"><span class="visually-hidden" data-i18n="logs.table_ip_actions"></span></th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+          <p id="ip-names-empty" class="muted" data-i18n="logs.ip_names_empty" hidden></p>
+          <form id="ip-names-form" class="logs-names-form" autocomplete="off">
+            <label>
+              <span data-i18n="logs.ip_target_label"></span>
+              <input id="ip-names-target" type="text" required maxlength="64" spellcheck="false" />
+            </label>
+            <label>
+              <span data-i18n="logs.ip_name_label"></span>
+              <input id="ip-names-name" type="text" required maxlength="80" />
+            </label>
+            <button type="submit" data-i18n="logs.ip_names_add"></button>
+            <p class="muted logs-help" data-i18n="logs.ip_target_help"></p>
+          </form>
+        </details>
+
+        <section class="card">
+          <p id="logs-empty" class="muted" hidden></p>
+          <div id="logs-day"></div>
+        </section>
       </div>
-      <ol id="logs-list" class="logs-list" aria-live="polite"></ol>
-      <p id="logs-empty" class="muted" data-i18n="logs.no_matches" hidden></p>
-      <button id="logs-more" type="button" class="secondary" data-i18n="logs.load_more" hidden></button>
     </main>
   </section>
 

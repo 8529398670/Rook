@@ -67,6 +67,8 @@ const Api = {
   rename( displayName )        { return this.post( "/api/account/rename" , { display_name: displayName } ); },
   logout()                     { return this.post( "/api/logout" ); },
   sessions()                   { return this.request( "/api/account/sessions" ); },
+  // Logs (owner only; the server answers anyone else with 404). q is the
+  // search box as typed; the server parses it.
   logDays( query )             { return this.request( "/api/owner/logs/days" + ( query ? "?q=" + encodeURIComponent( query ) : "" ) ); },
   logDay( day , query , before ) {
     const params = new URLSearchParams();
@@ -75,6 +77,13 @@ const Api = {
     const tail = params.toString();
     return this.request( "/api/owner/logs/days/" + encodeURIComponent( day ) + ( tail ? "?" + tail : "" ) );
   },
+  logStreamPath()              { return "/api/owner/logs/stream"; },
+  logDownloadPath( day )       { return "/api/owner/logs/days/" + encodeURIComponent( day ) + "/download"; },
+  deleteLogDay( day )          { return this.post( "/api/owner/logs/days/" + encodeURIComponent( day ) + "/delete" ); },
+  pruneLogs()                  { return this.post( "/api/owner/logs/prune" ); },
+  ipNames()                    { return this.request( "/api/owner/logs/ip-names" ); },
+  setIpName( target , name )   { return this.post( "/api/owner/logs/ip-names" , { target: target , name: name } ); },
+  deleteIpName( target )       { return this.post( "/api/owner/logs/ip-names/delete" , { target: target } ); },
   revokeSession( id )          { return this.post( "/api/account/sessions/" + encodeURIComponent( id ) + "/revoke" ); },
   revokeOtherSessions()        { return this.post( "/api/account/sessions/revoke-others" ); },
   listTeam()                   { return this.request( "/api/team" ); },

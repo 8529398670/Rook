@@ -29,7 +29,7 @@ nav:
   lobby: "Lobby"
   # The guide: rules, strategy, bots and about.
   info: "Info"
-  logs: "Activity log"
+  logs: "Logs"
 
 signed_out:
   heading: "Welcome to the table"
@@ -803,34 +803,76 @@ account:
   delete_body: "This can't be undone. Your sign-in links, sessions and API keys stop working, and you leave any table you are sitting at. Games already played keep your name."
   delete_confirm: "Delete my account"
 
-# The activity log (js/logs.js), the owner's alone.
+# The Logs screen (js/logs.js), the owner's alone. Days are UTC dates; times
+# are the viewer's own. kind_* label both the filter buttons and each row's badge.
 logs:
-  heading: "Activity log"
-  description: "Every request, sign-in and admin action, newest first. Only you, the owner, can see this. Links, keys and PINs are never recorded."
-  off: "The activity log is off (logs.enabled in config/config.yaml)."
+  heading: "Logs"
+  description: "Everything this app has recorded: every request, every sign-in and admin action. Only you, the owner, can see this. Links, keys and PINs are never recorded."
+  off: "Logs are off (logs.enabled in config/config.yaml)."
   search_label: "Search"
-  search_placeholder: "e.g. kind:auth or status:5xx or user:ana"
+  search_placeholder: "Search, e.g. status:5xx user:ana -kind:request"
   search_help: "Words match anywhere. Narrow with kind: user: status: path: ip: level: — commas mean or (kind:auth,admin), a leading minus excludes."
-  day_label: "Day"
-  # {date} is a day, {count} a number.
-  day_button: "{date} ({count} entries)"
-  day_matches: "{date} ({count} matches)"
-  live_button: "Live"
-  live_lost: "Live updates stopped. Tick Live to try again."
-  download_button: "Download day"
-  # {days} {used} {max} {gzip} come from config.yaml's logs section.
-  settings_line: "Keeping {days} days, up to {max} (now {used}). Days older than {gzip} are compressed."
-  encrypted: "Encrypted on disk."
-  not_encrypted: "Not encrypted on disk."
-  no_matches: "Nothing matches."
-  load_more: "Show older entries"
-  anonymous: "signed out"
+  kinds_label: "Show only"
   kind_request: "Request"
   kind_ui: "Page"
   kind_auth: "Sign-in"
   kind_admin: "Admin"
   kind_error: "Error"
   kind_system: "System"
+  live_button: "Live"
+  live_lost: "Live updates stopped. Press Live to try again."
+  prune_button: "Prune now"
+  # Empty this string to stop asking for confirmation.
+  prune_confirm: "Apply the retention rules from config.yaml now? Old days are compressed or deleted."
+  # {deleted} and {compressed} are counts of days.
+  pruned: "Pruned: {deleted} days deleted, {compressed} compressed."
+  # {days} {used} {max} {gzip} come from config.yaml's logs section.
+  settings_line: "Keeping {days} days, up to {max} (now {used}). Days older than {gzip} are compressed."
+  encrypted: "Encrypted on disk."
+  not_encrypted: "Not encrypted on disk."
+  dropped: "{count} entries dropped under load since start."
+  no_matches: "Nothing matches."
+  # The calendar that picks which day shows. {date} is a day, {count} a number.
+  calendar_label: "Pick a day"
+  prev_month: "Previous month"
+  next_month: "Next month"
+  today_button: "Today"
+  day_button: "{date}: {count} entries"
+  day_matches: "{date}: {count} matches"
+  day_empty: "Nothing logged on this day."
+  entries: "entries: {count}"
+  matches: "matches: {count}"
+  errors: "errors: {count}"
+  compressed: "compressed"
+  download_button: "Download"
+  delete_button: "Delete day"
+  # {date} is the day. Empty this string to stop asking for confirmation.
+  delete_confirm: "Delete every entry from {date}? This cannot be undone."
+  deleted: "Deleted {date}."
+  # Names for addresses. {count} is how many, {ip} the address, {name} the name.
+  ip_names_heading: "Names for addresses ({count})"
+  ip_names_empty: "No names yet. Click an address in the log to name it."
+  ip_names_add: "Save name"
+  ip_name_button: "Name {ip}"
+  ip_name_label: "Name"
+  ip_target_label: "Address or range"
+  ip_target_help: "One address, or a range such as 10.0.0.0/24. The most specific name wins. Saving an address that already has a name renames it."
+  ip_name_delete: "Delete"
+  ip_named: "Named {name}."
+  ip_name_deleted: "Name removed."
+  table_ip_name: "Name"
+  table_ip_target: "Address"
+  table_ip_actions: "Actions"
+  load_more: "Load more"
+  copy: "Copy"
+  copied: "Copied."
+  table_time: "Time"
+  table_kind: "Kind"
+  table_user: "Who"
+  table_what: "What"
+  table_ip: "IP"
+  anonymous: "signed out"
+  via_key: "(API key)"
 
 # "Where you're signed in" (js/sessions.js), a card in the Account section.
 sessions:

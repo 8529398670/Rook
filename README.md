@@ -276,7 +276,7 @@ The tests use fixed seeds so failures can be reproduced. That code never runs in
 - **Where you're signed in:** Settings → Account lists every device signed in to your account, with when it was last seen, and signs out any of them (or every one but this).
 
 **The menu**
-- The ☰ button beside the lobby's logo opens the sidebar: the lobby, Game history, Info (rules & strategy), Invites (for anyone allowed to invite), and each part of Settings, which for the owner adds Admin (players, game settings, everyone's API keys) and the activity log. On a wide screen it stays open beside the lobby once opened (remembered in this browser); on a phone it slides in over the page.
+- The ☰ button beside the lobby's logo opens the sidebar: the lobby, Game history, Info (rules & strategy), Invites (for anyone allowed to invite), and each part of Settings, which for the owner adds Admin (players, game settings, everyone's API keys) and Logs. On a wide screen it stays open beside the lobby once opened (remembered in this browser); on a phone it slides in over the page.
 
 **Roles and permissions**
 - The **owner** is the account the server was set up with. It always stays an admin and manages players and app-wide settings.
@@ -288,8 +288,8 @@ The tests use fixed seeds so failures can be reproduced. That code never runs in
 - Send it as `Authorization: Bearer <key>`.
 - Keys can be switched off completely with `auth.api_keys: false`.
 
-**Activity log**
-- The owner's **Activity log** (sidebar → Admin) records every request, sign-in and sign-out, one day at a time, searchable (`kind:auth`, `status:5xx`, `user:ana`), with a Live switch. Login links, keys and PINs are never written. It lives in `logs/` in the app directory, encrypted like the database, and old days are compressed and then deleted (`logs.*` in `config/config.yaml`).
+**Logs**
+- The owner's **Logs** screen (sidebar → Admin) records every request, sign-in and sign-out. It is full width: a search bar (`kind:auth`, `status:5xx`, `user:ana`) with kind filters, a calendar to pick the day, a Live switch and Prune now; the day shows as a table whose rows open to the whole entry, and an address can be given a name by clicking it. Login links, keys and PINs are never written. It lives in `logs/` in the app directory, encrypted like the database, and old days are compressed and then deleted (`logs.*` in `config/config.yaml`).
 
 ## Configuration
 
