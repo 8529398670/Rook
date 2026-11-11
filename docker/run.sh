@@ -244,6 +244,16 @@ if command -v lsof >/dev/null 2>&1; then
   fi
 fi
 
+# misc/ holds the bot-name CSVs. Only misc/biblical-persons.csv is compiled
+# into the binary, so a game.bot_names_file pointing at any other CSV there
+# (paths resolve against /app inside the container, as against the project
+# directory on the host) needs the folder itself. Read-only: the server never
+# writes it, and a new CSV dropped in here works on the next restart.
+MISC_MOUNT=()
+if [ -d misc ]; then
+  MISC_MOUNT=( -v "$( pwd )/misc:/app/misc:ro" )
+fi
+
 echo "Starting ${docker_container} on ${docker_bind_address}:${docker_host_port}..."
 docker run -d \
   --name "$docker_container" \
@@ -253,6 +263,7 @@ docker run -d \
   -v "${DATA_DIR}:/app/data" \
   -v "${CONFIG_FILE}:${CONTAINER_CONFIG}" \
   -v "${SECRET_FILE}:${CONTAINER_SECRET}:ro" \
+  ${MISC_MOUNT[@]+"${MISC_MOUNT[@]}"} \
   --read-only \
   --tmpfs "/tmp:rw,noexec,nosuid,size=${docker_tmpfs_size}" \
   --cap-drop ALL \
