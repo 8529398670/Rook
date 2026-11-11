@@ -196,11 +196,17 @@ func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	id , user := c.Params( "table_id" ) , security.UserFrom( c )
-	look := tables.BotLook{}
-	if user.RandomBots {
-		look.Names , look.Icons = handlers.randomBotNames() , models.BotIcons
-	}
+	// Every bot gets a random name, emoji and color. Where the names come
+	// from is the owner's choice in Game settings (see randomBotNames).
+	look := tables.BotLook{ Names: handlers.randomBotNames() , Icons: models.BotIcons }
 	err = handlers.tableResult( c , id , handlers.Hub.AddBotLooking( id , user , body.Seat , body.Level , look ) )
+	return
+}
+
+// usingFileBotNames says the owner chose the names file in Game settings and
+// it loaded.
+func ( handlers *Handlers ) usingFileBotNames() ( ok bool ) {
+	ok = handlers.Hub.Settings().BotNames == models.BotNamesFile && len( handlers.FileBotNames ) > 0
 	return
 }
 
@@ -209,9 +215,8 @@ func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
 // settings (and it loaded), else bots.random_names in language.yaml,
 // separated by commas.
 func ( handlers *Handlers ) randomBotNames() ( names []string ) {
-	settings := handlers.Hub.Settings()
-	if settings.BotNames == models.BotNamesFile && len( handlers.FileBotNames ) > 0 {
-		names = botnames.Top( handlers.FileBotNames , settings.BotNamesTop )
+	if handlers.usingFileBotNames() {
+		names = botnames.Top( handlers.FileBotNames , handlers.Hub.Settings().BotNamesTop )
 		return
 	}
 	for _ , name := range strings.Split( handlers.Language.Get( "bots.random_names" ) , "," ) {

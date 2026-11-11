@@ -226,7 +226,7 @@ game:
   max_tables: 50
   # A CSV of names random bots are given. The default, misc/biblical-persons.csv,
   # is read from disk when it is there and from the copy in the binary when not.
-  bot_names_file: misc/biblical-persons.csv
+  bot_names_file: misc/hand-picked-biblical-names.csv
 
 # [scripts] Read by docker/run.sh, which applies a change the next time it
 # runs. Edit these on the host: inside the container they are read-only.

@@ -29,17 +29,6 @@ const Settings = {
     } );
     this.renderWho();
     this.renderLevels();
-    const randomBots = Dom.get( "random-bots" );
-    randomBots.checked = me.random_bots === true;
-    randomBots.addEventListener( "change" , async function () {
-      try {
-        await Api.setRandomBots( randomBots.checked );
-        Settings.me.random_bots = randomBots.checked;
-      } catch ( error ) {
-        randomBots.checked = !randomBots.checked;
-        Toast.error( error );
-      }
-    } );
     Zoom.bind( Dom.get( "settings-zoom" ) );
     // A session's own list: an API key has no device to show.
     Dom.show( Dom.get( "sessions-card" ) , me.auth !== "api_key" );

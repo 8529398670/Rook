@@ -137,8 +137,8 @@ bots:
   name_2: "Edgar"
   name_3: "Poe"
   name_4: "Hugin"
-  # Where a bot's name comes from for a player who switched on random bots
-  # (Settings). Separated by commas; add or remove any.
+  # The names bots are given when Game settings uses the built-in list.
+  # Separated by commas; add or remove any.
   random_names: "Captain Waffles, Ziggy, Marmalade, Biscuit, Professor Pickles, Noodle, Sir Reginald, Mango, Pip, Duchess, Gizmo, Tater Tot, Bubbles, Moose, Peaches, Rocket, Waldo, Pretzel, Banjo, Clementine, Fig, Dr. Snuggles, Taco, Juniper, Bingo, Scooter, Lady Fluff, Nacho, Pumpkin, Ozzy, Sprout, Cosmo, Muffin, Gus, Dottie, Chewie, Turbo, Olive, Barnaby, Popcorn, Ruby, Snickers, Hank, Dumpling, Jellybean, Mabel, Rascal, Sparky, Tink, Winston, Pickle, Goose, Zelda, Beans, Captain Crunch, Lulu, Bartholomew, Jojo, Mittens, Squiggles"
   add_heading: "Add a bot"
   add_description: "How well should it play? Your default from Settings is picked — press Enter for it. The host can change a bot later by tapping it."
@@ -905,8 +905,6 @@ device_link:
 bot_default:
   heading: "Bots you add"
   description: "How well a bot plays when you add one to a table. Saved to your account. You can still pick another level each time."
-  random: "🎲 Random names, emojis & colors"
-  random_help: "Each bot you add gets a random character name, emoji and color instead of the usual bot name and 🤖."
 
 auto_play_settings:
   heading: "Auto play plays as"
@@ -1282,12 +1280,12 @@ game_settings:
   rook_anytime_help: "Official rule: even when you could follow the color led. Applies to tables created from now on."
   rook_first_trick_help: "Turn off to keep the bird out of the hand's opening trick. Applies to tables created from now on."
   rook_rank_help: "Highest beats every card; 10½ beats the 10 and loses to the 11; Lowest is the weakest trump. Applies to tables created from now on."
-  # Where random bots get their names (random bots in Settings, and 🎲).
+  # Where bots get their names (every new bot, and 🎲).
   bot_names: "Random bot names"
   bot_names_builtin: "Built-in"
   bot_names_file: "Names file"
   # {file} is bot_names_file from config.yaml, {count} how many names it has.
-  bot_names_help: "Built-in is the list of silly names. Names file uses {file} ({count} names), set by bot_names_file in config.yaml."
+  bot_names_help: "Every bot gets a random name, emoji and color. Built-in is the list of silly names; Names file uses {file} ({count} names), set by bot_names_file in config.yaml."
   bot_names_missing: "Built-in is the list of silly names. To use your own, point bot_names_file in config.yaml at a CSV with name and total_count columns and restart. {file} wasn't found or had no names."
   bot_names_top: "Use the most popular"
   # {count} is how many names the file has, {default} the starting number.

@@ -145,7 +145,6 @@ const Api = {
   setPin( pin )                { return this.post( "/api/account/pin" , { pin: pin } ); },
   setDefaultBotLevel( level )  { return this.post( "/api/account/bot-level" , { level: level } ); },
   setAutoPlayLevel( level )    { return this.post( "/api/account/auto-play-level" , { level: level } ); },
-  setRandomBots( on )          { return this.post( "/api/account/random-bots" , { random_bots: on } ); },
 
   // Join links and multi-use sign-up links. The sign-up credential goes in
   // the body, never the URL, so it stays out of server logs.

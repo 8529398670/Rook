@@ -733,7 +733,13 @@
 /* On a phone the hint takes the second line under the bid buttons. */
 .bid-row > .hint-row { flex-basis: 100%; justify-content: center; }
 
+/* Buttons never break their label over two lines. On a wide screen the bid
+   panel gets more room than other panels, so the stepper, Bid, Pass,
+   Reshuffle and Hint all fit on one line without squeezing. */
+.bid-row > button { white-space: nowrap; }
+
 @media (min-width: 40rem) {
+  .bid-panel { max-width: 44rem; }
   .bid-row { flex-wrap: nowrap; }
   .bid-row > .hint-row { flex-basis: auto; }
 }

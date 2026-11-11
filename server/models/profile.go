@@ -317,16 +317,6 @@ func SetUserCanReshuffle( store *db.Store , user_id uint64 , can_reshuffle bool 
 	return
 }
 
-func SetUserRandomBots( store *db.Store , user_id uint64 , random_bots bool ) ( err error ) {
-	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
-		func() any { return &User{} } ,
-		func( item any ) ( mutate_err error ) {
-			item.( *User ).RandomBots = random_bots
-			return
-		} )
-	return
-}
-
 func SetUserCanUndo( store *db.Store , user_id uint64 , can_undo bool ) ( err error ) {
 	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
 		func() any { return &User{} } ,
