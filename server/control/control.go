@@ -35,6 +35,7 @@ import (
 	net "net"
 	http "net/http"
 	os "os"
+	filepath "path/filepath"
 	runtime "runtime"
 	strconv "strconv"
 	time "time"
@@ -83,6 +84,14 @@ func Listen( store *db.Store , cfg *config.Config ) ( server *Server , err error
 			"control socket path is %d characters, past the %d the kernel allows: %s\n"+
 				"Set server.app_dir in config.yaml to a shorter path, or server.control_socket: false to run without the socket -- manage will then need the server stopped." ,
 			len( cfg.ControlSocketPath ) , maxSocketPathLength , cfg.ControlSocketPath )
+		return
+	}
+
+	// The socket's folder may not exist yet. In the container it is
+	// /tmp/control on a tmpfs that starts empty on every run; on the host it
+	// is the app directory, which already exists and is left as it is.
+	if mkdir_err := os.MkdirAll( filepath.Dir( cfg.ControlSocketPath ) , 0o700 ); mkdir_err != nil {
+		err = fmt.Errorf( "could not create the control socket's folder %s: %w" , filepath.Dir( cfg.ControlSocketPath ) , mkdir_err )
 		return
 	}
 
