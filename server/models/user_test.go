@@ -50,3 +50,53 @@ func TestDeleteUserRemovesEveryWayIn( t *testing.T ) {
 		}
 	}
 }
+
+func TestNewUsersStartWithTheOwnersDefaults( t *testing.T ) {
+	store := testStore( t )
+	// Nothing saved yet: everything allowed, Master everywhere, extras on.
+	fresh , err := CreateUser( store , "Ana" , RoleUser )
+	if err != nil { t.Fatal( err ) }
+	if !fresh.CanInvite || !fresh.CanHint || !fresh.CanUndo || !fresh.CanReshuffle {
+		t.Fatalf( "permissions should start on: %+v" , fresh )
+	}
+	if fresh.HintLevel != "master" || fresh.BotLevel != "master" || fresh.AutoPlayLevel != "master" {
+		t.Fatalf( "levels should start at master: %+v" , fresh )
+	}
+	if fresh.PlayerScores == nil || !*fresh.PlayerScores || fresh.LedGlow == nil || !*fresh.LedGlow {
+		t.Fatalf( "table extras should start on: %+v" , fresh )
+	}
+
+	// The owner changes them: the next account gets the new choice and the
+	// one already made keeps what it had.
+	settings := AppSettings{
+		NewUserNoInvite: true , NewUserNoHint: true , NewUserNoUndo: true , NewUserNoReshuffle: true ,
+		NewUserHintLevel: "easy" , NewUserBotLevel: "hard" , NewUserAutoPlayLevel: "normal" ,
+		NewUserNoPlayerScores: true , NewUserNoLedGlow: true ,
+	}
+	if err := SaveSettings( store , settings ); err != nil { t.Fatal( err ) }
+	later , err := CreateUser( store , "Ben" , RoleUser )
+	if err != nil { t.Fatal( err ) }
+	if later.CanInvite || later.CanHint || later.CanUndo || later.CanReshuffle {
+		t.Fatalf( "permissions should start off: %+v" , later )
+	}
+	if later.HintLevel != "easy" || later.BotLevel != "hard" || later.AutoPlayLevel != "normal" {
+		t.Fatalf( "levels not copied: %+v" , later )
+	}
+	if *later.PlayerScores || *later.LedGlow {
+		t.Fatalf( "table extras should start off: %+v" , later )
+	}
+	again , err := GetUser( store , fresh.ID )
+	if err != nil { t.Fatal( err ) }
+	if !again.CanHint || again.BotLevel != "master" {
+		t.Fatalf( "an existing account changed: %+v" , again )
+	}
+}
+
+func TestValidNewUserLevel( t *testing.T ) {
+	for _ , level := range []string{ "" , "easy" , "master" } {
+		if ValidNewUserLevel( level ) == false { t.Fatalf( "%q should be allowed" , level ) }
+	}
+	for _ , level := range []string{ "Master" , "godlike" , " easy" } {
+		if ValidNewUserLevel( level ) { t.Fatalf( "%q should be refused" , level ) }
+	}
+}

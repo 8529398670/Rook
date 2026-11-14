@@ -138,7 +138,7 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 	} )
 }
 
-// Hint is the Expert bot's choice for a person's seat, offered rather than
+// Hint is a bot's choice, at the person's hint level, for their seat, offered rather than
 // made. The route checks the person is allowed hints; this checks it is
 // their move. The search runs on a copy, after the table is unlocked.
 func ( hub *Hub ) Hint( id string , user *models.User ) ( action Action , err error ) {
@@ -165,7 +165,7 @@ func ( hub *Hub ) Hint( id string , user *models.User ) ( action Action , err er
 	table.mu.Unlock()
 	if err != nil { return }
 	var ok bool
-	if action , ok = botAction( snapshot , seat , game.HelpLevel ); ok == false {
+	if action , ok = botAction( snapshot , seat , HintLevelOf( user ) ); ok == false {
 		err = game.ErrNotYourTurn
 	}
 	return

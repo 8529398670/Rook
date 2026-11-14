@@ -161,6 +161,12 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 		err = badRequest( c , "bad_options" )
 		return
 	}
+	if models.ValidNewUserLevel( body.NewUserHintLevel ) == false ||
+		models.ValidNewUserLevel( body.NewUserBotLevel ) == false ||
+		models.ValidNewUserLevel( body.NewUserAutoPlayLevel ) == false {
+		err = badRequest( c , "bad_options" )
+		return
+	}
 	if handlers.Hub.SetSettings( body.AppSettings ) != nil {
 		err = serverError( c )
 		return

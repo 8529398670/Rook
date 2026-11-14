@@ -28,12 +28,32 @@ const Links = {
     } );
   },
 
+  // What a new account starts with: switch or select id, settings field.
+  newUserSwitches: [
+    [ "setting-new-invite" , "new_user_no_invite" ],
+    [ "setting-new-hint" , "new_user_no_hint" ],
+    [ "setting-new-undo" , "new_user_no_undo" ],
+    [ "setting-new-reshuffle" , "new_user_no_reshuffle" ],
+    [ "setting-new-player-scores" , "new_user_no_player_scores" ],
+    [ "setting-new-led-glow" , "new_user_no_led_glow" ],
+  ],
+  newUserLevels: [
+    [ "setting-new-hint-level" , "new_user_hint_level" ],
+    [ "setting-new-bot-level" , "new_user_bot_level" ],
+    [ "setting-new-auto-play-level" , "new_user_auto_play_level" ],
+  ],
+
   async initGameSettings() {
     if ( this.settingsReady ) return;
     this.settingsReady = true;
     Dom.show( Dom.get( "game-settings-panel" ) , true );
     this.fillPauses( Dom.get( "setting-trick-pause" ) );
-    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-rank" , "setting-rook-first-trick" , "setting-bot-names" , "setting-bot-names-top" ].forEach( function ( id ) {
+    Dom.all( "[data-new-user-level]" ).forEach( function ( select ) {
+      Table.botLevels.forEach( function ( level ) {
+        select.appendChild( Dom.el( "option" , { text: I18n.get( "bots.level_" + level ) , attrs: { value: level } } ) );
+      } );
+    } );
+    [ "setting-join-signup" , "setting-observers-all" , "setting-table-chat" , "setting-global-chat" , "setting-trick-pause" , "setting-rook-anytime" , "setting-rook-rank" , "setting-rook-first-trick" , "setting-bot-names" , "setting-bot-names-top" ].concat( this.newUserSwitches.map( function ( pair ) { return pair[ 0 ]; } ) , this.newUserLevels.map( function ( pair ) { return pair[ 0 ]; } ) ).forEach( function ( id ) {
       Dom.get( id ).addEventListener( "change" , Links.saveSettings.bind( Links ) );
     } );
     try {
@@ -48,6 +68,10 @@ const Links = {
       Dom.get( "setting-rook-anytime" ).checked = settings.rook_anytime;
       Dom.get( "setting-rook-first-trick" ).checked = !settings.rook_first_trick_off;
       Dom.get( "setting-rook-rank" ).value = settings.rook_rank || "high";
+      // Stored as "off" so older databases read as on; shown as "on".
+      this.newUserSwitches.forEach( function ( pair ) { Dom.get( pair[ 0 ] ).checked = !settings[ pair[ 1 ] ]; } );
+      // "" (never set) is Master.
+      this.newUserLevels.forEach( function ( pair ) { Dom.get( pair[ 0 ] ).value = settings[ pair[ 1 ] ] || "master"; } );
       this.renderBotNames( settings );
     } catch ( error ) {
       Toast.error( error );
@@ -99,8 +123,12 @@ const Links = {
   },
 
   async saveSettings() {
+    // Save replaces every setting, so the new-player defaults go too.
+    const newUser = {};
+    this.newUserSwitches.forEach( function ( pair ) { newUser[ pair[ 1 ] ] = !Dom.get( pair[ 0 ] ).checked; } );
+    this.newUserLevels.forEach( function ( pair ) { newUser[ pair[ 1 ] ] = Dom.get( pair[ 0 ] ).value; } );
     try {
-      const saved = await Api.saveSettings( {
+      const saved = await Api.saveSettings( Object.assign( newUser , {
         allow_join_signup: Dom.get( "setting-join-signup" ).checked,
         observers_see_all: Dom.get( "setting-observers-all" ).checked,
         table_chat_off: !Dom.get( "setting-table-chat" ).checked,
@@ -111,7 +139,7 @@ const Links = {
         rook_rank: Dom.get( "setting-rook-rank" ).value,
         bot_names: Dom.get( "setting-bot-names" ).value,
         bot_names_top: this.botNamesTop(),
-      } );
+      } ) );
       this.renderBotNames( saved );
       Toast.show( I18n.get( "game_settings.saved" ) );
     } catch ( error ) {

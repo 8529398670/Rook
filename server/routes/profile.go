@@ -105,6 +105,26 @@ func ( handlers *Handlers ) SetAutoPlayLevel( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// SetHintLevel saves the level the hint button suggests at for the player.
+func ( handlers *Handlers ) SetHintLevel( c fiber.Ctx ) ( err error ) {
+	var body botLevelRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	if _ , ok := game.ParseLevel( body.Level ); ok == false || body.Level == "" {
+		err = badRequest( c , string( game.ErrBadLevel ) )
+		return
+	}
+	user := security.UserFrom( c )
+	if models.SetUserHintLevel( handlers.Store , user.ID , body.Level ) != nil {
+		err = serverError( c )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true , "hint_level": body.Level } )
+	return
+}
+
 // SetPin sets, or with an empty pin removes, the PIN asked for when someone
 // picks this account from a sign-up link's "did you mean...?".
 func ( handlers *Handlers ) SetPin( c fiber.Ctx ) ( err error ) {

@@ -107,6 +107,8 @@ func TestCanUndoIsForPlayersAtTheirOwnTable( t *testing.T ) {
 	ana := testUser( t , store , "Ana" )
 	ben := testUser( t , store , "Ben" )
 	id := soloTable( t , hub , ana )
+	// New accounts start with undo; take it away to test a plain player.
+	ana.CanUndo , ben.CanUndo = false , false
 
 	rewind := func( viewer Viewer ) ( result bool ) {
 		view , err := hub.View( id , viewer , ViewOptions{} )

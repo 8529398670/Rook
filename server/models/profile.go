@@ -295,6 +295,18 @@ func SetUserBotLevel( store *db.Store , user_id uint64 , level string ) ( err er
 	return
 }
 
+// SetUserHintLevel saves the level the hint button uses for the player. The
+// route checks the name against game.Levels.
+func SetUserHintLevel( store *db.Store , user_id uint64 , level string ) ( err error ) {
+	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
+		func() any { return &User{} } ,
+		func( item any ) ( mutate_err error ) {
+			item.( *User ).HintLevel = level
+			return
+		} )
+	return
+}
+
 // SetUserAutoPlayLevel saves the level auto play uses for the player. The
 // route checks the name against game.Levels.
 func SetUserAutoPlayLevel( store *db.Store , user_id uint64 , level string ) ( err error ) {

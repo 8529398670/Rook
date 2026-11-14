@@ -220,7 +220,9 @@ const Table = {
   showPlayerScores() {
     if ( this.playerScores === null ) {
       try {
-        this.playerScores = window.localStorage.getItem( this.playerScoresKey ) === "on";
+        const stored = window.localStorage.getItem( this.playerScoresKey );
+        // Not flipped on this device yet: start where the account says.
+        this.playerScores = stored === null ? Boolean( App.me && App.me.player_scores ) : stored === "on";
       } catch ( error ) {
         this.playerScores = false;
       }
@@ -240,11 +242,13 @@ const Table = {
   },
 
   // The first card of each trick outlined, on the table and in Last trick,
-  // when chosen in Settings. Remembered on this device; off until chosen.
+  // when chosen in Settings. Remembered on this device; until chosen there,
+  // it starts where the account says (new players get the owner's default).
   showLedGlow() {
     if ( this.ledGlow === null ) {
       try {
-        this.ledGlow = window.localStorage.getItem( this.ledGlowKey ) === "on";
+        const stored = window.localStorage.getItem( this.ledGlowKey );
+        this.ledGlow = stored === null ? Boolean( App.me && App.me.led_glow ) : stored === "on";
       } catch ( error ) {
         this.ledGlow = false;
       }
@@ -1007,6 +1011,13 @@ const Table = {
   // server decides; this is only for showing it.
   autoPlayLevel() {
     const level = App.me && App.me.auto_play_level;
+    return this.botLevels.indexOf( level ) >= 0 ? level : "expert";
+  },
+
+  // The level the hint button suggests at, set in Settings. The server
+  // decides; this is only for showing it.
+  hintLevel() {
+    const level = App.me && App.me.hint_level;
     return this.botLevels.indexOf( level ) >= 0 ? level : "expert";
   },
 

@@ -403,3 +403,15 @@ func TestBotLevels( t *testing.T ) {
 		t.Fatalf( "levels after changing: %+v" , view.Seats )
 	}
 }
+
+func TestHintsUseThePlayersLevel( t *testing.T ) {
+	if level := HintLevelOf( &models.User{} ); level != game.HelpLevel {
+		t.Fatalf( "no level should mean %s, got %s" , game.HelpLevel , level )
+	}
+	if level := HintLevelOf( &models.User{ HintLevel: "master" } ); level != game.LevelMaster {
+		t.Fatalf( "got %s" , level )
+	}
+	if level := HintLevelOf( &models.User{ HintLevel: "nonsense" } ); level != game.HelpLevel {
+		t.Fatalf( "a bad level should fall back, got %s" , level )
+	}
+}

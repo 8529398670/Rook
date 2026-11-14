@@ -43,6 +43,79 @@ type AppSettings struct {
 	// names are used; 0 means botnames.DefaultTop.
 	BotNames    string `json:"bot_names,omitempty"`
 	BotNamesTop int    `json:"bot_names_top,omitempty"`
+	// NewUser... are what a new account starts with, copied onto it when it
+	// is created (see CreateUser), so a change never alters anyone who
+	// already has an account. Named for "off", and levels with "" read as
+	// DefaultNewUserLevel, so a database saved before they existed gives
+	// new players everything: invite, hints, undo and reshuffle allowed,
+	// Master everywhere, and both table extras shown.
+	NewUserNoInvite       bool   `json:"new_user_no_invite"`
+	NewUserNoHint         bool   `json:"new_user_no_hint"`
+	NewUserNoUndo         bool   `json:"new_user_no_undo"`
+	NewUserNoReshuffle    bool   `json:"new_user_no_reshuffle"`
+	NewUserHintLevel      string `json:"new_user_hint_level,omitempty"`
+	NewUserBotLevel       string `json:"new_user_bot_level,omitempty"`
+	NewUserAutoPlayLevel  string `json:"new_user_auto_play_level,omitempty"`
+	NewUserNoPlayerScores bool   `json:"new_user_no_player_scores"`
+	NewUserNoLedGlow      bool   `json:"new_user_no_led_glow"`
+}
+
+// DefaultNewUserLevel is the level a new player's hints, added bots and
+// auto play start on when the owner has not picked another.
+const DefaultNewUserLevel = game.LevelMaster
+
+// ValidNewUserLevel accepts "" ("the default") or one of the game's levels.
+func ValidNewUserLevel( level string ) ( ok bool ) {
+	if level == "" {
+		ok = true
+		return
+	}
+	for _ , choice := range game.Levels {
+		if string( choice ) == level {
+			ok = true
+			return
+		}
+	}
+	return
+}
+
+func newUserLevel( level string ) ( result string ) {
+	result = level
+	if result == "" { result = string( DefaultNewUserLevel ) }
+	return
+}
+
+// NewUserHint, NewUserBot and NewUserAutoPlay are the new-player levels,
+// with "" read as the default.
+func ( settings AppSettings ) NewUserHint() ( level string ) {
+	level = newUserLevel( settings.NewUserHintLevel )
+	return
+}
+
+func ( settings AppSettings ) NewUserBot() ( level string ) {
+	level = newUserLevel( settings.NewUserBotLevel )
+	return
+}
+
+func ( settings AppSettings ) NewUserAutoPlay() ( level string ) {
+	level = newUserLevel( settings.NewUserAutoPlayLevel )
+	return
+}
+
+// ApplyNewUserDefaults copies the new-player defaults onto an account that
+// is being created.
+func ( settings AppSettings ) ApplyNewUserDefaults( user *User ) {
+	user.CanInvite = settings.NewUserNoInvite == false
+	user.CanHint = settings.NewUserNoHint == false
+	user.CanUndo = settings.NewUserNoUndo == false
+	user.CanReshuffle = settings.NewUserNoReshuffle == false
+	user.HintLevel = settings.NewUserHint()
+	user.BotLevel = settings.NewUserBot()
+	user.AutoPlayLevel = settings.NewUserAutoPlay()
+	player_scores := settings.NewUserNoPlayerScores == false
+	led_glow := settings.NewUserNoLedGlow == false
+	user.PlayerScores = &player_scores
+	user.LedGlow = &led_glow
 }
 
 // BotNamesFile is the BotNames choice for the names file.

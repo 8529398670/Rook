@@ -420,7 +420,11 @@
       <div id="auction" class="auction" hidden></div>
       <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
       <div id="card-entry" class="card-entry" aria-live="polite" hidden></div>
+      <!-- Before the deal: the outer box spans the room between your
+           partner's seat and yours, so the seats stay clickable; the panel
+           inside hugs its contents and scrolls on a short screen. -->
       <div id="waiting-room" class="waiting-room" hidden>
+        <div class="waiting-panel">
         <h2 id="waiting-title" class="waiting-title"></h2>
         <ul id="waiting-rules" class="chip-row"></ul>
         <p id="waiting-status" class="waiting-status"></p>
@@ -432,6 +436,7 @@
         <div class="waiting-actions">
           <button id="deal-button" type="button" data-i18n="waiting.deal" hidden></button>
           <button id="waiting-leave" type="button" class="secondary" data-i18n="table.leave"></button>
+        </div>
         </div>
       </div>
     </div>
@@ -610,6 +615,13 @@
           <p class="muted" data-i18n="auto_play_settings.description"></p>
           <div id="auto-play-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:auto_play_settings.heading"></div>
           <p id="auto-play-help" class="muted bot-default-help"></p>
+        </div>
+
+        <div class="card">
+          <h2 data-i18n="hint_settings.heading"></h2>
+          <p class="muted" data-i18n="hint_settings.description"></p>
+          <div id="hint-levels" class="segmented level-choices" role="radiogroup" data-i18n-attr="aria-label:hint_settings.heading"></div>
+          <p id="hint-level-help" class="muted bot-default-help"></p>
         </div>
 
         <div class="card">
@@ -846,6 +858,73 @@
               <span class="switch-help" id="setting-bot-names-top-help"></span>
             </span>
             <input id="setting-bot-names-top" class="top-input" type="number" min="1" max="100000" step="1" inputmode="numeric" />
+          </label>
+
+          <!-- What a new account starts with (models.AppSettings.NewUser...). -->
+          <h3 data-i18n="new_user_defaults.heading"></h3>
+          <p class="muted" data-i18n="new_user_defaults.description"></p>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.invite"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.invite_help"></span>
+            </span>
+            <input id="setting-new-invite" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.hint"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.hint_help"></span>
+            </span>
+            <input id="setting-new-hint" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.undo"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.undo_help"></span>
+            </span>
+            <input id="setting-new-undo" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.reshuffle"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.reshuffle_help"></span>
+            </span>
+            <input id="setting-new-reshuffle" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.hint_level"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.hint_level_help"></span>
+            </span>
+            <select id="setting-new-hint-level" class="pause-select" data-new-user-level></select>
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.bot_level"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.bot_level_help"></span>
+            </span>
+            <select id="setting-new-bot-level" class="pause-select" data-new-user-level></select>
+          </label>
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.auto_play_level"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.auto_play_level_help"></span>
+            </span>
+            <select id="setting-new-auto-play-level" class="pause-select" data-new-user-level></select>
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.player_scores"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.player_scores_help"></span>
+            </span>
+            <input id="setting-new-player-scores" type="checkbox" role="switch" />
+          </label>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="new_user_defaults.led_glow"></span>
+              <span class="switch-help" data-i18n="new_user_defaults.led_glow_help"></span>
+            </span>
+            <input id="setting-new-led-glow" type="checkbox" role="switch" />
           </label>
         </div>
 

@@ -52,6 +52,15 @@ type User struct {
 	// AutoPlayLevel is the level auto play plays this player's cards at.
 	// Empty means game.HelpLevel (Expert).
 	AutoPlayLevel string `json:"auto_play_level,omitempty"`
+	// HintLevel is the level the hint button suggests at for this player.
+	// Empty means game.HelpLevel (Expert), as hints always were.
+	HintLevel string `json:"hint_level,omitempty"`
+	// PlayerScores and LedGlow are where the table's "points in the top
+	// bar" and "outline the card that was led" switches start on a device
+	// where the player has not flipped them yet (the switch itself is
+	// remembered per device). Nil means off, as they always were.
+	PlayerScores *bool `json:"player_scores,omitempty"`
+	LedGlow      *bool `json:"led_glow,omitempty"`
 }
 
 // MayInvite is the single answer to "may this account bring someone new in".
@@ -94,6 +103,13 @@ func CreateUser( store *db.Store , display_name string , role string ) ( user *U
 		Role:        role,
 		CreatedAt:   time.Now().UTC(),
 	}
+	// A new account starts with what the owner chose for new players.
+	settings , err := LoadSettings( store )
+	if err != nil {
+		user = nil
+		return
+	}
+	settings.ApplyNewUserDefaults( user )
 	err = store.Put( db.BucketUsers , encryption.Uint64ToBytes( user.ID ) , user )
 	if err != nil { user = nil }
 	return

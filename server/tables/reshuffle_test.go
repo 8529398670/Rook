@@ -31,6 +31,8 @@ func TestReshuffleIsAMoveUndoCanStepOver( t *testing.T ) {
 		time.Sleep( 2 * time.Millisecond )
 	}
 	before := gameJSON( t , hub , id )
+	// New accounts start with reshuffle; take it away to test without it.
+	ana.CanReshuffle = false
 	view , _ := hub.View( id , Viewer{ User: ana } , ViewOptions{} )
 	if view.CanReshuffle {
 		t.Fatalf( "a player without can_reshuffle is offered it" )

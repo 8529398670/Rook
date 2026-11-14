@@ -81,6 +81,16 @@ func AutoPlayLevelOf( user *models.User ) ( level game.Level ) {
 	return
 }
 
+// HintLevelOf is the level the hint button suggests at for user: their own
+// setting, or game.HelpLevel.
+func HintLevelOf( user *models.User ) ( level game.Level ) {
+	level = game.HelpLevel
+	if parsed , ok := game.ParseLevel( user.HintLevel ); ok && user.HintLevel != "" {
+		level = parsed
+	}
+	return
+}
+
 // SetAutoPlay switches auto play on or off for the user's seat: while on,
 // the server plays a bot's choice of card for them -- at the level they set
 // -- on each of their turns until the hand ends. Only while cards are being played -- bidding and the

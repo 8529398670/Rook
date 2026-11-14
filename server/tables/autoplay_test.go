@@ -100,6 +100,8 @@ func TestAutoPlayUsesThePersonsLevel( t *testing.T ) {
 		table.mu.Unlock()
 		return
 	}
+	// New accounts start on the owner's level; clear it to test "unset".
+	person.AutoPlayLevel = ""
 	if err := hub.SetAutoPlay( id , person , true ); err != nil { t.Fatal( err ) }
 	if got := level(); got != game.HelpLevel { t.Fatalf( "unset level plays at %s, want %s" , got , game.HelpLevel ) }
 

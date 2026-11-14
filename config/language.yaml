@@ -152,7 +152,7 @@ bots:
   level_hard: "Hard"
   level_hard_help: "Plays by the strategy guide and counts cards: knows which top cards are gone and who is out of a color."
   level_expert: "Expert"
-  level_expert_help: "Imagines 100 ways the cards could lie and plays each one out. The hint button uses it."
+  level_expert_help: "Imagines 100 ways the cards could lie and plays each one out."
   level_master: "Master"
   level_master_help: "Expert that reads the table: guesses who holds what from the bids, the passes and the trump call."
 
@@ -968,6 +968,32 @@ player_scores:
 led_glow:
   heading: "Outline the card that was led"
   description: "Highlight the first card of each trick, so you can always see what color to follow. Remembered on this device."
+
+hint_settings:
+  heading: "Hints suggest as"
+  description: "The bot level the hint button asks for a suggestion. Saved to your account."
+
+new_user_defaults:
+  heading: "New players start with"
+  description: "What a new account gets when it is made. Changing these doesn't touch anyone who already has an account; set those in Players."
+  invite: "Invite"
+  invite_help: "Can invite people to an empty seat."
+  hint: "Hints"
+  hint_help: "Sees the hint button."
+  undo: "Undo"
+  undo_help: "Can undo and redo moves in games they sit in."
+  reshuffle: "Reshuffle"
+  reshuffle_help: "Can deal a hand again before bidding in it."
+  hint_level: "Hints suggest as"
+  hint_level_help: "The level the hint button uses."
+  bot_level: "Bots they add"
+  bot_level_help: "The level the Add bot picker starts on."
+  auto_play_level: "Auto play plays as"
+  auto_play_level_help: "The level auto play uses for their cards."
+  player_scores: "Players' points in the top bar"
+  player_scores_help: "Shown until they switch it off on a device."
+  led_glow: "Outline the card that was led"
+  led_glow_help: "Shown until they switch it off on a device."
 
 zoom:
   heading: "Card size"

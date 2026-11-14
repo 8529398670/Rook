@@ -1,9 +1,9 @@
 package game
 
 // Level is how well a computer player plays. Each seat's bot has its own, so
-// a table can pair a beginner-friendly partner with sharp opponents. Hints,
-// and auto play unless the player picks another level, use HelpLevel,
-// whatever the bots at the table are set to.
+// a table can pair a beginner-friendly partner with sharp opponents. Hints
+// and auto play use the level the player picked in Settings (HelpLevel if
+// they have none), whatever the bots at the table are set to.
 type Level string
 
 const (
@@ -36,8 +36,9 @@ const (
 // next).
 var Levels = []Level{ LevelEasy , LevelNormal , LevelSkilled , LevelHard , LevelExpert , LevelMaster }
 
-// HelpLevel is what hints use, and auto play unless the player picked
-// another level in Settings.
+// HelpLevel is what hints and auto play use for a player who has not picked
+// a level in Settings. New accounts get the owner's new-player levels
+// instead (see models.AppSettings).
 const HelpLevel = LevelExpert
 
 const ErrBadLevel Error = "bad_bot_level"

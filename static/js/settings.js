@@ -109,15 +109,18 @@ const Settings = {
     Nav.renderUser();
   },
 
-  // Two levels saved to the account, so they follow the player to every
-  // device: the one the Add bot picker starts on, and the one auto play
-  // plays their cards at.
+  // Levels saved to the account, so they follow the player to every device:
+  // the one the Add bot picker starts on, the one auto play plays their
+  // cards at, and the one the hint button suggests at.
   renderLevels() {
     this.renderLevel( "bot-default-levels" , "bot-default-help" , Table.defaultBotLevel() , function ( level ) {
       Settings.saveLevel( "bot_level" , level , Api.setDefaultBotLevel( level ) );
     } );
     this.renderLevel( "auto-play-levels" , "auto-play-help" , Table.autoPlayLevel() , function ( level ) {
       Settings.saveLevel( "auto_play_level" , level , Api.setAutoPlayLevel( level ) );
+    } );
+    this.renderLevel( "hint-levels" , "hint-level-help" , Table.hintLevel() , function ( level ) {
+      Settings.saveLevel( "hint_level" , level , Api.setHintLevel( level ) );
     } );
   },
 

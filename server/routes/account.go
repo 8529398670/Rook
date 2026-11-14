@@ -49,6 +49,11 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		"can_reshuffle":    user.CanReshuffle,
 		"bot_level":        botLevelOf( user ),
 		"auto_play_level":  string( tables.AutoPlayLevelOf( user ) ),
+		"hint_level":       string( tables.HintLevelOf( user ) ),
+		// Where the table's two display switches start on a device where
+		// the player has not flipped them (see models.User).
+		"player_scores":    user.PlayerScores != nil && *user.PlayerScores,
+		"led_glow":         user.LedGlow != nil && *user.LedGlow,
 	}
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see
