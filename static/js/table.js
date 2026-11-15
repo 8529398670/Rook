@@ -108,6 +108,7 @@ const Table = {
           case "leave": Table.confirmLeave(); break;
           case "restart": Table.confirmManage( "restart" ); break;
           case "delete": Table.confirmManage( "delete" ); break;
+          case "end": Table.confirmManage( "end" ); break;
         }
       } );
     } );
@@ -853,10 +854,13 @@ const Table = {
       Dom.get( "menu-auto-play" ).disabled = !playing;
       Dom.text( Dom.get( "menu-auto-play-help" ) , playing ? I18n.format( "auto_play.description" , { level: this.autoPlayLevelName() } ) : I18n.get( "auto_play.only_playing" ) );
       Dom.show( document.querySelector( "[data-menu='leave']" ) , view.you >= 0 );
-      // Restart and delete: the host's call, or an admin's.
+      // End game, restart and delete: the host's call, or an admin's. With a
+      // game under way, deleting the table is ending the game; before the
+      // deal it is just deleting the table.
       const manager = view.is_host || view.is_admin;
+      Dom.show( document.querySelector( "[data-menu='end']" ) , manager && Boolean( view.game ) );
       Dom.show( document.querySelector( "[data-menu='restart']" ) , manager && Boolean( view.game ) );
-      Dom.show( document.querySelector( "[data-menu='delete']" ) , manager );
+      Dom.show( document.querySelector( "[data-menu='delete']" ) , manager && !view.game );
     }
     Sheet.open( "sheet-menu" , { focus: false } );
   },
@@ -960,10 +964,12 @@ const Table = {
     const fromLobby = Boolean( this.manageId );
     const id = this.manageId || this.id;
     try {
-      if ( action === "delete" ) {
+      if ( action === "delete" || action === "end" ) {
+        // Ending the game deletes the table: the game goes into the
+        // history as unfinished (Hub.Delete archives it first).
         await Api.deleteTable( id );
         Sheet.close( true );
-        Toast.show( I18n.get( "manage.deleted" ) );
+        Toast.show( I18n.get( action === "end" ? "manage.ended" : "manage.deleted" ) );
         // The lobby redraws itself from its own stream.
         if ( !fromLobby ) App.go( "#/" );
         return;

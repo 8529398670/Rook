@@ -12,13 +12,17 @@ import (
 // the move a computer player makes, and -- at game.HelpLevel -- the
 // suggestion behind a person's hint button and the move auto play makes.
 // Expert and Master search, which takes tens of milliseconds, so callers
-// hand it a clone of the game and call it without the table locked.
-func botAction( state *game.State , seat int , level game.Level ) ( action Action , ok bool ) {
+// hand it a clone of the game and call it without the table locked. outbid
+// lets it keep raising a partner after the opponents have passed, which a
+// bot does only for a person who asked for that (Seat.PartnerBotOutbids).
+func botAction( state *game.State , seat int , level game.Level , outbid bool ) ( action Action , ok bool ) {
 	if state == nil || state.Turn != seat { return }
 	action.Seat = seat
 	switch state.Phase {
 	case game.PhaseBidding:
-		if amount := state.BotBid( seat , level ); amount > 0 {
+		amount := state.BotBid( seat , level )
+		if outbid { amount = state.BotBidOutbidPartner( seat , level ) }
+		if amount > 0 {
 			action.Kind , action.Amount = ActionBid , amount
 		} else {
 			action.Kind = ActionPass
@@ -56,6 +60,15 @@ func ( hub *Hub ) settleBots( table *Table ) {
 // player, or a person who switched auto play on for this hand's cards.
 func ( table *Table ) computerMoves( seat int ) ( result bool ) {
 	result = table.Seats[ seat ].Kind == KindBot || table.autoPlays( seat )
+	return
+}
+
+// outbidsPartner reports whether the server may keep raising seat's partner
+// once the opponents have passed: only for a bot whose partner is a person
+// who switched that on.
+func ( table *Table ) outbidsPartner( seat int ) ( result bool ) {
+	partner := table.Seats[ ( seat + 2 ) % 4 ]
+	result = table.Seats[ seat ].Kind == KindBot && partner.Kind == KindHuman && partner.PartnerBotOutbids
 	return
 }
 
@@ -117,10 +130,10 @@ func ( hub *Hub ) scheduleBot( table *Table ) {
 			table.mu.Unlock()
 			return
 		}
-		snapshot , level := table.Game.Clone() , table.moveLevel( seat )
+		snapshot , level , outbid := table.Game.Clone() , table.moveLevel( seat ) , table.outbidsPartner( seat )
 		table.mu.Unlock()
 
-		action , ok := botAction( snapshot , seat , level )
+		action , ok := botAction( snapshot , seat , level , outbid )
 		if ok == false { return }
 		action.Bot = true
 		hub.mutate( id , func( table *Table ) ( fn_err error ) {
@@ -165,7 +178,7 @@ func ( hub *Hub ) Hint( id string , user *models.User ) ( action Action , err er
 	table.mu.Unlock()
 	if err != nil { return }
 	var ok bool
-	if action , ok = botAction( snapshot , seat , HintLevelOf( user ) ); ok == false {
+	if action , ok = botAction( snapshot , seat , HintLevelOf( user ) , false ); ok == false {
 		err = game.ErrNotYourTurn
 	}
 	return

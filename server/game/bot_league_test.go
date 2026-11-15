@@ -51,8 +51,8 @@ func TestBotLevelsAreInOrder( t *testing.T ) {
 		{ LevelNormal , LevelEasy , 150 },
 		{ LevelSkilled , LevelNormal , 150 },
 		{ LevelHard , LevelSkilled , 150 },
-		{ LevelExpert , LevelHard , 12 },
-		{ LevelMaster , LevelHard , 12 },
+		{ LevelExpert , LevelHard , 30 },
+		{ LevelMaster , LevelHard , 30 },
 	}
 	if os.Getenv( "ROOK_BOT_LEAGUE" ) != "" {
 		pairs = []pair{

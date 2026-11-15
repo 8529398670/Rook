@@ -102,6 +102,15 @@ func ( state *State ) Reshuffle( seat int , deck []Card ) ( err error ) {
 	return
 }
 
+// PartnerUncontested reports whether seat's partner holds the bid and both
+// opponents have passed: the hand is already their team's, so raising it
+// only makes the team bid more for the same cards.
+func ( state *State ) PartnerUncontested( seat int ) ( result bool ) {
+	partner := ( seat + 2 ) % 4
+	result = state.HighBidder == partner && state.Passed[ nextSeat( seat ) ] && state.Passed[ nextSeat( partner ) ]
+	return
+}
+
 func ( state *State ) nextBidder( seat int ) ( result int ) {
 	result = nextSeat( seat )
 	for state.Passed[ result ] {

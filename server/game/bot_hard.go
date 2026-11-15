@@ -12,6 +12,8 @@ package game
 //   - It throws points onto a trick its partner is sure to take, and nothing
 //     worth points onto one the other team is taking.
 //   - It never trumps a trick its partner is already winning.
+//   - It holds the bird while nothing can beat it, to catch the bidder's
+//     trump 1 or 14 with it, rather than spend it on a trick worth little.
 //
 // It is also the policy Expert uses to play out the hands it imagines, so
 // it has to stay cheap: no searching here, only what the memory knows.
@@ -352,10 +354,16 @@ func ( memory *botMemory ) hardFollow( legal []Card ) ( card Card ) {
 		worth += play.Card.Points()
 	}
 
+	// The bird is boss for good once nothing unseen can beat it, so it
+	// wins its 20 whenever it goes. Hold it for a trick worth taking -- the
+	// bidder's trump 1 or 14, or other counters -- until the last tricks.
+	hold_rook := worth < 10 && len( state.Hands[ seat ] ) > 2 && memory.isBoss( TheRook )
+
 	winners := []Card{}
 	safe := []Card{}
 	for _ , candidate := range legal {
 		if state.beats( candidate , holding.Card , led ) == false { continue }
+		if hold_rook && candidate.IsRook() { continue }
 		winners = append( winners , candidate )
 		if memory.threatened( candidate , led , after ) == false { safe = append( safe , candidate ) }
 	}
@@ -413,10 +421,15 @@ func ( memory *botMemory ) partnerSure() ( result bool ) {
 }
 
 // cheapestWinner picks the winner that costs least to spend, except that a
-// winning card worth points is the best of all: it wins its own points.
+// winning card worth points is the best of all: it wins its own points. Not
+// a boss trump, though: that wins its points whenever it is played, so
+// spending it now gains nothing.
 func ( memory *botMemory ) cheapestWinner( winners []Card ) ( card Card ) {
 	cost := func( candidate Card ) ( result int ) {
-		result = memory.hardCost( candidate ) - candidate.Points()*20
+		result = memory.hardCost( candidate )
+		if memory.state.isTrump( candidate ) == false || memory.isBoss( candidate ) == false {
+			result -= candidate.Points()*20
+		}
 		return
 	}
 	card = winners[ 0 ]

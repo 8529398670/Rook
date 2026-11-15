@@ -402,6 +402,11 @@ manage:
   delete_confirm: "Delete"
   restarted: "The game has started over."
   deleted: "Table deleted."
+  end: "End game"
+  end_heading: "End this game?"
+  end_body: "The game stops here and the table closes for everyone. It stays in your game history as unfinished."
+  end_confirm: "End game"
+  ended: "Game ended."
 
 leave:
   heading: "Leave this table?"
@@ -972,6 +977,11 @@ led_glow:
 hint_settings:
   heading: "Hints suggest as"
   description: "The bot level the hint button asks for a suggestion. Saved to your account."
+
+partner_bidding:
+  heading: "Bidding"
+  title: "My bot partner stops bidding once the other team passes"
+  description: "When both opponents have passed and you hold the bid, your bot partner passes instead of raising you. Saved to your account."
 
 new_user_defaults:
   heading: "New players start with"

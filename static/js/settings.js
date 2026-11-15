@@ -29,6 +29,19 @@ const Settings = {
     } );
     this.renderWho();
     this.renderLevels();
+    // On (the default) means the account's partner_bot_outbids is off.
+    const partnerStops = Dom.get( "setting-partner-bot-stops" );
+    partnerStops.checked = !me.partner_bot_outbids;
+    partnerStops.addEventListener( "change" , async function () {
+      const outbids = !partnerStops.checked;
+      try {
+        await Api.setPartnerBotOutbids( outbids );
+        Settings.me.partner_bot_outbids = outbids;
+      } catch ( error ) {
+        partnerStops.checked = !partnerStops.checked;
+        Toast.error( error );
+      }
+    } );
     Zoom.bind( Dom.get( "settings-zoom" ) );
     // A session's own list: an API key has no device to show.
     Dom.show( Dom.get( "sessions-card" ) , me.auth !== "api_key" );

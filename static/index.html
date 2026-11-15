@@ -625,6 +625,17 @@
         </div>
 
         <div class="card">
+          <h2 data-i18n="partner_bidding.heading"></h2>
+          <label class="switch-row">
+            <span>
+              <span class="switch-title" data-i18n="partner_bidding.title"></span>
+              <span class="switch-help" data-i18n="partner_bidding.description"></span>
+            </span>
+            <input id="setting-partner-bot-stops" type="checkbox" role="switch" />
+          </label>
+        </div>
+
+        <div class="card">
           <h2 data-i18n="chat_settings.heading"></h2>
           <p class="muted" data-i18n="chat_settings.description"></p>
           <label class="switch-row">
@@ -1069,6 +1080,10 @@
         <button type="button" data-menu="chat"><span data-i18n="menu.chat"></span><span id="menu-chat-unread" class="badge-dot" hidden></span></button>
         <button type="button" data-menu="last-trick" data-i18n="menu.last_trick"></button>
         <button type="button" data-menu="scores" data-i18n="menu.scores"></button>
+        <button type="button" data-menu="end" class="danger" data-i18n="manage.end"></button>
+        <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>
+        <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
+        <button type="button" data-menu="leave" class="danger" data-i18n="table.leave"></button>
         <button type="button" data-menu="rules" data-i18n="menu.rules"></button>
         <button type="button" data-menu="share" data-i18n="menu.share"></button>
         <button type="button" class="menu-fullscreen" data-fullscreen><span data-fullscreen-label data-i18n="menu.fullscreen"></span></button>
@@ -1120,9 +1135,6 @@
           </span>
           <input type="checkbox" role="switch" data-led-glow-toggle />
         </label>
-        <button type="button" data-menu="restart" data-i18n="manage.restart"></button>
-        <button type="button" data-menu="delete" class="danger" data-i18n="manage.delete"></button>
-        <button type="button" data-menu="leave" class="danger" data-i18n="table.leave"></button>
       </nav>
     </div>
 

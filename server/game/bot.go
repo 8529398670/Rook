@@ -80,8 +80,19 @@ func handStrength( hand []Card , trump Color ) ( score int ) {
 	return
 }
 
-// BotBid returns the amount a bot of this level bids, or 0 to pass.
+// BotBid returns the amount a bot of this level bids, or 0 to pass. Once
+// both opponents have passed with the partner holding the bid, every level
+// passes: the hand is the team's already (PartnerUncontested).
 func ( state *State ) BotBid( seat int , level Level ) ( amount int ) {
+	if state.PartnerUncontested( seat ) { return }
+	amount = state.BotBidOutbidPartner( seat , level )
+	return
+}
+
+// BotBidOutbidPartner is BotBid without that rule: the bot may keep raising
+// its partner after the opponents are out. It is for a person who switched
+// "my bot partner stops bidding" off.
+func ( state *State ) BotBidOutbidPartner( seat int , level Level ) ( amount int ) {
 	switch level.orNormal() {
 	case LevelEasy:
 		amount = state.easyBid( seat )
@@ -136,7 +147,7 @@ func ( state *State ) BotPlay( seat int , level Level ) ( card Card ) {
 
 // normalBid returns the amount to bid, or 0 to pass. Bots raise by the minimum
 // and stop at their estimate, and they back off when their partner already
-// holds the bid rather than bidding against their own team.
+// holds the bid -- and stop altogether once the opponents are out (BotBid).
 func ( state *State ) normalBid( seat int ) ( amount int ) {
 	hand := state.Hands[ seat ]
 	limit := 45 + handStrength( hand , bestTrump( hand ) )*3/2

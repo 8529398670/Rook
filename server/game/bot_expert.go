@@ -257,6 +257,20 @@ func ( state *State ) expertPlay( seat int , reading bool ) ( card Card ) {
 		if len( legal ) == 1 { return }
 	}
 
+	// Defenders never lead trump while they have another color to lead:
+	// it only helps the bidder draw the trump that could have stopped its
+	// winners, and gives up the defenders' chance to catch its top trump.
+	// The search, playing the other seats as Hard, does not see that.
+	if len( state.Trick.Plays ) == 0 && TeamOf( seat ) != TeamOf( state.Bidder ) {
+		others := []Card{}
+		for _ , candidate := range legal {
+			if state.isTrump( candidate ) == false { others = append( others , candidate ) }
+		}
+		if len( others ) > 0 && len( others ) < len( legal ) { legal = others }
+		card = legal[ 0 ]
+		if len( legal ) == 1 { return }
+	}
+
 	team := TeamOf( seat )
 	totals := make( []int , len( legal ) )
 	for _ , world := range memory.imagineMany( source , expertSamples , reading ) {

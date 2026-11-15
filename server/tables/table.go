@@ -113,6 +113,10 @@ type Seat struct {
 	// Past is a bot's earlier looks, newest last: each 🎲 shuffle saves the
 	// one it replaces here, so the host can step back to it.
 	Past []BotDress `json:"past,omitempty"`
+	// PartnerBotOutbids is the person's setting copied from their account
+	// (models.User): their bot partner may keep raising them after both
+	// opponents have passed.
+	PartnerBotOutbids bool `json:"partner_bot_outbids,omitempty"`
 }
 
 // BotDress is one look a bot had: its name, the host's name for it, and its
@@ -370,6 +374,7 @@ func fillSeat( seat *Seat , user *models.User ) {
 	seat.Name = user.DisplayName
 	seat.Icon = user.Icon
 	seat.Color = user.Color
+	seat.PartnerBotOutbids = user.PartnerBotOutbids
 }
 
 // online is true while the person has a stream open, or closed their last

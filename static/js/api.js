@@ -146,6 +146,7 @@ const Api = {
   setDefaultBotLevel( level )  { return this.post( "/api/account/bot-level" , { level: level } ); },
   setAutoPlayLevel( level )    { return this.post( "/api/account/auto-play-level" , { level: level } ); },
   setHintLevel( level )        { return this.post( "/api/account/hint-level" , { level: level } ); },
+  setPartnerBotOutbids( on )   { return this.post( "/api/account/partner-bot-outbids" , { on: on } ); },
 
   // Join links and multi-use sign-up links. The sign-up credential goes in
   // the body, never the URL, so it stays out of server logs.

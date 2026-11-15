@@ -125,6 +125,30 @@ func ( handlers *Handlers ) SetHintLevel( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+type partnerBotOutbidsRequest struct {
+	On        bool   `json:"on"`
+	CSRFToken string `json:"csrf_token"`
+}
+
+// SetPartnerBotOutbids saves whether the player's bot partner may keep
+// raising them once both opponents have passed. Their open tables follow
+// the change at once.
+func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx ) ( err error ) {
+	var body partnerBotOutbidsRequest
+	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
+		err = decode_err
+		return
+	}
+	user := security.UserFrom( c )
+	if models.SetUserPartnerBotOutbids( handlers.Store , user.ID , body.On ) != nil {
+		err = serverError( c )
+		return
+	}
+	handlers.refreshTables( user.ID )
+	err = c.JSON( fiber.Map{ "ok": true , "partner_bot_outbids": body.On } )
+	return
+}
+
 // SetPin sets, or with an empty pin removes, the PIN asked for when someone
 // picks this account from a sign-up link's "did you mean...?".
 func ( handlers *Handlers ) SetPin( c fiber.Ctx ) ( err error ) {

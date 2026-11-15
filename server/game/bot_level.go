@@ -30,9 +30,9 @@ const (
 
 // Levels is every level, weakest first. Each beats the one below it.
 // Measured by the duplicate league in bot_league_test.go (ROOK_BOT_LEAGUE=1),
-// points a hand: Normal over Easy +20, Skilled over Normal +22, Hard over
-// Skilled +14 (3000 deals each), Expert over Hard +26 and Master over Expert
-// +9 (300 deals each, where results move by about 5 from one set to the
+// points a hand: Normal over Easy +22, Skilled over Normal +22, Hard over
+// Skilled +12 (3000 deals each), Expert over Hard +20 and Master over Expert
+// +7 (300 deals each, where results move by about 5 from one set to the
 // next).
 var Levels = []Level{ LevelEasy , LevelNormal , LevelSkilled , LevelHard , LevelExpert , LevelMaster }
 

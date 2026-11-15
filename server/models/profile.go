@@ -319,6 +319,18 @@ func SetUserAutoPlayLevel( store *db.Store , user_id uint64 , level string ) ( e
 	return
 }
 
+// SetUserPartnerBotOutbids saves whether the player's bot partner may keep
+// bidding against them once the opponents have passed.
+func SetUserPartnerBotOutbids( store *db.Store , user_id uint64 , on bool ) ( err error ) {
+	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
+		func() any { return &User{} } ,
+		func( item any ) ( mutate_err error ) {
+			item.( *User ).PartnerBotOutbids = on
+			return
+		} )
+	return
+}
+
 func SetUserCanReshuffle( store *db.Store , user_id uint64 , can_reshuffle bool ) ( err error ) {
 	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
 		func() any { return &User{} } ,
