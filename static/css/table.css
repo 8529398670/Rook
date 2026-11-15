@@ -627,18 +627,22 @@
 .felt.is-card-drag .trick::before { opacity: 0.35; }
 .felt.is-drop-ready .trick::before { opacity: 0.85; scale: 1.04; background-color: rgba(255, 255, 255, 0.12); }
 
-/* The card that led the trick, when chosen in Settings: a black outline, so
-   it still shows beside the winner's gold glow. */
+.trick-card.is-winner { z-index: 5; }
+
+/* The card that won the trick and the card that led it, each when chosen in
+   Settings: a gold outline and a black one. When one card is both, the gold
+   ring sits outside the black. */
+.show-win .trick-card.is-winner {
+  outline: 3px solid var(--win-ring);
+  outline-offset: 2px;
+}
+
 .show-led .trick-card.is-led {
   outline: 3px solid var(--led-ring);
   outline-offset: 2px;
 }
 
-.trick-card.is-winner {
-  z-index: 5;
-  --card-drop: 0 0 0 transparent;
-  filter: drop-shadow(0 0 6px var(--win-ring)) drop-shadow(0 0 2px var(--win-ring));
-}
+.show-led.show-win .trick-card.is-led.is-winner { box-shadow: 0 0 0 8px var(--win-ring); }
 
 /* ------------------------------------------------------- waiting room */
 

@@ -974,6 +974,10 @@ led_glow:
   heading: "Outline the card that was led"
   description: "Highlight the first card of each trick, so you can always see what color to follow. Remembered on this device."
 
+win_glow:
+  heading: "Outline the card that won the trick"
+  description: "Ring the card that took each trick in gold, on the table and in Last trick. Remembered on this device."
+
 hint_settings:
   heading: "Hints suggest as"
   description: "The bot level the hint button asks for a suggestion. Saved to your account."
@@ -1004,6 +1008,8 @@ new_user_defaults:
   player_scores_help: "Shown until they switch it off on a device."
   led_glow: "Outline the card that was led"
   led_glow_help: "Shown until they switch it off on a device."
+  win_glow: "Outline the card that won the trick"
+  win_glow_help: "Shown until they switch it off on a device."
 
 zoom:
   heading: "Card size"

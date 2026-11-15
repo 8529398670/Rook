@@ -34,6 +34,8 @@ const Table = {
   playerScores: null,
   ledGlowKey: "rook.led_glow",
   ledGlow: null,
+  winGlowKey: "rook.win_glow",
+  winGlow: null,
 
   init( me ) {
     this.me = me;
@@ -169,6 +171,11 @@ const Table = {
       toggle.addEventListener( "change" , function () { Table.setLedGlow( toggle.checked ); } );
     } );
     document.body.classList.toggle( "show-led" , this.showLedGlow() );
+    Dom.all( "[data-win-glow-toggle]" ).forEach( function ( toggle ) {
+      toggle.checked = Table.showWinGlow();
+      toggle.addEventListener( "change" , function () { Table.setWinGlow( toggle.checked ); } );
+    } );
+    document.body.classList.toggle( "show-win" , this.showWinGlow() );
   },
 
   // Auto play: the server plays the bot's choice of card for you on each of
@@ -266,6 +273,31 @@ const Table = {
     }
     Dom.all( "[data-led-glow-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
     document.body.classList.toggle( "show-led" , on );
+  },
+
+  // The card that won each trick ringed in gold, on the table and in Last
+  // trick. Same per-device scheme as the led outline above.
+  showWinGlow() {
+    if ( this.winGlow === null ) {
+      try {
+        const stored = window.localStorage.getItem( this.winGlowKey );
+        this.winGlow = stored === null ? Boolean( App.me && App.me.win_glow ) : stored === "on";
+      } catch ( error ) {
+        this.winGlow = true;
+      }
+    }
+    return this.winGlow;
+  },
+
+  setWinGlow( on ) {
+    this.winGlow = on;
+    try {
+      window.localStorage.setItem( this.winGlowKey , on ? "on" : "off" );
+    } catch ( error ) {
+      // Storage refused: the choice still applies for this page view.
+    }
+    Dom.all( "[data-win-glow-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
+    document.body.classList.toggle( "show-win" , on );
   },
 
   // target is { id } for #/t/<id> or { watch: code } for a watch link.

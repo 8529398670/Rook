@@ -62,7 +62,7 @@ func TestNewUsersStartWithTheOwnersDefaults( t *testing.T ) {
 	if fresh.HintLevel != "master" || fresh.BotLevel != "master" || fresh.AutoPlayLevel != "master" {
 		t.Fatalf( "levels should start at master: %+v" , fresh )
 	}
-	if fresh.PlayerScores == nil || !*fresh.PlayerScores || fresh.LedGlow == nil || !*fresh.LedGlow {
+	if fresh.PlayerScores == nil || !*fresh.PlayerScores || fresh.LedGlow == nil || !*fresh.LedGlow || fresh.WinGlow == nil || !*fresh.WinGlow {
 		t.Fatalf( "table extras should start on: %+v" , fresh )
 	}
 
@@ -71,7 +71,7 @@ func TestNewUsersStartWithTheOwnersDefaults( t *testing.T ) {
 	settings := AppSettings{
 		NewUserNoInvite: true , NewUserNoHint: true , NewUserNoUndo: true , NewUserNoReshuffle: true ,
 		NewUserHintLevel: "easy" , NewUserBotLevel: "hard" , NewUserAutoPlayLevel: "normal" ,
-		NewUserNoPlayerScores: true , NewUserNoLedGlow: true ,
+		NewUserNoPlayerScores: true , NewUserNoLedGlow: true , NewUserNoWinGlow: true ,
 	}
 	if err := SaveSettings( store , settings ); err != nil { t.Fatal( err ) }
 	later , err := CreateUser( store , "Ben" , RoleUser )
@@ -82,7 +82,7 @@ func TestNewUsersStartWithTheOwnersDefaults( t *testing.T ) {
 	if later.HintLevel != "easy" || later.BotLevel != "hard" || later.AutoPlayLevel != "normal" {
 		t.Fatalf( "levels not copied: %+v" , later )
 	}
-	if *later.PlayerScores || *later.LedGlow {
+	if *later.PlayerScores || *later.LedGlow || *later.WinGlow {
 		t.Fatalf( "table extras should start off: %+v" , later )
 	}
 	again , err := GetUser( store , fresh.ID )

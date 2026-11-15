@@ -54,6 +54,7 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		// the player has not flipped them (see models.User).
 		"player_scores":    user.PlayerScores != nil && *user.PlayerScores,
 		"led_glow":         user.LedGlow != nil && *user.LedGlow,
+		"win_glow":         user.WinGlow == nil || *user.WinGlow,
 		"partner_bot_outbids": user.PartnerBotOutbids,
 	}
 	// Only a session has a CSRF token. A key-authenticated request has no

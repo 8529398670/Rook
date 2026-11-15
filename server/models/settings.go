@@ -58,6 +58,7 @@ type AppSettings struct {
 	NewUserAutoPlayLevel  string `json:"new_user_auto_play_level,omitempty"`
 	NewUserNoPlayerScores bool   `json:"new_user_no_player_scores"`
 	NewUserNoLedGlow      bool   `json:"new_user_no_led_glow"`
+	NewUserNoWinGlow      bool   `json:"new_user_no_win_glow"`
 }
 
 // DefaultNewUserLevel is the level a new player's hints, added bots and
@@ -116,6 +117,8 @@ func ( settings AppSettings ) ApplyNewUserDefaults( user *User ) {
 	led_glow := settings.NewUserNoLedGlow == false
 	user.PlayerScores = &player_scores
 	user.LedGlow = &led_glow
+	win_glow := settings.NewUserNoWinGlow == false
+	user.WinGlow = &win_glow
 }
 
 // BotNamesFile is the BotNames choice for the names file.

@@ -61,6 +61,9 @@ type User struct {
 	// remembered per device). Nil means off, as they always were.
 	PlayerScores *bool `json:"player_scores,omitempty"`
 	LedGlow      *bool `json:"led_glow,omitempty"`
+	// WinGlow is the same for "outline the card that won the trick", except
+	// that nil means on: the winner was always outlined before it had a switch.
+	WinGlow *bool `json:"win_glow,omitempty"`
 	// PartnerBotOutbids lets this player's bot partner keep raising them
 	// after both opponents have passed. Off -- the zero value -- is the
 	// default: the bot passes, since the hand is the team's already.

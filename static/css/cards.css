@@ -50,14 +50,10 @@ button.playing-card:active:not(:disabled) { transform: none; }
   color: var(--fg-muted);
 }
 
-.mini-play.is-winner .playing-card {
-  outline: 3px solid var(--win-ring);
-  outline-offset: 2px;
-}
-
 .mini-play.is-winner figcaption { color: var(--accent); font-weight: 700; }
 
-/* The card that led, when chosen in Settings: black, with the winner's gold
-   ring around it when it also took the trick. */
+/* The card that won and the card that led, each when chosen in Settings:
+   gold and black, with the gold ring outside the black when one card is both. */
+.show-win .mini-play.is-winner .playing-card { outline: 3px solid var(--win-ring); outline-offset: 2px; }
 .show-led .mini-play.is-led .playing-card { outline: 3px solid var(--led-ring); outline-offset: 2px; }
-.show-led .mini-play.is-led.is-winner .playing-card { box-shadow: 0 0 0 8px var(--win-ring); }
+.show-led.show-win .mini-play.is-led.is-winner .playing-card { box-shadow: 0 0 0 8px var(--win-ring); }

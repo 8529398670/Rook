@@ -36,6 +36,7 @@ const Links = {
     [ "setting-new-reshuffle" , "new_user_no_reshuffle" ],
     [ "setting-new-player-scores" , "new_user_no_player_scores" ],
     [ "setting-new-led-glow" , "new_user_no_led_glow" ],
+    [ "setting-new-win-glow" , "new_user_no_win_glow" ],
   ],
   newUserLevels: [
     [ "setting-new-hint-level" , "new_user_hint_level" ],
