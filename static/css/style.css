@@ -72,16 +72,18 @@
      hand along the bottom, and the words on the felt's panels (seat names,
      the auction, the waiting room). Declared here, these read the mode's
      --fg and --bg, so they follow light and dark with no rule of their own. */
-  --game-bar: var(--card-bg);
-  --game-bar-fg: var(--fg);
-  --game-bar-muted: var(--fg-muted);
+  /* The bar is the Bid button's colors: the main color, its label on it. */
+  --game-bar: var(--accent);
+  --game-bar-fg: var(--accent-fg);
+  --game-bar-muted: color-mix(in srgb, var(--accent-fg) 80%, var(--accent));
   --game-tray: var(--bg);
   --game-tray-fg: var(--fg);
   --game-tray-muted: var(--fg-muted);
   --table-panel-fg: var(--fg);
   --table-panel-muted: var(--fg-muted);
-  /* The bar while an admin holds the game: Default's main color, tinted in. */
-  --game-held-line: #157f92;
+  /* The bar while an admin holds the game: Default's second color, tinted in
+     (the main color is the bar's own). */
+  --game-held-line: #a8641c;
   --game-held: color-mix(in srgb, var(--game-held-line) 16%, var(--game-bar));
 
   --shadow: 0 1px 2px rgba(60, 40, 10, 0.10), 0 8px 24px rgba(60, 40, 10, 0.10);
@@ -145,7 +147,7 @@
   --table-glow: rgba(140, 220, 180, 0.12);
   --table-fg: #e6f1ea;
   --table-panel: rgba(20, 34, 29, 0.92);
-  --game-held-line: #4cc3d6;
+  --game-held-line: #e8b45e;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
   --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.35);

@@ -690,17 +690,15 @@ const Theme = {
     };
     // The game screen, as the page has it until a theme says otherwise: the
     // felt as its look draws it, the panels on it as cards, the bar across
-    // the top in the theme's second color (so it never melts into the felt),
+    // the top in the theme's main color (the Bid button's fill and label),
     // the tray and hand on the page, and the mode's two teams.
     const palette = this.tablePalettes[ this.tableLook( theme ) ];
     result.table = palette.table || nested;
     result.tableText = palette.text || this.asText( mode.text , nested );
     result.tablePanel = card;
     result.tablePanelText = mode.text;
-    // Default keeps its bar a card, as style.css draws it.
-    const cardBar = theme.id === this.builtIn[ 0 ].id;
-    result.tableBar = cardBar ? card : this.barColor( second , surface , theme.mode , result.table );
-    result.tableBarText = cardBar ? mode.text : this.readableOn( result.tableBar );
+    result.tableBar = result.accent;
+    result.tableBarText = result.accentFg;
     result.tray = result.background;
     result.trayText = mode.text;
     result.us = mode.us;
@@ -777,11 +775,10 @@ const Theme = {
     Object.keys( overrides ).forEach( ( field ) => {
       if ( field in colors ) colors[ field ] = overrides[ field ];
     } );
-    // The bar stands off the felt the theme ends up with, not the look's own.
-    if ( !overrides.tableBar && overrides.table && theme.id !== this.builtIn[ 0 ].id ) {
-      colors.tableBar = this.barColor( colors.second , theme.surface || this.modes[ theme.mode ].surface , theme.mode , colors.table );
-      if ( !overrides.tableBarText ) colors.tableBarText = this.readableOn( colors.tableBar );
-    }
+    // The bar follows the Bid button: an edited main color or its label
+    // carries over, unless the bar has colors of its own.
+    if ( !overrides.tableBar ) colors.tableBar = colors.accent;
+    if ( !overrides.tableBarText ) colors.tableBarText = colors.accentFg;
     return colors;
   },
 
@@ -845,8 +842,7 @@ Theme.variants.forEach( ( variant ) => {
 // a table look, and per mode the felt and its words, and the two teams --
 // your team in the theme's main color, the other in its second, or another
 // that stays apart where those two are too alike. The bar across the top is
-// the theme's second color (derived), never the felt's; OSU keeps scarlet
-// there. They are overrides like any other,
+// the theme's main color (derived), as the Bid button is. They are overrides like any other,
 // so the editor shows them and Reset puts the worked-out color back.
 const ThemeGames = {
   ocean: { look: "blue" ,
