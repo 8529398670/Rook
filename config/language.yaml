@@ -1459,7 +1459,7 @@ signup_links:
   delete_confirm: "Delete \"{label}\" for good? The accounts it made stay, but they can no longer use it to sign in on a new device."
 
 games:
-  heading: "Game history"
+  heading: "History"
   description: "Every game played here, newest first: finished ones, and ones given up partway."
   empty: "No games yet. Each one shows up here once it ends."
   load_more: "Show older games"

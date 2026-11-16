@@ -706,6 +706,8 @@ td .row-actions { display: flex; gap: 0.4rem; }
 .settings-main .segmented { max-width: 20rem; }
 .settings-main #bot-default-levels,
 .settings-main #auto-play-levels { max-width: 26rem; }
+/* The Playing page's pickers sit centred in their card, not pulled left. */
+#settings-section-play .segmented { width: 100%; margin-inline: auto; }
 /* Six bot levels: two rows of three, so each name fits on a phone. */
 .segmented.level-choices { display: grid; grid-template-columns: repeat(3, 1fr); }
 .bot-default-help { margin: 0.5rem 0 0; font-size: 0.85rem; }
@@ -789,7 +791,7 @@ button.guide-jump:hover { color: var(--accent-strong); border-color: var(--accen
 .guide-tip strong { display: block; margin-bottom: 2px; font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--accent-strong); }
 
 /* A row of real card faces, with what each one means under it. */
-.guide-cards { display: flex; flex-wrap: wrap; gap: 8px; margin: 0.4rem 0 0.8rem; }
+.guide-cards { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0.4rem 0 0.8rem; }
 .guide-cards figure { margin: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; }
 /* Five to a row on a 375px phone. */
 .guide-cards .guide-card { --card-w: 50px; }
@@ -1042,8 +1044,9 @@ button.danger-text { color: var(--danger); }
 
 /* ------------------------------------------------------------ sidebar */
 /* js/nav.js. A slide-in panel over the page on a phone (body.sidebar-open),
-   a column beside the lobby on a wide screen (body.sidebar-docked, only
-   while the lobby shows, since that is where its button is). */
+   a column beside the page on a wide screen (body.sidebar-docked). Docked,
+   it stays put across the signed-in pages and steps aside only at a table,
+   where the cards need the whole width. */
 
 .app-sidebar {
   --sidebar-width: 17rem;
@@ -1140,13 +1143,13 @@ body.sidebar-open .app-sidebar {
 .sidebar-user { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
 
 @media (min-width: 64rem) {
-  body.sidebar-docked[data-screen="screen-lobby"] .app-sidebar {
+  body.sidebar-docked:is([data-screen="screen-lobby"], [data-screen="screen-guide"], [data-screen="screen-games"], [data-screen="screen-logs"], [data-screen="screen-appearance"], [data-screen="screen-settings"]) .app-sidebar {
     transform: none;
     visibility: visible;
     box-shadow: none;
     transition: none;
   }
-  body.sidebar-docked[data-screen="screen-lobby"] .screen-lobby { margin-left: var(--sidebar-docked-width, 17rem); }
+  body.sidebar-docked :is(.screen-lobby, .screen-guide, .screen-games, .screen-logs, .screen-appearance, .screen-settings) { margin-left: var(--sidebar-docked-width, 17rem); }
   body.sidebar-docked[data-screen="screen-lobby"] .fab-bar { left: var(--sidebar-docked-width, 17rem); }
   /* The column has its own close button only on a phone; here the
      hamburger beside it does that. */
