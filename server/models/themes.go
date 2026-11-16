@@ -51,8 +51,9 @@ type Theme struct {
 	Second     string            `json:"second" jsonschema_description:"Says where you are: active nav item, headings, info."`
 	Background string            `json:"background,omitempty" jsonschema_description:"The page. Left out: the mode's own."`
 	Surface    string            `json:"surface,omitempty" jsonschema_description:"Cards. Left out: the mode's own."`
-	Overrides  map[string]string `json:"overrides,omitempty" jsonschema_description:"Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back."`
+	Overrides  map[string]string `json:"overrides,omitempty" jsonschema_description:"Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back."`
 	Button     *ThemeButton      `json:"button,omitempty" jsonschema_description:"How the theme's buttons look. A choice left out is the default (rounded, normal, raised, normal)."`
+	Table      *ThemeTable       `json:"table,omitempty" jsonschema_description:"How the game table looks. Left out: light maple in light mode, green baize in dark."`
 	// The colors kept for the mode not in use (Theme.setMode in theme.js): a
 	// light theme's Dark, a dark theme's Light. Switching mode swaps them in.
 	Light *ThemeColors `json:"light,omitempty" jsonschema_description:"A dark theme's colors for light mode, kept while it is dark. Switching the theme to light swaps them in."`
@@ -70,7 +71,7 @@ type ThemeColors struct {
 	Second     string            `json:"second" jsonschema_description:"Says where you are: active nav item, headings, info."`
 	Background string            `json:"background,omitempty" jsonschema_description:"The page. Left out: the mode's own."`
 	Surface    string            `json:"surface,omitempty" jsonschema_description:"Cards. Left out: the mode's own."`
-	Overrides  map[string]string `json:"overrides,omitempty" jsonschema_description:"Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back."`
+	Overrides  map[string]string `json:"overrides,omitempty" jsonschema_description:"Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back."`
 }
 
 // ThemeButton is how a theme's buttons look; each choice is one of
@@ -80,6 +81,63 @@ type ThemeButton struct {
 	Weight string `json:"weight,omitempty" jsonschema:"enum=normal,enum=medium,enum=bold"`
 	Depth  string `json:"depth,omitempty" jsonschema:"enum=flat,enum=raised,enum=glossy"`
 	Case   string `json:"case,omitempty" jsonschema:"enum=normal,enum=upper"`
+}
+
+// ThemeTable is how a theme draws the game table: one of the drawn looks, or
+// a picture (models/backgrounds.go) placed by its focal point and darkened
+// so the seats stay readable. Only what this person sees: everyone at a
+// table has their own.
+type ThemeTable struct {
+	Look  string `json:"look,omitempty" jsonschema_description:"maple, baize, blue, red, walnut, slate, plain, or image for a picture. Left out: maple in light mode, baize in dark."`
+	Image string `json:"image,omitempty" jsonschema_description:"With look image: a picture's id from GET /api/account/backgrounds."`
+	X     *int   `json:"x,omitempty" jsonschema_description:"The picture's focal point across, 0 to 100 percent: what stays in view when a screen crops it. Left out: 50."`
+	Y     *int   `json:"y,omitempty" jsonschema_description:"The picture's focal point down, 0 to 100 percent. Left out: 50."`
+	Dim   int    `json:"dim,omitempty" jsonschema_description:"How much the picture is darkened, 0 to 70 percent."`
+}
+
+const (
+	TableLookImage = "image"
+	MaxTableDim    = 70
+)
+
+// ThemeTableLooks are the drawn looks, Theme.tableLooks in theme.js.
+var ThemeTableLooks = map[string]bool{
+	"maple": true , "baize": true , "blue": true , "red": true , "walnut": true , "slate": true , "plain": true ,
+	TableLookImage: true ,
+}
+
+// cleanThemeTable checks a theme's table; nil when it is the mode's own.
+func cleanThemeTable( id string , table *ThemeTable ) ( result *ThemeTable , err error ) {
+	if table == nil { return }
+	cleaned := *table
+	cleaned.Look = strings.ToLower( strings.TrimSpace( cleaned.Look ) )
+	if cleaned.Look != "" && ThemeTableLooks[ cleaned.Look ] == false {
+		err = fmt.Errorf( "theme %s: no table look called %q" , id , cleaned.Look )
+		return
+	}
+	if cleaned.Image != "" && ValidBackgroundID( cleaned.Image ) == false {
+		err = fmt.Errorf( "theme %s: not a picture id" , id )
+		return
+	}
+	for _ , at := range []**int{ &cleaned.X , &cleaned.Y } {
+		value := 50
+		if *at != nil { value = **at }
+		*at = &value
+	}
+	if *cleaned.X < 0 || *cleaned.X > 100 || *cleaned.Y < 0 || *cleaned.Y > 100 {
+		err = fmt.Errorf( "theme %s: the table picture's x and y are 0 to 100" , id )
+		return
+	}
+	if cleaned.Dim < 0 || cleaned.Dim > MaxTableDim {
+		err = fmt.Errorf( "theme %s: the table picture's dim is 0 to %d" , id , MaxTableDim )
+		return
+	}
+	// A picture means something only with look image, and the rest only with a picture.
+	if cleaned.Look != TableLookImage { cleaned.Image = "" }
+	if cleaned.Look == TableLookImage && cleaned.Image == "" { cleaned.Look = "" }
+	if cleaned.Image == "" { cleaned.X , cleaned.Y , cleaned.Dim = nil , nil , 0 }
+	if cleaned.Look != "" { result = &cleaned }
+	return
 }
 
 var (
@@ -92,6 +150,10 @@ var (
 		"nested": true , "chrome": true , "info": true , "infoBorder": true , "border": true ,
 		// The outlines on the trick's led card and winning card.
 		"ledRing": true , "winRing": true ,
+		// The game screen: the felt and its words, the panels on it, the bar
+		// across the top, the tray and hand along the bottom, the two teams.
+		"table": true , "tableText": true , "tablePanel": true , "tablePanelText": true , "tableBar": true ,
+		"tableBarText": true , "tray": true , "trayText": true , "us": true , "them": true ,
 	}
 	// Theme.buttonChoices in theme.js.
 	ThemeButtonChoices = map[string]map[string]bool{
@@ -209,6 +271,7 @@ func CleanThemes( themes []Theme ) ( result []Theme , err error ) {
 			*kept = &cleaned
 		}
 		if theme.Button , err = cleanThemeButton( theme.ID , theme.Button ); err != nil { return }
+		if theme.Table , err = cleanThemeTable( theme.ID , theme.Table ); err != nil { return }
 		result = append( result , theme )
 	}
 	return

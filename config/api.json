@@ -73,6 +73,46 @@
       }
     },
     "schemas": {
+      "Background": {
+        "description": "A table picture. Its bytes are at GET /api/backgrounds/{id}, a JPEG at most 2560 pixels on its long side.",
+        "properties": {
+          "created_at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "height": {
+            "type": "integer"
+          },
+          "id": {
+            "type": "string"
+          },
+          "mine": {
+            "description": "You uploaded it, so you may delete it.",
+            "type": "boolean"
+          },
+          "shared": {
+            "description": "Uploaded by an admin for the default themes: everyone may use it.",
+            "type": "boolean"
+          },
+          "size": {
+            "description": "Bytes.",
+            "type": "integer"
+          },
+          "width": {
+            "type": "integer"
+          }
+        },
+        "required": [
+          "created_at",
+          "height",
+          "id",
+          "mine",
+          "shared",
+          "size",
+          "width"
+        ],
+        "type": "object"
+      },
       "Error": {
         "properties": {
           "error": {
@@ -328,7 +368,7 @@
                     "additionalProperties": {
                       "type": "string"
                     },
-                    "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
+                    "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
                     "type": "object"
                   },
                   "second": {
@@ -372,7 +412,7 @@
                     "additionalProperties": {
                       "type": "string"
                     },
-                    "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
+                    "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
                     "type": "object"
                   },
                   "second": {
@@ -410,7 +450,7 @@
             "additionalProperties": {
               "type": "string"
             },
-            "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
+            "description": "Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back.",
             "type": "object"
           },
           "second": {
@@ -420,6 +460,45 @@
           "surface": {
             "description": "Cards. Left out: the mode's own.",
             "type": "string"
+          },
+          "table": {
+            "description": "How the game table looks. Left out: light maple in light mode, green baize in dark.",
+            "oneOf": [
+              {
+                "properties": {
+                  "dim": {
+                    "description": "How much the picture is darkened, 0 to 70 percent.",
+                    "type": "integer"
+                  },
+                  "image": {
+                    "description": "With look image: a picture's id from GET /api/account/backgrounds.",
+                    "type": "string"
+                  },
+                  "look": {
+                    "description": "maple, baize, blue, red, walnut, slate, plain, or image for a picture. Left out: maple in light mode, baize in dark.",
+                    "type": "string"
+                  },
+                  "x": {
+                    "description": "The picture's focal point across, 0 to 100 percent: what stays in view when a screen crops it. Left out: 50.",
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "y": {
+                    "description": "The picture's focal point down, 0 to 100 percent. Left out: 50.",
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  }
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "required": [
@@ -569,6 +648,220 @@
           "Account"
         ]
       }
+    },
+    "/api/account/backgrounds": {
+      "get": {
+        "description": "The pictures you may put on the game table in a theme: your own, then the ones an admin shared for the default themes.",
+        "operationId": "get_api_account_backgrounds",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "backgrounds": {
+                      "description": "Your own pictures, then the shared ones.",
+                      "items": {
+                        "$ref": "#/components/schemas/Background"
+                      },
+                      "type": "array"
+                    },
+                    "limit": {
+                      "description": "How many of your own you may keep.",
+                      "type": "integer"
+                    },
+                    "max_side": {
+                      "description": "The long side, in pixels, a picture is shrunk to.",
+                      "type": "integer"
+                    },
+                    "shared_limit": {
+                      "description": "How many shared ones there may be.",
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "backgrounds",
+                    "limit",
+                    "max_side",
+                    "shared_limit"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Your table pictures",
+        "tags": [
+          "Account"
+        ]
+      },
+      "post": {
+        "description": "The body is the picture itself: JPEG, PNG or WebP, under the request size limit. It is stored as a JPEG at most 2560 pixels on its long side, with its metadata removed. Answers the Background; use its id as a theme's table image.",
+        "operationId": "post_api_account_backgrounds",
+        "parameters": [
+          {
+            "description": "From GET /api/me. Browser sessions only.",
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Upload a table picture",
+        "tags": [
+          "Account"
+        ]
+      },
+      "x-feature": "appearance"
+    },
+    "/api/account/backgrounds/{background_id}/delete": {
+      "post": {
+        "description": "Delete one of your own pictures (an admin may delete shared ones too). Your themes that used it, and for a shared one the default themes, go back to the look underneath.",
+        "operationId": "post_api_account_backgrounds_background_id_delete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "background_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "ok": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "ok"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Delete a table picture",
+        "tags": [
+          "Account"
+        ]
+      },
+      "x-feature": "appearance"
     },
     "/api/account/bot-level": {
       "post": {
@@ -1514,6 +1807,73 @@
         "tags": [
           "Account"
         ]
+      },
+      "x-feature": "appearance"
+    },
+    "/api/admin/backgrounds": {
+      "post": {
+        "description": "Like POST /api/account/backgrounds, but everyone signed in may see and use the picture: for the default themes.",
+        "operationId": "post_api_admin_backgrounds",
+        "parameters": [
+          {
+            "description": "From GET /api/me. Browser sessions only.",
+            "in": "header",
+            "name": "X-CSRF-Token",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "image/jpeg": {
+              "schema": {
+                "type": "string"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Upload a shared table picture",
+        "tags": [
+          "Admin"
+        ],
+        "x-required-role": "admin"
       },
       "x-feature": "appearance"
     },
@@ -3139,6 +3499,62 @@
           "Monitoring"
         ]
       }
+    },
+    "/api/backgrounds/{background_id}": {
+      "get": {
+        "description": "The picture's JPEG, for its owner or, for a shared one, anyone signed in.",
+        "operationId": "get_api_backgrounds_background_id",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "background_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            },
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "A table picture",
+        "tags": [
+          "Account"
+        ]
+      },
+      "x-feature": "appearance"
     },
     "/api/games": {
       "get": {

@@ -51,6 +51,9 @@ An error reply is a JSON object whose `error` says what went wrong.
 |---|---|---|---|
 | POST | [`/api/account/auto-play-level`](#post-apiaccountauto-play-level) | Set auto play level | browser session or API key, anyone signed in |
 | POST | [`/api/account/avatar`](#post-apiaccountavatar) | Set avatar | browser session or API key, anyone signed in |
+| GET | [`/api/account/backgrounds`](#get-apiaccountbackgrounds) | Your table pictures | browser session or API key, anyone signed in |
+| POST | [`/api/account/backgrounds`](#post-apiaccountbackgrounds) | Upload a table picture | browser session or API key, anyone signed in |
+| POST | [`/api/account/backgrounds/{background_id}/delete`](#post-apiaccountbackgroundsbackground_iddelete) | Delete a table picture | browser session or API key, anyone signed in |
 | POST | [`/api/account/bot-level`](#post-apiaccountbot-level) | Set bot level | browser session or API key, anyone signed in |
 | POST | [`/api/account/delete`](#post-apiaccountdelete) | Delete my account | browser session only, anyone signed in |
 | POST | [`/api/account/hint-level`](#post-apiaccounthint-level) | Set hint level | browser session or API key, anyone signed in |
@@ -64,6 +67,7 @@ An error reply is a JSON object whose `error` says what went wrong.
 | POST | [`/api/account/sessions/{session_id}/revoke`](#post-apiaccountsessionssession_idrevoke) | Sign out one of your devices | browser session or API key, anyone signed in |
 | POST | [`/api/account/theme`](#post-apiaccounttheme) | Pick your theme | browser session or API key, anyone signed in |
 | POST | [`/api/account/themes`](#post-apiaccountthemes) | Replace your own themes | browser session or API key, anyone signed in |
+| GET | [`/api/backgrounds/{background_id}`](#get-apibackgroundsbackground_id) | A table picture | browser session or API key, anyone signed in |
 | GET | [`/api/language`](#get-apilanguage) | The UI's text | anyone |
 | POST | [`/api/logout`](#post-apilogout) | Logout | browser session or API key, anyone signed in |
 | POST | [`/api/logs/events`](#post-apilogsevents) | Record what happened on the page | browser session or API key, anyone signed in |
@@ -107,6 +111,80 @@ Set avatar
 | `icon` | string | no |  |  |
 
 **Reply 200**: Success
+
+### GET /api/account/backgrounds
+
+Your table pictures
+
+The pictures you may put on the game table in a theme: your own, then the ones an admin shared for the default themes.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 401, 429, 503 |
+
+**Reply 200**: Success
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `backgrounds` | array of [`Background`](#background) | yes |  | Your own pictures, then the shared ones. |
+| `limit` | integer | yes |  | How many of your own you may keep. |
+| `max_side` | integer | yes |  | The long side, in pixels, a picture is shrunk to. |
+| `shared_limit` | integer | yes |  | How many shared ones there may be. |
+
+### POST /api/account/backgrounds
+
+Upload a table picture
+
+The body is the picture itself: JPEG, PNG or WebP, under the request size limit. It is stored as a JPEG at most 2560 pixels on its long side, with its metadata removed. Answers the Background; use its id as a theme's table image.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `X-CSRF-Token` | header | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Request body**
+
+Text, as `image/jpeg`.
+
+**Reply 201**: Success
+
+An empty object.
+
+### POST /api/account/backgrounds/{background_id}/delete
+
+Delete a table picture
+
+Delete one of your own pictures (an admin may delete shared ones too). Your themes that used it, and for a shared one the default themes, go back to the look underneath.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `background_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Reply 200**: Success
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `ok` | boolean | yes |  |  |
 
 ### POST /api/account/bot-level
 
@@ -396,6 +474,27 @@ Replace your whole list of color themes (1 to 40) and pick the one you use. them
 | `themes_builtins` | integer | yes |  | Which built-in themes that list has seen (see builtins on POST /api/account/themes). |
 | `themes_custom` | boolean | yes |  |  |
 
+### GET /api/backgrounds/{background_id}
+
+A table picture
+
+The picture's JPEG, for its owner or, for a shared one, anyone signed in.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `background_id` | path | string | yes |  |  |
+
+**Reply 200**: Success
+
+Text, as `image/jpeg`.
+
 ### GET /api/language
 
 The UI's text
@@ -571,6 +670,7 @@ Revoke my API key
 
 | Method | Path | Summary | Who may call |
 |---|---|---|---|
+| POST | [`/api/admin/backgrounds`](#post-apiadminbackgrounds) | Upload a shared table picture | browser session or API key, admins |
 | GET | [`/api/admin/keys`](#get-apiadminkeys) | List all API keys | browser session only, admins |
 | POST | [`/api/admin/keys/{key_id}/delete`](#post-apiadminkeyskey_iddelete) | Delete any API key | browser session only, admins |
 | POST | [`/api/admin/keys/{key_id}/revoke`](#post-apiadminkeyskey_idrevoke) | Revoke any API key | browser session only, admins |
@@ -593,6 +693,31 @@ Revoke my API key
 | POST | [`/api/admin/users/{user_id}/role`](#post-apiadminusersuser_idrole) | Admin set role | browser session or API key, admins |
 | GET | [`/api/admin/users/{user_id}/sessions`](#get-apiadminusersuser_idsessions) | An account's signed-in devices | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/sessions/{session_id}/revoke`](#post-apiadminusersuser_idsessionssession_idrevoke) | Sign out one of an account's devices | browser session or API key, admins |
+
+### POST /api/admin/backgrounds
+
+Upload a shared table picture
+
+Like POST /api/account/backgrounds, but everyone signed in may see and use the picture: for the default themes.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, admins |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `X-CSRF-Token` | header | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Request body**
+
+Text, as `image/jpeg`.
+
+**Reply 201**: Success
+
+An empty object.
 
 ### GET /api/admin/keys
 
@@ -2804,6 +2929,18 @@ Get watch record
 
 The shapes the routes above refer to by name.
 
+### Background
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `created_at` | string (date-time) | yes |  |  |
+| `height` | integer | yes |  |  |
+| `id` | string | yes |  |  |
+| `mine` | boolean | yes |  | You uploaded it, so you may delete it. |
+| `shared` | boolean | yes |  | Uploaded by an admin for the default themes: everyone may use it. |
+| `size` | integer | yes |  | Bytes. |
+| `width` | integer | yes |  |  |
+
 ### Error
 
 | Field | Type | Required | Limits | Description |
@@ -2881,18 +3018,24 @@ The shapes the routes above refer to by name.
 | `dark` | object or null | no |  | A light theme's colors for dark mode, kept while it is light. Switching the theme to dark swaps them in. A light theme's light (or a dark theme's dark) is dropped. |
 | `dark.accent` | string | yes |  | The main color: what you can press. |
 | `dark.background` | string | no |  | The page. Left out: the mode's own. |
-| `dark.overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
+| `dark.overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
 | `dark.second` | string | yes |  | Says where you are: active nav item, headings, info. |
 | `dark.surface` | string | no |  | Cards. Left out: the mode's own. |
 | `id` | string | yes |  | Lower-case letters, digits, - and _, up to 32. |
 | `light` | object or null | no |  | A dark theme's colors for light mode, kept while it is dark. Switching the theme to light swaps them in. |
 | `light.accent` | string | yes |  | The main color: what you can press. |
 | `light.background` | string | no |  | The page. Left out: the mode's own. |
-| `light.overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
+| `light.overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
 | `light.second` | string | yes |  | Says where you are: active nav item, headings, info. |
 | `light.surface` | string | no |  | Cards. Left out: the mode's own. |
 | `mode` | string | yes | one of `light`, `dark` |  |
 | `name` | string | yes |  | 1 to 60 characters. |
-| `overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
+| `overrides` | map of string | no |  | Worked-out colors replaced by name: text, accent, accentFg, accentText, second, secondFg, secondText, link, navLink, background, surface, nested, chrome, info, infoBorder, border, ledRing (the card that led the trick), winRing (the card that won it), the game screen's table (the felt), tableText, tablePanel (seat names, the auction), tablePanelText, tableBar (the bar across the top), tableBarText, tray (the tray and hand along the bottom), trayText, us (your team) and them, and for each button variant V (Secondary, Success, Danger, Warning, Info, Light, Dark) btnV, btnVFg and btnVText. Leaving one out puts the readable color back. |
 | `second` | string | yes |  | Says where you are: active nav item, headings, info. |
 | `surface` | string | no |  | Cards. Left out: the mode's own. |
+| `table` | object or null | no |  | How the game table looks. Left out: light maple in light mode, green baize in dark. |
+| `table.dim` | integer | no |  | How much the picture is darkened, 0 to 70 percent. |
+| `table.image` | string | no |  | With look image: a picture's id from GET /api/account/backgrounds. |
+| `table.look` | string | no |  | maple, baize, blue, red, walnut, slate, plain, or image for a picture. Left out: maple in light mode, baize in dark. |
+| `table.x` | integer or null | no |  | The picture's focal point across, 0 to 100 percent: what stays in view when a screen crops it. Left out: 50. |
+| `table.y` | integer or null | no |  | The picture's focal point down, 0 to 100 percent. Left out: 50. |

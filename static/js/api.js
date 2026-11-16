@@ -91,6 +91,35 @@ const Api = {
   // The themes everyone without their own list sees (admins); null is the
   // built-in ones.
   themeDefaults()              { return this.request( "/api/admin/theme-defaults" ); },
+  // Table pictures (backgrounds.js). An upload's body is the JPEG itself,
+  // so its CSRF token goes in a header instead.
+  backgrounds()                { return this.request( "/api/account/backgrounds" ); },
+  deleteBackground( id )       { return this.post( "/api/account/backgrounds/" + encodeURIComponent( id ) + "/delete" ); },
+  async uploadBackground( blob , shared ) {
+    let response;
+    try {
+      response = await fetch( shared ? "/api/admin/backgrounds" : "/api/account/backgrounds" , {
+        method: "POST",
+        credentials: "same-origin",
+        headers: { "Content-Type": "image/jpeg" , "X-CSRF-Token": this.csrfToken || "" },
+        body: blob,
+      } );
+    } catch ( networkError ) {
+      const error = new Error( "network" );
+      error.code = "network";
+      throw error;
+    }
+    let payload = {};
+    try { payload = await response.json(); } catch ( parseError ) { payload = {}; }
+    if ( !response.ok ) {
+      const error = new Error( payload.error || response.statusText );
+      error.status = response.status;
+      const code = String( payload.error || "" );
+      error.code = /^[a-z_]+$/.test( code ) ? code : ( response.status === 413 ? "background_too_big" : this.statusCodes[ response.status ] || "generic" );
+      throw error;
+    }
+    return payload;
+  },
   setThemeDefaults( themes , builtins ) { return this.post( "/api/admin/theme-defaults" , { themes: themes , builtins: builtins || 0 } ); },
   revokeSession( id )          { return this.post( "/api/account/sessions/" + encodeURIComponent( id ) + "/revoke" ); },
   revokeOtherSessions()        { return this.post( "/api/account/sessions/revoke-others" ); },

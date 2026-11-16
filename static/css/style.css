@@ -67,6 +67,23 @@
   --table-fg: #3a2a16;
   --table-panel: rgba(255, 252, 244, 0.92);
 
+  /* The rest of the game screen. Each starts as the page's own and a theme
+     may set it apart (Theme.rookVars): the bar across the top, the tray and
+     hand along the bottom, and the words on the felt's panels (seat names,
+     the auction, the waiting room). Declared here, these read the mode's
+     --fg and --bg, so they follow light and dark with no rule of their own. */
+  --game-bar: var(--card-bg);
+  --game-bar-fg: var(--fg);
+  --game-bar-muted: var(--fg-muted);
+  --game-tray: var(--bg);
+  --game-tray-fg: var(--fg);
+  --game-tray-muted: var(--fg-muted);
+  --table-panel-fg: var(--fg);
+  --table-panel-muted: var(--fg-muted);
+  /* The bar while an admin holds the game: Default's main color, tinted in. */
+  --game-held-line: #157f92;
+  --game-held: color-mix(in srgb, var(--game-held-line) 16%, var(--game-bar));
+
   --shadow: 0 1px 2px rgba(60, 40, 10, 0.10), 0 8px 24px rgba(60, 40, 10, 0.10);
   --card-shadow: 0 1px 1px rgba(40, 25, 5, 0.18), 0 3px 8px rgba(40, 25, 5, 0.16);
   --radius: 14px;
@@ -128,6 +145,7 @@
   --table-glow: rgba(140, 220, 180, 0.12);
   --table-fg: #e6f1ea;
   --table-panel: rgba(20, 34, 29, 0.92);
+  --game-held-line: #4cc3d6;
 
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
   --card-shadow: 0 1px 1px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.35);
@@ -1484,6 +1502,158 @@ button.theme-item-pick[aria-pressed="true"] { border-color: var(--accent); }
 }
 .theme-preview-playcard.is-led { outline: 3px solid var(--led-ring); }
 .theme-preview-playcard.is-winner { outline: 3px solid var(--win-ring); }
+/* The game screen under it: bar, felt and tray, in the theme's game
+   colors (table.css reads the same properties). */
+.theme-preview-game {
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.78rem;
+}
+.theme-preview-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  color: var(--game-bar-fg);
+  background: var(--game-bar);
+  border-bottom: 1px solid var(--border);
+}
+.theme-preview-bar strong { flex: 1 1 auto; }
+.theme-preview-score { padding: 0 6px; font-weight: 750; border-radius: 6px; }
+.theme-preview-score.is-us { color: var(--us); background: var(--us-soft); }
+.theme-preview-score.is-them { color: var(--them); background: var(--them-soft); }
+.theme-preview-felt {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 4.5rem;
+  container-type: normal;
+}
+.theme-preview-seat {
+  padding: 1px 10px;
+  font-weight: 700;
+  color: var(--table-panel-fg);
+  background: var(--table-panel);
+  border-radius: 10px;
+}
+.theme-preview-felt-text { font-weight: 650; color: var(--table-fg); }
+.theme-preview-tray {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding: 5px 8px;
+  color: var(--game-tray-fg);
+  background: var(--game-tray);
+}
+.theme-preview-tray-muted { color: var(--game-tray-muted); }
+
+/* The Table section: looks as small felts, pictures, and where one sits. */
+.theme-table h4 { margin: 1rem 0 0.25rem; font-size: 0.95rem; }
+.table-looks { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.table-look-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 5.25rem;
+  padding: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  box-shadow: none;
+}
+.table-look-pick[aria-checked="true"] { border-color: var(--accent); background: var(--accent-soft); }
+/* A felt in miniature: the same layers as .felt, set by its look. */
+.table-swatch {
+  width: 100%;
+  height: 2.5rem;
+  border-radius: 6px;
+  background-color: var(--table);
+  background-image:
+    radial-gradient(ellipse 70% 60% at 50% 45%, var(--table-glow), transparent 70%),
+    repeating-linear-gradient(90deg, transparent 0 18px, var(--table-seam) 18px 19px),
+    repeating-linear-gradient(91deg, var(--table-grain) 0 2px, transparent 2px 6px);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.table-pictures { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.75rem; }
+.table-picture { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; width: 8.5rem; }
+.table-picture-pick {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  padding: 0;
+  overflow: hidden;
+  background: #2b2b2b;
+  border: 3px solid transparent;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.table-picture-pick img { display: block; width: 100%; height: 100%; object-fit: cover; }
+.table-picture.selected .table-picture-pick { border-color: var(--accent); }
+.table-picture-tag { font-size: 0.75rem; color: var(--fg-muted); }
+.table-picture-actions { margin-bottom: 0.5rem; }
+/* The picture with what a desktop and a phone show of it outlined. Their
+   places (--left, --top, --width, --height) come from Backgrounds.frame. */
+.table-place {
+  position: relative;
+  width: 100%;
+  max-width: 36rem;
+  aspect-ratio: var(--place-ratio, 16 / 9);
+  max-height: 60vh;
+  overflow: hidden;
+  border-radius: 10px;
+  cursor: crosshair;
+  touch-action: manipulation;
+  background: #2b2b2b;
+}
+.table-place img { display: block; width: 100%; height: 100%; object-fit: fill; user-select: none; pointer-events: none; }
+.table-place-frame {
+  position: absolute;
+  left: var(--left);
+  top: var(--top);
+  width: var(--width);
+  height: var(--height);
+  box-sizing: border-box;
+  border: 2px dashed #ffffff;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.table-place-frame.frame-phone { border-style: solid; border-color: var(--accent); }
+.table-place-frame > span {
+  position: absolute;
+  left: 4px;
+  top: 4px;
+  padding: 1px 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.6);
+  border-radius: 6px;
+}
+.table-place-frame.frame-phone > span { top: auto; bottom: 4px; }
+.table-place-dot {
+  position: absolute;
+  left: var(--left);
+  top: var(--top);
+  width: 14px;
+  height: 14px;
+  margin: -7px 0 0 -7px;
+  background: var(--accent);
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+.table-dim { max-width: 26rem; margin-top: 0.75rem; }
+.table-dim-input { display: flex; align-items: center; gap: 0.75rem; }
+.table-dim-input input { flex: 1 1 auto; }
 
 @media (min-width: 48rem) {
   .lobby-main.appearance-main { max-width: none; }

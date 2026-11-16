@@ -21,6 +21,30 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Tag: "Account",
 		Errors: []int{ 400 , 401 , 403 },
 	} , handlers.SetAvatar , handlers.Guard.RequireLogin )
+	apidoc.Mount( app , "GET" , "/api/account/backgrounds" , apidoc.Op{
+		Summary: "Your table pictures",
+		Description: "The pictures you may put on the game table in a theme: your own, then the ones an admin shared for the default themes.",
+		Tag: "Account",
+		Feature: "appearance",
+		Errors: []int{ 401 },
+	} , handlers.listBackgrounds , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/account/backgrounds" , apidoc.Op{
+		Summary: "Upload a table picture",
+		Description: "The body is the picture itself: JPEG, PNG or WebP, under the request size limit. It is stored as a JPEG at most 2560 pixels on its long side, with its metadata removed. Answers the Background; use its id as a theme's table image.",
+		Tag: "Account",
+		Feature: "appearance",
+		BodyType: "image/jpeg",
+		Status: 201,
+		ReplyType: "application/json",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.uploadBackground , handlers.Guard.RequireLogin )
+	apidoc.Mount( app , "POST" , "/api/account/backgrounds/{background_id}/delete" , apidoc.Op{
+		Summary: "Delete a table picture",
+		Description: "Delete one of your own pictures (an admin may delete shared ones too). Your themes that used it, and for a shared one the default themes, go back to the look underneath.",
+		Tag: "Account",
+		Feature: "appearance",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.deleteBackground , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "POST" , "/api/account/bot-level" , apidoc.Op{
 		Summary: "Set bot level",
 		Tag: "Account",
@@ -99,6 +123,17 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "appearance",
 		Errors: []int{ 400 , 401 , 403 },
 	} , handlers.setMyThemes , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/admin/backgrounds" , apidoc.Op{
+		Summary: "Upload a shared table picture",
+		Description: "Like POST /api/account/backgrounds, but everyone signed in may see and use the picture: for the default themes.",
+		Tag: "Admin",
+		Role: apidoc.Admin,
+		Feature: "appearance",
+		BodyType: "image/jpeg",
+		Status: 201,
+		ReplyType: "application/json",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.uploadSharedBackground , handlers.Guard.RequireAdmin )
 	apidoc.MountStream( app , "GET" , "/api/admin/keys" , apidoc.Op{
 		Summary: "List all API keys",
 		Tag: "Admin",
@@ -258,6 +293,14 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		ReplyType: "text/markdown",
 		Errors: []int{ 401 , 404 },
 	} , handlers.GetAPIDoc , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "GET" , "/api/backgrounds/{background_id}" , apidoc.Op{
+		Summary: "A table picture",
+		Description: "The picture's JPEG, for its owner or, for a shared one, anyone signed in.",
+		Tag: "Account",
+		Feature: "appearance",
+		ReplyType: "image/jpeg",
+		Errors: []int{ 400 , 401 , 404 },
+	} , handlers.getBackground , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "GET" , "/api/games" , apidoc.Op{
 		Summary: "List games",
 		Tag: "Games",

@@ -41,9 +41,13 @@ const ThemeEditor = {
     text: "text" , background: "background" , surface: "surface" , nested: "nested" , chrome: "chrome" ,
     border: "border" , link: "link" , navLink: "nav_link" , accentFg: "accent_fg" , secondFg: "second_fg" ,
     ledRing: "led_ring" , winRing: "win_ring" ,
+    table: "table" , tableText: "table_text" , tablePanel: "table_panel" , tablePanelText: "table_panel_text" ,
+    tableBar: "table_bar" , tableBarText: "table_bar_text" , tray: "tray" , trayText: "tray_text" , us: "us" , them: "them" ,
   },
-  // The trick's outlines, in their own section.
-  cardFields: [ "ledRing" , "winRing" ],
+  // The game screen's colors, in their own section, each a ground and then
+  // what is written on it; then the teams and the trick's outlines.
+  cardFields: [ "table" , "tableText" , "tablePanel" , "tablePanelText" , "tableBar" , "tableBarText" , "tray" , "trayText" ,
+    "us" , "them" , "ledRing" , "winRing" ],
 
   // A label for a color of theme.js: its own key, or for a button variant's
   // fill or label, one sentence with the variant's name in it.
@@ -64,6 +68,9 @@ const ThemeEditor = {
   init( me ) {
     this.me = me;
     Theme.load( me );
+    // The table pictures, for the Table section; each editor redraws when they change.
+    Backgrounds.onChange.push( () => this.editors.forEach( ( editor ) => editor.render() ) );
+    Backgrounds.load();
     Dom.get( "appearance-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
     Dom.get( "theme-confirm-button" ).addEventListener( "click" , () => {
       const resolve = this.confirmed;
@@ -265,6 +272,20 @@ const ThemeEditor = {
       resetFine( theme ) {
         return save( edited( theme , ( copy ) => { copy.overrides = {}; } ) );
       },
+      // The table: a look, a picture, or null for the mode's own.
+      // A new look brings its own felt colors, so a felt color chosen for
+      // the old one goes; a picture moved or darkened keeps them.
+      table( theme , table ) {
+        const before = Theme.tableLook( theme );
+        return save( edited( theme , ( copy ) => {
+          if ( table ) copy.table = table;
+          else delete copy.table;
+          if ( Theme.tableLook( copy ) !== before ) {
+            delete copy.overrides.table;
+            delete copy.overrides.tableText;
+          }
+        } ) );
+      },
     };
 
     // On a phone the editor sits under the list: bring it into view.
@@ -449,6 +470,14 @@ const ThemeEditor = {
       } );
 
       const cards = Dom.el( "div" , { class: "theme-colors" , children: self.cardFields.map( fineRow ) } );
+      const tableSection = self.tableSection( theme , source.kind === "defaults" , {
+        set: ( table ) => actions.table( theme , table ),
+        preview: ( table ) => previewWith( ( copy ) => {
+          if ( table ) copy.table = table;
+          else delete copy.table;
+        } ),
+        settle: () => source.settle(),
+      } );
 
       const resetAll = Object.keys( theme.overrides || {} ).length > 0 ? Dom.el( "button" , { class: "small secondary" ,
         text: I18n.get( "theme.reset_all" ) , attrs: { type: "button" , "data-focus": "reset-all" } ,
@@ -482,6 +511,7 @@ const ThemeEditor = {
         Dom.el( "p" , { class: "muted" , text: I18n.get( "theme.buttons_help" ) } ),
         choices,
         buttonColors,
+        tableSection,
         Dom.el( "h3" , { text: I18n.get( "theme.cards_heading" ) } ),
         Dom.el( "p" , { class: "muted" , text: I18n.get( "theme.cards_help" ) } ),
         cards,
@@ -525,6 +555,160 @@ const ThemeEditor = {
     return editor;
   },
 
+  // The Table section: the looks as small felts, then the pictures (own and
+  // shared in My themes, shared only in the defaults) with an upload button,
+  // and for a picture in use, where it sits and how dark it is. on.set
+  // saves a table (null: the mode's own), on.preview paints one unsaved.
+  tableSection( theme , shared , on ) {
+    const current = Theme.table( theme );
+    const look = current ? current.look : "";
+    const section = Dom.el( "div" , { class: "theme-table" } );
+    section.appendChild( Dom.el( "h3" , { text: I18n.get( "theme.table_heading" ) } ) );
+    section.appendChild( Dom.el( "p" , { class: "muted" , text: I18n.get( "theme.table_help" ) } ) );
+
+    // The looks: the mode's own first, drawn as what it is in this mode.
+    const looks = Dom.el( "div" , { class: "table-looks" , attrs: { role: "radiogroup" , "aria-label": I18n.get( "theme.table_heading" ) } } );
+    [ "" ].concat( Theme.tableLooks ).forEach( ( value ) => {
+      const felt = Dom.el( "span" , { class: "table-swatch" , attrs: { "aria-hidden": "true" } } );
+      const sample = Object.assign( Theme.copy( theme ) , { table: value ? { look: value } : undefined } );
+      const vars = Theme.feltVars( sample );
+      Object.keys( vars ).forEach( ( name ) => felt.style.setProperty( name , vars[ name ] ) );
+      looks.appendChild( Dom.el( "button" , {
+        class: "table-look-pick",
+        attrs: { type: "button" , role: "radio" , "aria-checked": String( look === value ) , "data-focus": "table-look:" + ( value || "auto" ) },
+        children: [ felt , Dom.el( "span" , { text: I18n.get( "theme.table_look_" + ( value || "auto" ) ) } ) ],
+        on: { click: () => { if ( look !== value ) on.set( value ? { look: value } : null ); } },
+      } ) );
+    } );
+    section.appendChild( looks );
+
+    // The pictures.
+    section.appendChild( Dom.el( "h4" , { text: I18n.get( "theme.pictures_heading" ) } ) );
+    section.appendChild( Dom.el( "p" , { class: "muted" , text: I18n.format( "theme.picture_help" ,
+      { width: Backgrounds.bestWidth , height: Backgrounds.bestHeight } ) } ) );
+    const pictures = Backgrounds.usable( shared );
+    const grid = Dom.el( "div" , { class: "table-pictures" } );
+    pictures.forEach( ( picture ) => {
+      const chosen = look === "image" && current.image === picture.id;
+      const pick = Dom.el( "button" , {
+        class: "table-picture-pick",
+        attrs: { type: "button" , "aria-pressed": String( chosen ) , "data-focus": "picture:" + picture.id ,
+          "aria-label": I18n.format( "theme.picture_use" , { width: picture.width , height: picture.height } ) },
+        children: [ Dom.el( "img" , { attrs: { src: Backgrounds.url( picture.id ) , alt: "" , loading: "lazy" ,
+          width: String( picture.width ) , height: String( picture.height ) } } ) ],
+        on: { click: () => { if ( !chosen ) on.set( { look: "image" , image: picture.id , x: 50 , y: 50 , dim: 25 } ); } },
+      } );
+      const children = [ pick ];
+      if ( picture.shared && !shared ) children.push( Dom.el( "span" , { class: "table-picture-tag" , text: I18n.get( "theme.picture_shared" ) } ) );
+      const deletable = shared ? picture.shared : picture.mine && !picture.shared;
+      if ( deletable ) {
+        children.push( Dom.el( "button" , { class: "small secondary danger-text table-picture-delete" , text: I18n.get( "theme.picture_delete" ) ,
+          attrs: { type: "button" , "data-focus": "picture-delete:" + picture.id } , on: { click: async () => {
+            const asked = await this.confirm( I18n.get( "theme.picture_delete_heading" ) ,
+              I18n.get( picture.shared ? "theme.picture_delete_shared_confirm" : "theme.picture_delete_confirm" ) , I18n.get( "theme.picture_delete" ) );
+            if ( !asked ) return;
+            try {
+              await Backgrounds.remove( picture.id );
+              // The server took it off these themes too; reload them.
+              if ( shared ) {
+                const reply = await Api.themeDefaults();
+                this.defaults = this.savedDefaults( reply );
+              }
+              Theme.load( await Api.me() );
+            } catch ( error ) {
+              Toast.error( error );
+            }
+          } } } ) );
+      }
+      grid.appendChild( Dom.el( "div" , { class: "table-picture" + ( chosen ? " selected" : "" ) , children: children } ) );
+    } );
+    if ( pictures.length === 0 ) grid.appendChild( Dom.el( "p" , { class: "muted" , text: I18n.get( "theme.picture_none" ) } ) );
+    section.appendChild( grid );
+
+    if ( Backgrounds.room( shared ) > 0 ) {
+      const input = Dom.el( "input" , { class: "visually-hidden" , attrs: { type: "file" , accept: "image/jpeg,image/png,image/webp" ,
+        tabindex: "-1" , "aria-hidden": "true" } } );
+      const button = Dom.el( "button" , { class: "small" , text: I18n.get( shared ? "theme.picture_upload_shared" : "theme.picture_upload" ) ,
+        attrs: { type: "button" , "data-focus": "picture-upload" } , on: { click: () => input.click() } } );
+      input.addEventListener( "change" , async () => {
+        const file = input.files && input.files[ 0 ];
+        input.value = "";
+        if ( !file ) return;
+        button.disabled = true;
+        Dom.text( button , I18n.get( "theme.picture_uploading" ) );
+        try {
+          const picture = await Backgrounds.upload( file , shared );
+          await on.set( { look: "image" , image: picture.id , x: 50 , y: 50 , dim: 25 } );
+          const advice = Backgrounds.advice( picture );
+          if ( advice ) Toast.show( I18n.format( advice , { width: Backgrounds.bestWidth , height: Backgrounds.bestHeight } ) , "info" );
+        } catch ( error ) {
+          Toast.error( error );
+          button.disabled = false;
+          Dom.text( button , I18n.get( shared ? "theme.picture_upload_shared" : "theme.picture_upload" ) );
+        }
+      } );
+      section.appendChild( Dom.el( "div" , { class: "table-picture-actions" , children: [ button , input ] } ) );
+    } else {
+      section.appendChild( Dom.el( "p" , { class: "muted" , text: I18n.format( "theme.picture_full" , { count: shared ? Backgrounds.sharedLimit : Backgrounds.limit } ) } ) );
+    }
+
+    // Where the picture sits: tap it to choose what stays in view, with the
+    // part a desktop and a phone show outlined; then how dark.
+    const picture = look === "image" ? Backgrounds.find( current.image ) : null;
+    if ( picture ) {
+      section.appendChild( Dom.el( "h4" , { text: I18n.get( "theme.picture_place" ) } ) );
+      section.appendChild( Dom.el( "p" , { class: "muted" , text: I18n.get( "theme.picture_place_help" ) } ) );
+      const place = Dom.el( "div" , { class: "table-place" } );
+      Dom.vars( place , { "place-ratio": picture.width + " / " + picture.height } );
+      const image = Dom.el( "img" , { attrs: { src: Backgrounds.url( picture.id ) , alt: "" , draggable: "false" } } );
+      const frames = { desktop: 2.4 , phone: 0.7 };
+      const boxes = {};
+      Object.keys( frames ).forEach( ( name ) => {
+        boxes[ name ] = Dom.el( "span" , { class: "table-place-frame frame-" + name , children: [
+          Dom.el( "span" , { text: I18n.get( "theme.picture_frame_" + name ) } ),
+        ] } );
+      } );
+      const dot = Dom.el( "span" , { class: "table-place-dot" } );
+      const draw = ( x , y ) => {
+        Object.keys( frames ).forEach( ( name ) => {
+          const box = Backgrounds.frame( picture , frames[ name ] , x , y );
+          Dom.vars( boxes[ name ] , { left: ( box.left * 100 ) + "%" , top: ( box.top * 100 ) + "%" ,
+            width: ( box.width * 100 ) + "%" , height: ( box.height * 100 ) + "%" } );
+        } );
+        Dom.vars( dot , { left: x + "%" , top: y + "%" } );
+      };
+      draw( current.x , current.y );
+      place.addEventListener( "click" , ( event ) => {
+        const rect = place.getBoundingClientRect();
+        const x = Math.round( Math.min( 100 , Math.max( 0 , ( event.clientX - rect.left ) / rect.width * 100 ) ) );
+        const y = Math.round( Math.min( 100 , Math.max( 0 , ( event.clientY - rect.top ) / rect.height * 100 ) ) );
+        draw( x , y );
+        on.set( Object.assign( {} , current , { x: x , y: y } ) );
+      } );
+      [ image , boxes.desktop , boxes.phone , dot ].forEach( ( child ) => place.appendChild( child ) );
+      section.appendChild( place );
+
+      const dimId = "table-dim-" + ( shared ? "defaults" : "mine" );
+      const dim = Dom.el( "input" , { attrs: { id: dimId , type: "range" , min: "0" , max: String( Theme.tableDimMax ) , step: "5" ,
+        "data-focus": "table-dim" } } );
+      dim.value = String( current.dim );
+      const dimValue = Dom.el( "span" , { class: "muted" , text: current.dim + "%" } );
+      dim.addEventListener( "input" , () => {
+        Dom.text( dimValue , dim.value + "%" );
+        on.preview( Object.assign( {} , current , { dim: Number( dim.value ) } ) );
+      } );
+      dim.addEventListener( "change" , () => on.set( Object.assign( {} , current , { dim: Number( dim.value ) } ) ) );
+      section.appendChild( Dom.el( "div" , { class: "field table-dim" , children: [
+        Dom.el( "label" , { text: I18n.get( "theme.picture_dim" ) , attrs: { for: dimId } } ),
+        Dom.el( "div" , { class: "table-dim-input" , children: [ dim , dimValue ] } ),
+      ] } ) );
+      const advice = Backgrounds.advice( picture );
+      if ( advice ) section.appendChild( Dom.el( "p" , { class: "notice notice-warn" ,
+        text: I18n.format( advice , { width: Backgrounds.bestWidth , height: Backgrounds.bestHeight } ) } ) );
+    }
+    return section;
+  },
+
   swatch( theme ) {
     const colors = Theme.colors( theme );
     const swatch = Dom.el( "span" , { class: "theme-swatch" , attrs: { "aria-hidden": "true" } } );
@@ -563,8 +747,25 @@ const ThemeEditor = {
       Dom.el( "span" , { class: "theme-preview-playcard is-led" , attrs: { title: I18n.get( "theme.color_led_ring" ) } } ),
       Dom.el( "span" , { class: "theme-preview-playcard is-winner" , attrs: { title: I18n.get( "theme.color_win_ring" ) } } ),
     ] } );
-    const page = Dom.el( "div" , { class: "theme-preview-page" , children: [ card , trick ] } );
-    const preview = Dom.el( "div" , { class: "theme-preview" , attrs: { "aria-hidden": "true" , inert: "" } , children: [ side , page ] } );
+    // The game screen in miniature: the bar with both teams' scores, the
+    // felt in the theme's look with a seat's name on it, and the tray.
+    const game = Dom.el( "div" , { class: "theme-preview-game" , children: [
+      Dom.el( "div" , { class: "theme-preview-bar" , children: [
+        Dom.el( "strong" , { text: I18n.get( "theme.preview_bar" ) } ),
+        Dom.el( "span" , { class: "theme-preview-score is-us" , text: "120" } ),
+        Dom.el( "span" , { class: "theme-preview-score is-them" , text: "85" } ),
+      ] } ),
+      Dom.el( "div" , { class: "felt theme-preview-felt" , children: [
+        Dom.el( "span" , { class: "theme-preview-seat" , text: I18n.get( "theme.preview_table" ) } ),
+        Dom.el( "span" , { class: "theme-preview-felt-text" , text: I18n.get( "theme.preview_felt" ) } ),
+      ] } ),
+      Dom.el( "div" , { class: "theme-preview-tray" , children: [
+        Dom.el( "span" , { text: I18n.get( "theme.preview_tray" ) } ),
+        Dom.el( "span" , { class: "theme-preview-tray-muted" , text: I18n.get( "theme.preview_tray_muted" ) } ),
+      ] } ),
+    ] } );
+    const page = Dom.el( "div" , { class: "theme-preview-page" , children: [ card , trick , game ] } );
+    const preview = Dom.el( "div" , { class: "theme-preview table-look" , attrs: { "aria-hidden": "true" , inert: "" } , children: [ side , page ] } );
     Theme.apply( theme , preview );
     return preview;
   },

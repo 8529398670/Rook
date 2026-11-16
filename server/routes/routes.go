@@ -40,6 +40,8 @@ type Handlers struct {
 	Language *language.Language
 	Static   *static.Server
 	Hub      *tables.Hub
+	// Backgrounds keeps the table pictures (models/backgrounds.go).
+	Backgrounds *models.Backgrounds
 	// FileBotNames is cfg.BotNamesFile's names, most popular first, or empty
 	// when there is no such file. See randomBotNames.
 	FileBotNames []string
@@ -64,6 +66,7 @@ func New( store *db.Store , cfg *config.Config , guard *security.Guard , lang *l
 		Language: lang,
 		Static:   static_server,
 		Hub:      hub,
+		Backgrounds: models.NewBackgrounds( store , cfg.StorageDir , cfg.SecretKey ),
 	}
 	return
 }

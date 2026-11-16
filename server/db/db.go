@@ -38,12 +38,14 @@ const (
 	BucketGames       = "games"
 	// What the owner calls an address, for the activity log.
 	BucketIPNames     = "ip_names"
+	// BucketBackgrounds holds table pictures' records (models/backgrounds.go).
+	BucketBackgrounds = "backgrounds"
 	// BucketSchema is unencrypted bookkeeping: how values are sealed (see
 	// readSealing). Rook has no schema migrations.
 	BucketSchema      = "schema"
 )
 
-var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks , BucketGames , BucketIPNames , BucketSchema }
+var bucketNames = []string{ BucketUsers , BucketSessions , BucketLoginTokens , BucketAPIKeys , BucketMeta , BucketTables , BucketSignupLinks , BucketGames , BucketIPNames , BucketBackgrounds , BucketSchema }
 
 type Store struct {
 	bolt          *bolt.DB

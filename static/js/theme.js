@@ -126,10 +126,15 @@ const Theme = {
 
   // What a theme leaves out: Rook's own page, card and text, and the outlines
   // on the card that led the trick and the one that won it, as in style.css.
+  // Your team and the other team too, as style.css has them.
   modes: {
-    light: { background: "#f4eee3" , surface: "#fffdf8" , text: "#1f1d1a" , ledRing: "#111111" , winRing: "#cba052" },
-    dark: { background: "#111416" , surface: "#1a1e22" , text: "#ecebe6" , ledRing: "#000000" , winRing: "#cba052" },
+    light: { background: "#f4eee3" , surface: "#fffdf8" , text: "#1f1d1a" , ledRing: "#111111" , winRing: "#cba052" ,
+      us: "#157f92" , them: "#c8582c" },
+    dark: { background: "#111416" , surface: "#1a1e22" , text: "#ecebe6" , ledRing: "#000000" , winRing: "#cba052" ,
+      us: "#4cc3d6" , them: "#f19166" },
   },
+  // How much of a team's color tints its soft ground (score chips, summaries).
+  teamSoft: { light: 16 , dark: 24 },
 
   // The button colors besides the main one that Rook draws: danger (delete,
   // leave). Each gets a fill and the label on it (Fg), worked out per theme.
@@ -170,17 +175,97 @@ const Theme = {
   // names, server/models/themes.go). accentText is kept for the template's
   // themes (OSU dark sets it); Rook draws no outline primary button with it.
   fields: [ "text" , "accent" , "accentFg" , "accentText" , "second" , "secondFg" , "link" , "navLink" ,
-    "background" , "surface" , "nested" , "chrome" , "border" , "ledRing" , "winRing" ],
+    "background" , "surface" , "nested" , "chrome" , "border" , "ledRing" , "winRing" ,
+    // The game screen: the felt and its words, the panels on it (seat names,
+    // the auction, the waiting room), the bar across the top, the tray and
+    // hand along the bottom, and the two teams.
+    "table" , "tableText" , "tablePanel" , "tablePanelText" , "tableBar" , "tableBarText" , "tray" , "trayText" ,
+    "us" , "them" ],
 
   // Pairs that must stay readable: [ front , back ] fields of colors(). Names
   // are language.yaml keys (theme.check_<name>).
   pairs: {
+    table_text: [ "tableText" , "table" ],
+    table_panel: [ "tablePanelText" , "tablePanel" ],
+    table_bar: [ "tableBarText" , "tableBar" ],
+    table_tray: [ "trayText" , "tray" ],
     text_card: [ "text" , "surface" ],
     text_nested: [ "text" , "nested" ],
     link: [ "link" , "nested" ],
     button: [ "accentFg" , "accent" ],
     active_nav: [ "secondFg" , "second" ],
     sidebar_link: [ "navLink" , "chrome" ],
+  },
+
+  // The game table's looks; the server checks the same names
+  // (ThemeTableLooks, server/models/themes.go).
+  // A theme's table is { look } or { look: "image" , image , x , y , dim }:
+  // a picture (backgrounds.js) placed by its focal point, x and y in
+  // percent, and darkened by dim percent. No table: maple in light mode,
+  // baize in dark -- the stylesheet's own. Names: theme.table_look_<look>.
+  tableLooks: [ "maple" , "baize" , "blue" , "red" , "walnut" , "slate" , "plain" ],
+  // What each look draws on the felt (table.css's .felt layers): its color
+  // and the words on it, which a theme can still override (table,
+  // tableText), and its plank seams, grain and glow, which it cannot. Maple
+  // and baize are style.css's own light and dark. Plain is the theme's own
+  // nested card and text; a picture sits on dark, with white words.
+  tablePalettes: {
+    maple: { table: "#ead3aa" , text: "#3a2a16" , seam: "rgba(124, 78, 28, 0.13)" , grain: "rgba(124, 78, 28, 0.05)" , glow: "rgba(255, 252, 240, 0.55)" },
+    baize: { table: "#1f4a3b" , text: "#e6f1ea" , seam: "transparent" , grain: "rgba(255, 255, 255, 0.025)" , glow: "rgba(140, 220, 180, 0.12)" },
+    blue: { table: "#1d3f66" , text: "#e8f0fa" , seam: "transparent" , grain: "rgba(255, 255, 255, 0.03)" , glow: "rgba(150, 190, 255, 0.15)" },
+    red: { table: "#6b1f26" , text: "#fbecea" , seam: "transparent" , grain: "rgba(255, 255, 255, 0.03)" , glow: "rgba(255, 170, 150, 0.13)" },
+    walnut: { table: "#4a2f1d" , text: "#f6eadb" , seam: "rgba(0, 0, 0, 0.24)" , grain: "rgba(0, 0, 0, 0.09)" , glow: "rgba(255, 210, 160, 0.12)" },
+    slate: { table: "#30363b" , text: "#e9edf0" , seam: "transparent" , grain: "rgba(255, 255, 255, 0.02)" , glow: "rgba(220, 230, 240, 0.09)" },
+    plain: { table: null , text: null , seam: "transparent" , grain: "transparent" , glow: "transparent" },
+    image: { table: "#2b2b2b" , text: "#ffffff" , seam: "transparent" , grain: "transparent" , glow: "transparent" },
+  },
+  tableDimMax: 70,
+  tableVars: [ "--table-image" , "--table-pos" , "--table-dim" ],
+
+  // A theme's table, tidied, or null for the mode's own.
+  table( theme ) {
+    const table = theme && theme.table;
+    if ( !table || typeof table !== "object" ) return null;
+    const clamp = ( value , low , high , fallback ) => {
+      const number = Number( value );
+      return Number.isFinite( number ) ? Math.min( high , Math.max( low , Math.round( number ) ) ) : fallback;
+    };
+    if ( table.look === "image" ) {
+      if ( !/^[0-9a-f]{24}$/.test( table.image || "" ) ) return null;
+      return { look: "image" , image: table.image , x: clamp( table.x , 0 , 100 , 50 ) , y: clamp( table.y , 0 , 100 , 50 ) ,
+        dim: clamp( table.dim , 0 , this.tableDimMax , 0 ) };
+    }
+    return this.tableLooks.indexOf( table.look ) >= 0 ? { look: table.look } : null;
+  },
+
+  // The look a table shows: its own, or the mode's.
+  tableLook( theme ) {
+    const table = this.table( theme );
+    return table ? table.look : ( theme.mode === "dark" ? "baize" : "maple" );
+  },
+
+  // The felt's own custom properties for a theme as worked out, before any
+  // override: for the look swatches in the editor.
+  feltVars( theme ) {
+    const derived = this.derived( theme );
+    const palette = this.tablePalettes[ this.tableLook( theme ) ];
+    return { "--table": derived.table , "--table-fg": derived.tableText ,
+      "--table-seam": palette.seam , "--table-grain": palette.grain , "--table-glow": palette.glow };
+  },
+
+  // Paints a theme's table on an element: data-table-look, and for a
+  // picture, where it is and how dark. The page's own (no look) is the
+  // attribute being absent; a preview always names one (always). The
+  // look's colors come with the rest, from rookVars.
+  paintTable( theme , root , always ) {
+    const table = this.table( theme );
+    this.tableVars.forEach( ( name ) => root.style.removeProperty( name ) );
+    if ( table || always ) root.setAttribute( "data-table-look" , table ? table.look : this.tableLook( theme ) );
+    else root.removeAttribute( "data-table-look" );
+    if ( !table || table.look !== "image" ) return;
+    root.style.setProperty( "--table-image" , "url(\"/api/backgrounds/" + table.image + "\")" );
+    root.style.setProperty( "--table-pos" , table.x + "% " + table.y + "%" );
+    root.style.setProperty( "--table-dim" , table.dim + "%" );
   },
 
   // The themes on offer, and the one in use (its id).
@@ -214,6 +299,8 @@ const Theme = {
     const copy = pick( theme , [ "id" , "name" , "mode" , "accent" , "second" , "background" , "surface" ] );
     copy.overrides = Object.assign( {} , theme.overrides || {} );
     if ( theme.button ) copy.button = pick( theme.button , [ "shape" , "weight" , "depth" , "case" ] );
+    const table = this.table( theme );
+    if ( table ) copy.table = table;
     Object.keys( this.modes ).forEach( ( mode ) => {
       if ( theme[ mode ] ) copy[ mode ] = Object.assign( pick( theme[ mode ] , [ "accent" , "second" , "background" , "surface" ] ) ,
         { overrides: Object.assign( {} , theme[ mode ].overrides || {} ) } );
@@ -281,7 +368,7 @@ const Theme = {
 
   // Default exactly as built in, in either mode: what style.css already draws.
   stock( theme ) {
-    if ( theme.id !== this.builtIn[ 0 ].id ) return false;
+    if ( theme.id !== this.builtIn[ 0 ].id || this.table( theme ) ) return false;
     const built = this.setMode( this.copy( this.builtIn[ 0 ] ) , theme.mode );
     return JSON.stringify( this.colors( theme ) ) === JSON.stringify( this.colors( built ) )
       && JSON.stringify( this.buttonStyle( theme ) ) === JSON.stringify( this.buttonStyle( built ) );
@@ -298,8 +385,19 @@ const Theme = {
     }
   },
 
-  // The custom properties style.css reads, from colors().
-  rookVars( colors ) {
+  // A quieter line of text in this color, still readable on ground.
+  muted( text , ground ) {
+    return this.asText( this.mix( text , ground , 62 ) , ground );
+  },
+
+  // The custom properties style.css and table.css read, from colors(); the
+  // theme says which look the felt's seams and grain come from.
+  rookVars( colors , theme ) {
+    const palette = this.tablePalettes[ this.tableLook( theme ) ];
+    const soft = this.teamSoft[ theme.mode ] || this.teamSoft.light;
+    // The bar while an admin holds the game: tinted with the theme's main
+    // color, or its second where the bar is already the main one (WSU, OSU).
+    const held = this.contrast( colors.accent , colors.tableBar ) >= 1.6 ? colors.accent : colors.second;
     const vars = {
       "--fg": colors.text,
       "--fg-muted": this.asText( this.mix( colors.text , colors.surface , 62 ) , colors.surface ),
@@ -317,6 +415,28 @@ const Theme = {
       "--nav-current-fg": colors.secondFg,
       "--led-ring": colors.ledRing,
       "--win-ring": colors.winRing,
+      // The game screen (table.css): every one is set, so a theme's table
+      // is all its own whatever the mode's stylesheet says.
+      "--table": colors.table,
+      "--table-fg": colors.tableText,
+      "--table-seam": palette.seam,
+      "--table-grain": palette.grain,
+      "--table-glow": palette.glow,
+      "--table-panel": "color-mix(in srgb, " + colors.tablePanel + " 92%, transparent)",
+      "--table-panel-fg": colors.tablePanelText,
+      "--table-panel-muted": this.muted( colors.tablePanelText , colors.tablePanel ),
+      "--game-bar": colors.tableBar,
+      "--game-bar-fg": colors.tableBarText,
+      "--game-bar-muted": this.muted( colors.tableBarText , colors.tableBar ),
+      "--game-tray": colors.tray,
+      "--game-tray-fg": colors.trayText,
+      "--game-tray-muted": this.muted( colors.trayText , colors.tray ),
+      "--game-held": this.mix( held , colors.tableBar , 16 ),
+      "--game-held-line": held,
+      "--us": colors.us,
+      "--us-soft": this.mix( colors.us , colors.surface , soft ),
+      "--them": colors.them,
+      "--them-soft": this.mix( colors.them , colors.surface , soft ),
     };
     this.variants.forEach( ( variant ) => {
       const name = this.buttonField( variant );
@@ -328,7 +448,7 @@ const Theme = {
 
   // Every property apply() may set, so a switch back to Default clears them.
   allVars() {
-    const names = Object.keys( this.rookVars( this.colors( this.builtIn[ 0 ] ) ) );
+    const names = Object.keys( this.rookVars( this.colors( this.builtIn[ 0 ] ) , this.builtIn[ 0 ] ) );
     Object.keys( this.buttonChoices ).forEach( ( key ) => {
       Object.keys( this.buttonChoices[ key ] ).forEach( ( choice ) => {
         Object.keys( this.buttonChoices[ key ][ choice ] ).forEach( ( name ) => { if ( names.indexOf( name ) < 0 ) names.push( name ); } );
@@ -347,9 +467,10 @@ const Theme = {
     this.allVars().forEach( ( name ) => root.style.removeProperty( name ) );
     const colors = this.colors( theme );
     if ( element || !this.stock( theme ) ) {
-      const vars = Object.assign( this.rookVars( colors ) , this.buttonStyle( theme ) );
+      const vars = Object.assign( this.rookVars( colors , theme ) , this.buttonStyle( theme ) );
       Object.keys( vars ).forEach( ( name ) => root.style.setProperty( name , vars[ name ] ) );
     }
+    this.paintTable( theme , root , Boolean( element ) );
     if ( element ) return;
     const meta = document.querySelector( "meta[name='theme-color']" );
     if ( meta ) meta.setAttribute( "content" , this.stock( theme ) ? this.modes[ theme.mode ].background : colors.background );
@@ -388,7 +509,15 @@ const Theme = {
     this.current = this.find( me.theme_id || kept ).id;
     const restored = this.restored;
     if ( !me.theme_id && !this.custom && restored && restored.id === this.current ) {
-      this.list = this.list.map( ( theme ) => ( theme.id === restored.id ? Object.assign( this.copy( restored ) , { name: theme.name } ) : theme ) );
+      // Its colors and mode as this browser had them, but the list's table:
+      // a picture the defaults put on it is not something a browser kept.
+      this.list = this.list.map( ( theme ) => {
+        if ( theme.id !== restored.id ) return theme;
+        const merged = Object.assign( this.copy( restored ) , { name: theme.name } );
+        if ( theme.table ) merged.table = theme.table;
+        else delete merged.table;
+        return merged;
+      } );
     }
     this.restored = null;
     this.show();
@@ -427,14 +556,38 @@ const Theme = {
 
   // Which built-in themes a list saved now has seen: the highest since.
   builtInsSeen() {
-    return Math.max( 0 , ...this.builtIn.map( ( theme ) => theme.since || 0 ) );
+    return Math.max( this.gameSince , ...this.builtIn.map( ( theme ) => theme.since || 0 ) );
+  },
+
+  // The "builtins" at which the built-in themes got their game screen colors
+  // (ThemeGames, below). A list saved before that gets them too: see
+  // withGame. Keep it above every since in builtIn.
+  gameSince: 2,
+
+  // The game screen's fields: a theme that sets any of them, or a table,
+  // has made its own choice there.
+  gameFields: [ "table" , "tableText" , "tablePanel" , "tablePanelText" , "tableBar" , "tableBarText" , "tray" , "trayText" , "us" , "them" ],
+
+  // A theme with its built-in game screen colors (ThemeGames) added, in
+  // place, for each mode it carries -- unless it has a table or any game
+  // color of its own already, or is not one of the built-in themes.
+  withGame( theme ) {
+    const game = typeof ThemeGames === "undefined" ? null : ThemeGames[ theme.id ];
+    if ( !game || theme.table ) return theme;
+    const modes = [ theme , theme.light , theme.dark ].filter( Boolean );
+    if ( modes.some( ( colors ) => this.gameFields.some( ( field ) => colors.overrides && colors.overrides[ field ] ) ) ) return theme;
+    theme.table = { look: game.look };
+    theme.overrides = Object.assign( {} , game[ theme.mode ] , theme.overrides || {} );
+    const other = theme.mode === "dark" ? "light" : "dark";
+    if ( theme[ other ] ) theme[ other ].overrides = Object.assign( {} , game[ other ] , theme[ other ].overrides || {} );
+    return theme;
   },
 
   // A saved list with every built-in theme newer than seen added, each just
   // after the built-in before it (or at the end), while there is room (40, the
   // server's limit). One already there by id is left as it is.
   withNewBuiltIns( list , seen ) {
-    const result = list.slice();
+    const result = seen < this.gameSince ? list.map( ( theme ) => this.withGame( theme ) ) : list.slice();
     this.builtIn.forEach( ( theme , index ) => {
       if ( ( theme.since || 0 ) <= seen || result.length >= 40 ) return;
       if ( result.some( ( item ) => item.id === theme.id ) ) return;
@@ -482,6 +635,20 @@ const Theme = {
       ledRing: mode.ledRing,
       winRing: mode.winRing,
     };
+    // The game screen, as the page has it until a theme says otherwise: the
+    // felt as its look draws it, the panels on it and the bar as cards, the
+    // tray and hand on the page, and the mode's two teams.
+    const palette = this.tablePalettes[ this.tableLook( theme ) ];
+    result.table = palette.table || nested;
+    result.tableText = palette.text || this.asText( mode.text , nested );
+    result.tablePanel = card;
+    result.tablePanelText = mode.text;
+    result.tableBar = card;
+    result.tableBarText = mode.text;
+    result.tray = result.background;
+    result.trayText = mode.text;
+    result.us = mode.us;
+    result.them = mode.them;
     const semantic = this.semantic[ theme.mode ] || this.semantic.light;
     this.variants.forEach( ( variant ) => {
       const name = this.buttonField( variant );
@@ -572,6 +739,58 @@ Theme.variants.forEach( ( variant ) => {
   Theme.fields.push( name , name + "Fg" );
   Theme.pairs[ "button_" + variant ] = [ name + "Fg" , name ];
 } );
+
+// Each built-in theme's game screen (Default keeps the stylesheet's own):
+// a table look, and per mode the felt and its words, and the two teams --
+// your team in the theme's main color, the other in its second, or another
+// that stays apart where those two are too alike. WSU and OSU also put their
+// school color on the bar across the top. They are overrides like any other,
+// so the editor shows them and Reset puts the worked-out color back.
+const ThemeGames = {
+  ocean: { look: "blue" ,
+    light: { table: "#b9dbe3" , tableText: "#0a3440" , us: "#0b7285" , them: "#bd5418" } ,
+    dark: { table: "#0e3b48" , tableText: "#def3f7" , us: "#3bc9db" , them: "#ff922b" } },
+  forest: { look: "baize" ,
+    light: { table: "#b7d8b4" , tableText: "#183a1d" , us: "#28843b" , them: "#9a6b0c" } ,
+    dark: { table: "#1d3f24" , tableText: "#e2f3e0" , us: "#69db7c" , them: "#e0b84c" } },
+  sepia: { look: "walnut" ,
+    light: { table: "#e4cfa8" , tableText: "#3d2a12" , us: "#9c5a1c" , them: "#2f6f6a" } ,
+    dark: { table: "#3b2a1a" , tableText: "#f1e4cf" , us: "#e0a15e" , them: "#6cc4bb" } },
+  grape: { look: "slate" ,
+    light: { table: "#d9cff3" , tableText: "#2e1f5c" , us: "#7048c8" , them: "#c0267e" } ,
+    dark: { table: "#2a2145" , tableText: "#ece6ff" , us: "#b197fc" , them: "#f783ac" } },
+  cerise: { look: "red" ,
+    light: { table: "#f3c6d6" , tableText: "#4a0f27" , us: "#b0164c" , them: "#a85d00" } ,
+    dark: { table: "#4a1530" , tableText: "#fde8f1" , us: "#f06595" , them: "#ffc078" } },
+  pink: { look: "red" ,
+    light: { table: "#f6c9da" , tableText: "#4b0f26" , us: "#c2255c" , them: "#6b3fc0" } ,
+    dark: { table: "#4a1a2e" , tableText: "#fde6ef" , us: "#f783ac" , them: "#b197fc" } },
+  wsu: { look: "baize" ,
+    light: { table: ThemePalettes.wsu.green , tableText: ThemePalettes.wsu.off_white ,
+      tableBar: ThemePalettes.wsu.green , tableBarText: "#ffffff" ,
+      // Deep Gold a shade darker, so the other team's score reads on its chip.
+      us: ThemePalettes.wsu.green , them: "#8c6a2f" } ,
+    dark: { table: ThemePalettes.wsu.dark_green , tableText: ThemePalettes.wsu.faded_gold ,
+      tableBar: ThemePalettes.wsu.dark_green , tableBarText: ThemePalettes.wsu.yellow ,
+      // Yellow, and Leaf lightened: both read on a dark chip, and stay apart.
+      us: ThemePalettes.wsu.yellow , them: "#b5d38c" } },
+  osu: { look: "slate" ,
+    light: { table: ThemePalettes.osu.gray_light_40 , tableText: ThemePalettes.osu.gray_dark_80 ,
+      tableBar: ThemePalettes.osu.scarlet , tableBarText: ThemePalettes.osu.white ,
+      us: ThemePalettes.osu.scarlet , them: ThemePalettes.osu.gray_dark_40 } ,
+    dark: { table: ThemePalettes.osu.gray_dark_60 , tableText: ThemePalettes.osu.gray_light_80 ,
+      tableBar: ThemePalettes.osu.scarlet , tableBarText: ThemePalettes.osu.white ,
+      // Scarlet has no tints, but no shade of it reads on a dark chip: the
+      // one place it is lightened, as dark mode already does with its grays.
+      us: "#ff9aab" , them: ThemePalettes.osu.gray_light_20 } },
+  midnight: { look: "blue" ,
+    light: { table: "#cfd0f2" , tableText: "#23235c" , us: "#5b4bd6" , them: "#a85a00" } ,
+    dark: { table: "#1a1f45" , tableText: "#e6e6ff" , us: "#8c7cff" , them: "#ffb86b" } },
+  slate: { look: "slate" ,
+    light: { table: "#cdd5dc" , tableText: "#1f2a33" , us: "#2b7a72" , them: "#a0711a" } ,
+    dark: { table: "#26313a" , tableText: "#e6edf2" , us: "#4fb3a9" , them: "#e6b450" } },
+};
+Theme.builtIn.forEach( ( theme ) => Theme.withGame( theme ) );
 
 Theme.restore();
 

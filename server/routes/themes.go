@@ -80,7 +80,9 @@ func ( handlers *Handlers ) myThemes( user *models.User ) ( themes []models.Them
 // )
 func ( handlers *Handlers ) setMyThemes( c fiber.Ctx , in *setMyThemesRequest ) ( reply *setMyThemesReply , err error ) {
 	user := security.UserFrom( c )
-	if set_err := models.SetUserThemes( handlers.Store , user.ID , in.Themes , in.BuiltIns , in.ThemeID ); set_err != nil {
+	themes , keep_err := handlers.Backgrounds.KeepUsablePictures( in.Themes , user.ID , false )
+	if keep_err != nil { return nil , keep_err }
+	if set_err := models.SetUserThemes( handlers.Store , user.ID , themes , in.BuiltIns , in.ThemeID ); set_err != nil {
 		err = refuse( fiber.StatusBadRequest , set_err.Error() )
 		return
 	}
@@ -130,7 +132,9 @@ func ( handlers *Handlers ) getThemeDefaults( c fiber.Ctx , in *apidoc.None ) ( 
 //         "Theme schema of the API reference. null puts the built-in themes back.",
 // )
 func ( handlers *Handlers ) setThemeDefaults( c fiber.Ctx , in *setThemeDefaultsRequest ) ( reply *setThemeDefaultsReply , err error ) {
-	if set_err := models.SetThemeDefaults( handlers.Store , in.Themes , in.BuiltIns ); set_err != nil {
+	defaults , keep_err := handlers.Backgrounds.KeepUsablePictures( in.Themes , 0 , true )
+	if keep_err != nil { return nil , keep_err }
+	if set_err := models.SetThemeDefaults( handlers.Store , defaults , in.BuiltIns ); set_err != nil {
 		err = refuse( fiber.StatusBadRequest , set_err.Error() )
 		return
 	}
