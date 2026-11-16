@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="color-scheme" content="light" />
+  <title data-i18n="app.title">&nbsp;</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <!-- No theme.js: a reference page, always light. -->
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/docs.css" />
+</head>
+<body>
+  <!-- /docs/api: config/api.md rendered by js/docs.js. The API keys card in
+       Settings links here when app.repo is not set. -->
+  <nav class="docs-nav">
+    <a class="docs-back" href="/#/settings/account" data-i18n="docs.back"></a>
+    <span class="docs-title" id="docs-title"></span>
+  </nav>
+  <main class="docs-main">
+    <p class="muted" id="docs-status" data-i18n="docs.loading"></p>
+    <article id="docs-root" class="docs-body"></article>
+  </main>
+
+  <script src="/vendor/marked/marked.min.js"></script>
+  <script src="/vendor/dompurify/purify.min.js"></script>
+  <script src="/js/dom.js"></script>
+  <script src="/js/i18n.js"></script>
+  <script src="/js/docs.js"></script>
+</body>
+</html>

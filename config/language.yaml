@@ -1169,6 +1169,13 @@ admin:
 api_keys:
   heading: "API keys"
   description: "For scripts and other services. A key does exactly what your account can do — send it as an Authorization: Bearer header. It is shown once."
+  # Under the description, with a link to the API reference: api.json in
+  # app.repo, or this server's own copy.
+  spec_text: "What a key can call:"
+  spec_link: "API reference (api.json)"
+  # Beside it: the same reference as tables, config/api.md, on the repository's
+  # site when app.repo is set, else on this server's /docs/api page.
+  doc_link: "readable version (api.md)"
   name_label: "What is it for"
   name_placeholder: "score bot"
   role_label: "Permission"
@@ -1474,3 +1481,11 @@ games:
   delete: "Delete"
   delete_confirm: "Delete {name} from the game history for good?"
   deleted: "Game deleted."
+
+# The readable API reference (static/docs.html, static/js/docs.js): /docs/api,
+# linked from the API keys card when app.repo is not set.
+docs:
+  api_title: "API reference"
+  back: "Back to Settings"
+  loading: "Loading..."
+  failed: "The reference could not be loaded. Sign in, then try again."

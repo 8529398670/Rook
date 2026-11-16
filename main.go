@@ -157,6 +157,8 @@ func run() ( err error ) {
 	handlers := routes.New( store , cfg , guard , lang , static_server , hub )
 	handlers.Logs = logger
 	handlers.LogStream = log_stream
+	handlers.OpenAPI = embeddedOpenAPI
+	handlers.APIDoc = embeddedAPIDoc
 	handlers.LoadBotNames( embeddedBotNames )
 
 	app := fiber.New( fiber.Config{

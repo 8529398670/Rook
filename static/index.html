@@ -570,7 +570,7 @@
           <button id="sessions-revoke-others" type="button" class="secondary" data-i18n="sessions.revoke_others_button" hidden></button>
         </div>
 
-        <div class="card">
+        <div class="card" id="pin-card" hidden>
           <h2 data-i18n="pin.heading"></h2>
           <p class="muted" data-i18n="pin.description"></p>
           <p id="pin-state" class="pin-state"></p>
@@ -588,6 +588,13 @@
         <div class="card" id="api-keys-panel" hidden>
           <h2 data-i18n="api_keys.heading"></h2>
           <p class="muted" data-i18n="api_keys.description"></p>
+          <p id="key-spec-line" class="muted" hidden>
+            <span data-i18n="api_keys.spec_text"></span>
+            <a id="key-spec-link" target="_blank" rel="noopener noreferrer" data-i18n="api_keys.spec_link"></a>
+            <span id="key-doc-part" hidden>&middot;
+              <a id="key-doc-link" target="_blank" rel="noopener noreferrer" data-i18n="api_keys.doc_link"></a>
+            </span>
+          </p>
 
           <form id="create-key-form" autocomplete="off">
             <div class="field">

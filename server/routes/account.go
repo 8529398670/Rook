@@ -41,11 +41,16 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		"account_role":     user.Role,
 		"auth":             actor.Method(),
 		"api_keys_enabled": handlers.Config.APIKeysEnabled,
+		// Where the API keys card links: the API reference as JSON and as
+		// tables for people (openapi.go, api_docs_md.go).
+		"openapi_url":      handlers.openAPIURL(),
+		"api_doc_url":      handlers.apiDocURL(),
 		"can_invite":       user.MayInvite(),
 		"can_hint":         user.CanHint,
 		"icon":             user.Icon,
 		"color":            user.Color,
-		"has_pin":          user.HasPin(),
+		"has_pin":          handlers.Config.SigninPinEnabled && user.HasPin(),
+		"signin_pin_enabled": handlers.Config.SigninPinEnabled,
 		// owner: the account this server was set up with (see
 		// models/superadmin.go), and only when acting with admin rights, so
 		// a user-scoped key of the owner's is not the owner.

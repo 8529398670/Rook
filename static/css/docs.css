@@ -1,0 +1,40 @@
+/* The /docs/api page (static/docs.html), on top of style.css. */
+html, body { height: auto; }
+
+.docs-nav {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border);
+}
+.docs-back {
+  flex: none;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--fg);
+  text-decoration: none;
+  font-weight: 600;
+}
+.docs-back::before { content: "\2190\00a0"; }
+.docs-title { font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.docs-main { max-width: 1140px; margin: 0 auto; padding: 1rem; }
+.docs-status-failed { padding: 0.75rem 1rem; border-radius: var(--radius); background: var(--error-bg); color: var(--error-fg); }
+
+.docs-body a { color: var(--accent-strong); }
+.docs-body h1 { margin-bottom: 1rem; }
+.docs-body h2 { margin-top: 2.5rem; padding-top: 0.5rem; border-top: 1px solid var(--border); }
+.docs-body h3 { margin-top: 1.75rem; }
+.docs-body h1, .docs-body h2, .docs-body h3 { scroll-margin-top: 4rem; overflow-wrap: anywhere; }
+.docs-body .table-scroll { margin-bottom: 1rem; background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); }
+.docs-body td, .docs-body th { white-space: normal; vertical-align: top; }
+/* Prose cells keep a readable width; the table scrolls sideways instead. */
+.docs-body td:not(:has(code)) { min-width: 14rem; }
+.docs-body td code, .docs-body th code { white-space: nowrap; }
+.docs-body pre { background: var(--card-bg); border: 1px solid var(--border); padding: 0.75rem; border-radius: var(--radius); overflow-x: auto; }

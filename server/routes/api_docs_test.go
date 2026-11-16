@@ -28,6 +28,7 @@ var updateAPIDocs = flag.Bool( "update" , false , "rewrite config/api.json, conf
 // link opens, and the catch-alls.
 var notDocumented = map[string]bool{
 	"GET /login/*": true,
+	"GET /docs/*":  true,
 	"GET /join/*":  true,
 	"GET /api/*":   true,
 	"GET /*":       true,
@@ -120,6 +121,7 @@ func TestAPIDocsAreCurrent( t *testing.T ) {
 	files := map[string][]byte{}
 	var err error
 	var manifest map[string]any
+	if files[ "api.json" ] , err = apidoc.Encode( spec ); err != nil { t.Fatal( err ) }
 	files[ "api.md" ] = apidoc.Markdown( spec , manifest )
 	for name , want := range files {
 		path := filepath.Join( "../../config" , name )

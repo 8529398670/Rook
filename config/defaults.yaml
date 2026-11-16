@@ -176,6 +176,13 @@ auth:
   # expires has to be asked for (expires_in_days: 0, or `-days 0`). [live]
   api_key_ttl_seconds: 7776000     # 90 days
 
+  # The optional Sign-in PIN a player can set in Settings, asked for before
+  # someone picks their name from a shared sign-up link on a new device.
+  # false turns it off: the card is hidden, no PIN is asked for, and the
+  # endpoint that sets one 404s. PINs already set are kept, so switching it
+  # back on restores them. [live]
+  signin_pin: true
+
 
 
 

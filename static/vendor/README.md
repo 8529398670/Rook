@@ -28,3 +28,10 @@ Then reference it from your HTML:
 ```
 
 Commit what lands here. It is part of the app, not a build artifact.
+
+## What is here
+
+| File | What it is |
+| --- | --- |
+| `marked/marked.min.js` | marked 15.0.12 (MIT): Markdown to HTML for the /docs/api page |
+| `dompurify/purify.min.js` | DOMPurify 3.2.6: sanitises that HTML before it touches the page |

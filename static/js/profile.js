@@ -134,6 +134,7 @@ const Profile = {
   },
 
   renderPin() {
+    Dom.show( Dom.get( "pin-card" ) , this.me.signin_pin_enabled !== false );
     Dom.text( Dom.get( "pin-state" ) , I18n.get( this.me.has_pin ? "pin.is_set" : "pin.not_set" ) );
     Dom.show( Dom.get( "pin-remove" ) , this.me.has_pin );
   },

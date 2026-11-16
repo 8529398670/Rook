@@ -1293,7 +1293,35 @@ Text, as `text/event-stream`.
 
 | Method | Path | Summary | Who may call |
 |---|---|---|---|
+| GET | [`/api/api.json`](#get-apiapijson) | This document | browser session or API key, anyone signed in |
+| GET | [`/api/api.md`](#get-apiapimd) | The API reference as Markdown tables for people | browser session or API key, anyone signed in |
 | GET | [`/api/health`](#get-apihealth) | Is the process up | anyone |
+
+### GET /api/api.json
+
+This document
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 401, 404, 429, 503 |
+
+**Reply 200**: Success
+
+An empty object.
+
+### GET /api/api.md
+
+The API reference as Markdown tables for people
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 401, 404, 429, 503 |
+
+**Reply 200**: Success
+
+Text, as `text/markdown`.
 
 ### GET /api/health
 

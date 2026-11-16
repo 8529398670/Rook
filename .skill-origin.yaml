@@ -6,6 +6,6 @@ project_name: "Rook"
 slug: rook
 module_path: rook
 port: 9384
-features: [api_keys]
-pruned: [passwords, two_factor, invite_links, files, webhooks, metrics, backups, mcp, jobs, maintenance, settings, shortcuts, openapi]
+features: [api_keys, openapi]
+pruned: [passwords, two_factor, invite_links, files, webhooks, metrics, backups, mcp, jobs, maintenance, settings, shortcuts]
 skipped: [about, bootstrap-grid, bulk-routes, files]

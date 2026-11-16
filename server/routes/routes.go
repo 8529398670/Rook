@@ -47,6 +47,10 @@ type Handlers struct {
 	// Activity log screen that more has been written. main.go sets both.
 	Logs      *logs.Logger
 	LogStream *stream.Hub
+	// OpenAPI is config/api.json and APIDoc is config/api.md, set by
+	// main.go; /docs/api renders APIDoc.
+	OpenAPI []byte
+	APIDoc  []byte
 	// uiEventBudget caps what one account's page may add to the log. See
 	// RecordUIEvents.
 	uiEventBudget eventBudget
@@ -119,6 +123,9 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// is spent by the POST that page sends when the person confirms. See
 	// auth.go.
 	app.Get( "/login/*" , handlers.ShowLoginPage )
+	// The readable API reference, for an app with no app.repo to link to
+	// (api_docs_md.go).
+	app.Get( "/docs/*" , handlers.ShowDocsPage )
 
 	handlers.mountDeclared( app )
 

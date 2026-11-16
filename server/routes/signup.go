@@ -110,7 +110,7 @@ func ( handlers *Handlers ) SignupMatch( c fiber.Ctx , in *signupMatchIn ) ( err
 	rows := []fiber.Map{}
 	for _ , user := range matches {
 		rows = append( rows , fiber.Map{
-			"id": user.ID , "display_name": user.DisplayName , "icon": user.Icon , "color": user.Color , "has_pin": user.HasPin(),
+			"id": user.ID , "display_name": user.DisplayName , "icon": user.Icon , "color": user.Color , "has_pin": handlers.Config.SigninPinEnabled && user.HasPin(),
 		} )
 	}
 	err = c.JSON( fiber.Map{ "matches": rows , "can_create": link.Remaining() > 0 } )
@@ -131,7 +131,7 @@ func ( handlers *Handlers ) SignupClaim( c fiber.Ctx , in *signupClaimIn ) ( err
 		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "no_such_account" } )
 		return
 	}
-	if user.HasPin() {
+	if handlers.Config.SigninPinEnabled && user.HasPin() {
 		if pins.locked( user.ID ) {
 			err = c.Status( fiber.StatusTooManyRequests ).JSON( fiber.Map{ "error": "pin_locked" } )
 			return

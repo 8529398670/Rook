@@ -148,6 +148,7 @@ type AuthSection struct {
 	MultiUseLoginTokenTTLSeconds int `yaml:"multi_use_login_token_ttl_seconds"`
 	APIKeys              bool `yaml:"api_keys"`
 	APIKeyTTLSeconds     int  `yaml:"api_key_ttl_seconds"`
+	SigninPin            bool `yaml:"signin_pin"`
 }
 
 type LogsSection struct {
@@ -309,6 +310,11 @@ type Config struct {
 	// Turning it off stops existing keys from authenticating too -- the rows
 	// stay, so switching it back on restores them.
 	APIKeysEnabled bool
+
+	// SigninPinEnabled decides whether players can set a Sign-in PIN and
+	// whether one is asked for when claiming an account from a sign-up
+	// link. Off keeps the stored PINs, so switching it back restores them.
+	SigninPinEnabled bool
 
 	// APIKeyTTL is how long a new key lasts when the request does not say.
 	// The default is bounded so that a forgotten key eventually stops being
@@ -1053,6 +1059,7 @@ func build( file *File , path string , paths Paths , secret_key string ) ( cfg *
 		MultiUseLoginTokenTTL: seconds( file.Auth.MultiUseLoginTokenTTLSeconds ),
 
 		APIKeysEnabled: file.Auth.APIKeys,
+		SigninPinEnabled: file.Auth.SigninPin,
 		APIKeyTTL:      seconds( file.Auth.APIKeyTTLSeconds ),
 		Announcement:   file.Server.Announcement,
 		Repo:           cleanRepo( file.App.Repo ),

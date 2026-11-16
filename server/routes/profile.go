@@ -155,6 +155,10 @@ func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx , in *setPartnerBo
 // )
 func ( handlers *Handlers ) SetPin( c fiber.Ctx , in *setPinIn ) ( err error ) {
 	body := in.pinRequest
+	if handlers.Config.SigninPinEnabled == false {
+		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "not_found" } )
+		return
+	}
 	user := security.UserFrom( c )
 	if pin_err := models.SetUserPin( handlers.Store , user.ID , body.Pin ); pin_err != nil {
 		err = badRequest( c , "bad_pin" )

@@ -246,6 +246,18 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "sessions",
 		Errors: []int{ 400 , 401 , 403 , 404 },
 	} , handlers.revokeUserSession , handlers.Guard.RequireAdmin )
+	apidoc.MountStream( app , "GET" , "/api/api.json" , apidoc.Op{
+		Summary: "This document",
+		Tag: "Monitoring",
+		ReplyType: "application/json",
+		Errors: []int{ 401 , 404 },
+	} , handlers.GetOpenAPI , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "GET" , "/api/api.md" , apidoc.Op{
+		Summary: "The API reference as Markdown tables for people",
+		Tag: "Monitoring",
+		ReplyType: "text/markdown",
+		Errors: []int{ 401 , 404 },
+	} , handlers.GetAPIDoc , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "GET" , "/api/games" , apidoc.Op{
 		Summary: "List games",
 		Tag: "Games",

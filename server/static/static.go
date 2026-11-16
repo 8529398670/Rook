@@ -172,6 +172,17 @@ func ( server *Server ) ServeIndex( c fiber.Ctx ) ( err error ) {
 	return
 }
 
+// ServeFile answers with one named page whatever the path, for a route
+// whose page reads its own URL (/docs/api).
+func ( server *Server ) ServeFile( c fiber.Ctx , name string ) ( err error ) {
+	if server.isFile( name ) == false {
+		err = c.Status( fiber.StatusNotFound ).SendString( "Not found" )
+		return
+	}
+	err = server.sendText( c , name )
+	return
+}
+
 // sendText is the always-fresh half of the serving rule: read on every
 // request, never cached, gzipped when the client accepts it.
 func ( server *Server ) sendText( c fiber.Ctx , name string ) ( err error ) {

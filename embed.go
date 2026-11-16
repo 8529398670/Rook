@@ -39,6 +39,16 @@ var embeddedExampleHeader []byte
 //go:embed misc/biblical-persons.csv
 var embeddedBotNames []byte
 
+// The API reference, as OpenAPI 3.1 and as tables for people (/docs/api).
+// Embedded only, unlike language.yaml: it describes the routes compiled into
+// this binary, so a copy on disk could only disagree with them.
+//
+//go:embed config/api.json
+var embeddedOpenAPI []byte
+
+//go:embed config/api.md
+var embeddedAPIDoc []byte
+
 // The config package needs the defaults before anything else runs -- every
 // subcommand, including `config init`, starts from them.
 func init() {
