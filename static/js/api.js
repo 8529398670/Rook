@@ -84,6 +84,14 @@ const Api = {
   ipNames()                    { return this.request( "/api/owner/logs/ip-names" ); },
   setIpName( target , name )   { return this.post( "/api/owner/logs/ip-names" , { target: target , name: name } ); },
   deleteIpName( target )       { return this.post( "/api/owner/logs/ip-names/delete" , { target: target } ); },
+  // Your whole list of themes (null: back to the defaults) and the one you
+  // use; or only the one you use. See theme.js.
+  setThemes( themes , id )     { return this.post( "/api/account/themes" , { themes: themes , theme_id: id } ); },
+  setTheme( id )               { return this.post( "/api/account/theme" , { theme_id: id } ); },
+  // The themes everyone without their own list sees (admins); null is the
+  // built-in ones.
+  themeDefaults()              { return this.request( "/api/admin/theme-defaults" ); },
+  setThemeDefaults( themes )   { return this.post( "/api/admin/theme-defaults" , { themes: themes } ); },
   revokeSession( id )          { return this.post( "/api/account/sessions/" + encodeURIComponent( id ) + "/revoke" ); },
   revokeOtherSessions()        { return this.post( "/api/account/sessions/revoke-others" ); },
   listTeam()                   { return this.request( "/api/team" ); },

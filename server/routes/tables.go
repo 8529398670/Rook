@@ -6,6 +6,8 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	botnames "rook/server/botnames"
 	game "rook/server/game"
 	models "rook/server/models"
@@ -17,51 +19,51 @@ import (
 // Every rule and every refusal reason lives in server/tables or server/game.
 
 type createTableRequest struct {
-	Name      string       `json:"name"`
-	Options   game.Options `json:"options"`
-	CSRFToken string       `json:"csrf_token"`
+	Name      string       `json:"name,omitempty"`
+	Options   game.Options `json:"options,omitempty"`
+	CSRFToken string       `json:"csrf_token,omitempty"`
 }
 
 type seatRequest struct {
-	Seat      int    `json:"seat"`
-	CSRFToken string `json:"csrf_token"`
+	Seat      int    `json:"seat,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type answerRequest struct {
-	UserID    uint64 `json:"user_id"`
-	Accept    bool   `json:"accept"`
-	CSRFToken string `json:"csrf_token"`
+	UserID    uint64 `json:"user_id,omitempty"`
+	Accept    bool   `json:"accept,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type inviteRequest struct {
-	Seat        int    `json:"seat"`
-	DisplayName string `json:"display_name"`
-	CSRFToken   string `json:"csrf_token"`
+	Seat        int    `json:"seat,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	CSRFToken   string `json:"csrf_token,omitempty"`
 }
 
 type assignRequest struct {
-	Seat      int    `json:"seat"`
-	UserID    uint64 `json:"user_id"`
-	CSRFToken string `json:"csrf_token"`
+	Seat      int    `json:"seat,omitempty"`
+	UserID    uint64 `json:"user_id,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // addBotRequest picks the seat and, optionally, how well the bot plays:
 // easy, normal, hard or expert. Leaving it out means normal.
 type addBotRequest struct {
-	Seat      int    `json:"seat"`
-	Level     string `json:"level"`
-	CSRFToken string `json:"csrf_token"`
+	Seat      int    `json:"seat,omitempty"`
+	Level     string `json:"level,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type renameSeatRequest struct {
-	Seat      int    `json:"seat"`
-	Name      string `json:"name"`
-	CSRFToken string `json:"csrf_token"`
+	Seat      int    `json:"seat,omitempty"`
+	Name      string `json:"name,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type chatRequest struct {
-	Text      string `json:"text"`
-	CSRFToken string `json:"csrf_token"`
+	Text      string `json:"text,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // viewerFrom is who is asking, by their effective role (an admin's
@@ -135,12 +137,16 @@ func ( handlers *Handlers ) decode( c fiber.Ctx , body any , csrf func() string 
 	return
 }
 
-func ( handlers *Handlers ) ListTables( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/tables", summary="List tables", tag="Tables",
+// )
+func ( handlers *Handlers ) ListTables( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	err = c.JSON( handlers.Hub.List( security.UserFrom( c ) ) )
 	return
 }
 
-func ( handlers *Handlers ) CreateTable( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/tables", summary="Create table", tag="Tables",
+// )
+func ( handlers *Handlers ) CreateTable( c fiber.Ctx , in *createTableIn ) ( err error ) {
 	body := createTableRequest{ Options: game.DefaultOptions() }
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err
@@ -156,28 +162,25 @@ func ( handlers *Handlers ) CreateTable( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) GetTable( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/tables/{table_id}", summary="Get table", tag="Tables",
+// )
+func ( handlers *Handlers ) GetTable( c fiber.Ctx , in *getTableIn ) ( err error ) {
 	err = handlers.tableResult( c , c.Params( "table_id" ) , nil )
 	return
 }
 
-func ( handlers *Handlers ) SitAtTable( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/sit", summary="Sit at table", tag="Tables",
+// )
+func ( handlers *Handlers ) SitAtTable( c fiber.Ctx , in *sitAtTableIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Sit( id , security.UserFrom( c ) , body.Seat ) )
 	return
 }
 
-func ( handlers *Handlers ) LeaveTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/leave", summary="Leave table", tag="Tables",
+// )
+func ( handlers *Handlers ) LeaveTable( c fiber.Ctx , in *leaveTableIn ) ( err error ) {
 	id := c.Params( "table_id" )
 	if leave_err := handlers.Hub.Leave( id , security.UserFrom( c ) ); leave_err != nil {
 		err = handlers.tableError( c , leave_err )
@@ -189,12 +192,10 @@ func ( handlers *Handlers ) LeaveTable( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) AddBot( c fiber.Ctx ) ( err error ) {
-	var body addBotRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/bot", summary="Add bot", tag="Tables",
+// )
+func ( handlers *Handlers ) AddBot( c fiber.Ctx , in *addBotIn ) ( err error ) {
+	body := in.addBotRequest
 	id , user := c.Params( "table_id" ) , security.UserFrom( c )
 	// Every bot gets a random name, emoji and color. Where the names come
 	// from is the owner's choice in Game settings (see randomBotNames).
@@ -227,23 +228,20 @@ func ( handlers *Handlers ) randomBotNames() ( names []string ) {
 
 // SetSeatBotLevel changes how well a computer player plays: the host's or an
 // admin's call.
-func ( handlers *Handlers ) SetSeatBotLevel( c fiber.Ctx ) ( err error ) {
-	var body addBotRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/bot/level", summary="Set seat bot level", tag="Tables",
+// )
+func ( handlers *Handlers ) SetSeatBotLevel( c fiber.Ctx , in *setSeatBotLevelIn ) ( err error ) {
+	body := in.addBotRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.SetBotLevel( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Level ) )
 	return
 }
 
-func ( handlers *Handlers ) RemoveBot( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/bot/remove", summary="Remove bot", tag="Tables",
+// )
+func ( handlers *Handlers ) RemoveBot( c fiber.Ctx , in *removeBotIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.RemoveBot( id , security.UserFrom( c ) , body.Seat ) )
 	return
@@ -251,12 +249,11 @@ func ( handlers *Handlers ) RemoveBot( c fiber.Ctx ) ( err error ) {
 
 // RemovePlayer takes someone else out of their seat: the host's or an
 // admin's call.
-func ( handlers *Handlers ) RemovePlayer( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/seat/remove", summary="Remove player", tag="Tables",
+// )
+func ( handlers *Handlers ) RemovePlayer( c fiber.Ctx , in *removePlayerIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.RemovePlayer( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat ) )
 	return
@@ -264,24 +261,22 @@ func ( handlers *Handlers ) RemovePlayer( c fiber.Ctx ) ( err error ) {
 
 // RenameSeat renames a seat's player at this table only: the host's or an
 // admin's call.
-func ( handlers *Handlers ) RenameSeat( c fiber.Ctx ) ( err error ) {
-	var body renameSeatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/seat/rename", summary="Rename seat", tag="Tables",
+// )
+func ( handlers *Handlers ) RenameSeat( c fiber.Ctx , in *renameSeatIn ) ( err error ) {
+	body := in.renameSeatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.RenameSeat( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Name ) )
 	return
 }
 
 // ShuffleSeatBot gives a bot a new random name, emoji and color.
-func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/seat/shuffle", summary="Shuffle seat bot", tag="Tables",
+// )
+func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx , in *shuffleSeatBotIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	look := tables.BotLook{ Names: handlers.randomBotNames() , Icons: models.BotIcons }
 	err = handlers.tableResult( c , id , handlers.Hub.ShuffleBot( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , look ) )
@@ -289,66 +284,59 @@ func ( handlers *Handlers ) ShuffleSeatBot( c fiber.Ctx ) ( err error ) {
 }
 
 // UnshuffleSeatBot puts back the look a bot had before its last shuffle.
-func ( handlers *Handlers ) UnshuffleSeatBot( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/seat/unshuffle", summary="Unshuffle seat bot", tag="Tables",
+// )
+func ( handlers *Handlers ) UnshuffleSeatBot( c fiber.Ctx , in *unshuffleSeatBotIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.UnshuffleBot( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat ) )
 	return
 }
 
 type botLookRequest struct {
-	Seat      int    `json:"seat"`
-	Icon      string `json:"icon"`
-	Color     string `json:"color"`
-	CSRFToken string `json:"csrf_token"`
+	Seat      int    `json:"seat,omitempty"`
+	Icon      string `json:"icon,omitempty"`
+	Color     string `json:"color,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // SetSeatBotLook picks a bot's emoji and color by hand.
-func ( handlers *Handlers ) SetSeatBotLook( c fiber.Ctx ) ( err error ) {
-	var body botLookRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/seat/look", summary="Set seat bot look", tag="Tables",
+// )
+func ( handlers *Handlers ) SetSeatBotLook( c fiber.Ctx , in *setSeatBotLookIn ) ( err error ) {
+	body := in.botLookRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.SetBotLook( id , security.UserFrom( c ) , viewerFrom( c ).Admin , body.Seat , body.Icon , body.Color ) )
 	return
 }
 
 // RequestTakeover asks the host to let a watcher replace a bot.
-func ( handlers *Handlers ) RequestTakeover( c fiber.Ctx ) ( err error ) {
-	var body seatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/takeover", summary="Request takeover", tag="Tables",
+// )
+func ( handlers *Handlers ) RequestTakeover( c fiber.Ctx , in *requestTakeoverIn ) ( err error ) {
+	body := in.seatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.RequestSeat( id , security.UserFrom( c ) , body.Seat ) )
 	return
 }
 
-func ( handlers *Handlers ) CancelTakeover( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/takeover/cancel", summary="Cancel takeover", tag="Tables",
+// )
+func ( handlers *Handlers ) CancelTakeover( c fiber.Ctx , in *cancelTakeoverIn ) ( err error ) {
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.CancelRequest( id , security.UserFrom( c ) ) )
 	return
 }
 
 // AnswerTakeover is the host's (or an admin's) yes or no.
-func ( handlers *Handlers ) AnswerTakeover( c fiber.Ctx ) ( err error ) {
-	var body answerRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/takeover/answer", summary="Answer takeover", tag="Tables",
+// )
+func ( handlers *Handlers ) AnswerTakeover( c fiber.Ctx , in *answerTakeoverIn ) ( err error ) {
+	body := in.answerRequest
 	id := c.Params( "table_id" )
 	admin := viewerFrom( c ).Admin
 	err = handlers.tableResult( c , id , handlers.Hub.AnswerRequest( id , security.UserFrom( c ) , admin , body.UserID , body.Accept ) )
@@ -357,24 +345,20 @@ func ( handlers *Handlers ) AnswerTakeover( c fiber.Ctx ) ( err error ) {
 
 // RestartTable starts the game over at the same table: the host's or an
 // admin's call.
-func ( handlers *Handlers ) RestartTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/restart", summary="Restart table", tag="Tables",
+// )
+func ( handlers *Handlers ) RestartTable( c fiber.Ctx , in *restartTableIn ) ( err error ) {
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Restart( id , security.UserFrom( c ) , viewerFrom( c ).Admin ) )
 	return
 }
 
 // DeleteTable removes the table for everyone: the host's or an admin's call.
-func ( handlers *Handlers ) DeleteTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/delete", summary="Delete table", tag="Tables",
+// )
+func ( handlers *Handlers ) DeleteTable( c fiber.Ctx , in *deleteTableIn ) ( err error ) {
 	if delete_err := handlers.Hub.Delete( c.Params( "table_id" ) , security.UserFrom( c ) , viewerFrom( c ).Admin ); delete_err != nil {
 		err = handlers.tableError( c , delete_err )
 		return
@@ -385,7 +369,10 @@ func ( handlers *Handlers ) DeleteTable( c fiber.Ctx ) ( err error ) {
 
 // GetRecord is the game so far, hand by hand and trick by trick, with
 // nothing hidden in it: what the game log tab draws.
-func ( handlers *Handlers ) GetRecord( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/tables/{table_id}/record", summary="Get record", tag="Tables",
+// )
+func ( handlers *Handlers ) GetRecord( c fiber.Ctx , in *getRecordIn ) ( err error ) {
 	record , record_err := handlers.Hub.Record( c.Params( "table_id" ) )
 	if record_err != nil {
 		err = handlers.tableError( c , record_err )
@@ -398,17 +385,15 @@ func ( handlers *Handlers ) GetRecord( c fiber.Ctx ) ( err error ) {
 // startRequest names the first dealer: a seat, or random_dealer. With
 // neither, whoever pressed Deal deals.
 type startRequest struct {
-	Dealer       *int   `json:"dealer"`
-	RandomDealer bool   `json:"random_dealer"`
-	CSRFToken    string `json:"csrf_token"`
+	Dealer       *int   `json:"dealer,omitempty"`
+	RandomDealer bool   `json:"random_dealer,omitempty"`
+	CSRFToken    string `json:"csrf_token,omitempty"`
 }
 
-func ( handlers *Handlers ) StartTable( c fiber.Ctx ) ( err error ) {
-	var body startRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/start", summary="Start table", tag="Tables",
+// )
+func ( handlers *Handlers ) StartTable( c fiber.Ctx , in *startTableIn ) ( err error ) {
+	body := in.startRequest
 	dealer := tables.DealerHost
 	if body.RandomDealer {
 		dealer = tables.DealerRandom
@@ -422,12 +407,10 @@ func ( handlers *Handlers ) StartTable( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) ChatAtTable( c fiber.Ctx ) ( err error ) {
-	var body chatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/chat", summary="Chat at table", tag="Tables",
+// )
+func ( handlers *Handlers ) ChatAtTable( c fiber.Ctx , in *chatAtTableIn ) ( err error ) {
+	body := in.chatRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Chat( id , security.UserFrom( c ) , body.Text ) )
 	return
@@ -435,12 +418,11 @@ func ( handlers *Handlers ) ChatAtTable( c fiber.Ctx ) ( err error ) {
 
 // EditChatAtTable and DeleteChatAtTable change one of the caller's own
 // lines in a table's chat -- or anyone's, for the owner.
-func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx ) ( err error ) {
-	var body chatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/chat/{seq}/edit", summary="Edit chat at table", tag="Tables",
+// )
+func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx , in *editChatAtTableIn ) ( err error ) {
+	body := in.chatRequest
 	seq , ok := chatSeq( c )
 	if ok == false {
 		err = badRequest( c , "no_such_message" )
@@ -451,12 +433,9 @@ func ( handlers *Handlers ) EditChatAtTable( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) DeleteChatAtTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/chat/{seq}/delete", summary="Delete chat at table", tag="Tables",
+// )
+func ( handlers *Handlers ) DeleteChatAtTable( c fiber.Ctx , in *deleteChatAtTableIn ) ( err error ) {
 	seq , ok := chatSeq( c )
 	if ok == false {
 		err = badRequest( c , "no_such_message" )
@@ -474,12 +453,11 @@ func ( handlers *Handlers ) DeleteChatAtTable( c fiber.Ctx ) ( err error ) {
 //
 // The new account is always a plain user. Inviting is bringing a friend to
 // the table, not handing out the keys to the server.
-func ( handlers *Handlers ) InviteToSeat( c fiber.Ctx ) ( err error ) {
-	var body inviteRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/invite", summary="Invite to seat", tag="Tables", access=SESSION_ONLY,
+// )
+func ( handlers *Handlers ) InviteToSeat( c fiber.Ctx , in *inviteToSeatIn ) ( err error ) {
+	body := in.inviteRequest
 	inviter := security.UserFrom( c )
 	if inviter.MayInvite() == false {
 		err = handlers.tableError( c , tables.ErrCannotInvite )
@@ -523,12 +501,11 @@ func ( handlers *Handlers ) InviteToSeat( c fiber.Ctx ) ( err error ) {
 // AssignSeat holds an empty chair for someone who already has an account,
 // the way an invite does for a new one. No account is created, so the
 // table's host may do it as well as anyone allowed to invite.
-func ( handlers *Handlers ) AssignSeat( c fiber.Ctx ) ( err error ) {
-	var body assignRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/assign", summary="Assign seat", tag="Tables",
+// )
+func ( handlers *Handlers ) AssignSeat( c fiber.Ctx , in *assignSeatIn ) ( err error ) {
+	body := in.assignRequest
 	id := c.Params( "table_id" )
 	caller := security.UserFrom( c )
 	if caller.MayInvite() == false && viewerFrom( c ).Admin == false && handlers.Hub.IsHost( id , caller.ID ) == false {

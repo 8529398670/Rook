@@ -3,6 +3,8 @@ package routes
 import (
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	logs "rook/server/logs"
 	models "rook/server/models"
 	security "rook/server/security"
@@ -10,8 +12,8 @@ import (
 )
 
 type renameRequest struct {
-	DisplayName string `json:"display_name"`
-	CSRFToken   string `json:"csrf_token"`
+	DisplayName string `json:"display_name,omitempty"`
+	CSRFToken   string `json:"csrf_token,omitempty"`
 }
 
 // GetMe is the frontend's first call on every page load: it answers "who am
@@ -24,7 +26,10 @@ type renameRequest struct {
 // rare caller that needs to tell the two apart. Reporting the account's role
 // as "role" would have a client believe it has permissions the server will
 // refuse to act on.
-func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/me", summary="Get me", tag="Account",
+// )
+func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	actor := security.ActorFrom( c )
 	user := actor.User
 
@@ -56,7 +61,17 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 		"led_glow":         user.LedGlow != nil && *user.LedGlow,
 		"win_glow":         user.WinGlow == nil || *user.WinGlow,
 		"partner_bot_outbids": user.PartnerBotOutbids,
+		// The Appearance screen's themes (see themes.go): your own list, else
+		// the app's defaults, else null for the built-in ones.
+		"theme_id":         user.ThemeID,
 	}
+	themes , themes_custom , themes_err := handlers.myThemes( user )
+	if themes_err != nil {
+		err = serverError( c , themes_err )
+		return
+	}
+	payload[ "themes" ] = themes
+	payload[ "themes_custom" ] = themes_custom
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see
 	// Guard.CheckCSRF.
@@ -71,16 +86,10 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) RenameAccount( c fiber.Ctx ) ( err error ) {
-	var body renameRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+// @route("POST /api/account/rename", summary="Rename account", tag="Account",
+// )
+func ( handlers *Handlers ) RenameAccount( c fiber.Ctx , in *renameAccountIn ) ( err error ) {
+	body := in.renameRequest
 	if models.ValidDisplayName( body.DisplayName ) == false {
 		err = badRequest( c , "display name must be 1-80 characters" )
 		return
@@ -106,16 +115,10 @@ func ( handlers *Handlers ) RenameAccount( c fiber.Ctx ) ( err error ) {
 //
 // Called with an API key it does nothing and says so by succeeding: there is
 // no session to destroy. A key is ended by revoking it, not by logging out.
-func ( handlers *Handlers ) Logout( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+//
+// @route("POST /api/logout", summary="Logout", tag="Account",
+// )
+func ( handlers *Handlers ) Logout( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	handlers.audit( c , logs.KindAuth , "signed out" , nil )
 	handlers.destroyCookieSession( c )
 	handlers.Guard.ClearSessionCookie( c )
@@ -127,12 +130,10 @@ func ( handlers *Handlers ) Logout( c fiber.Ctx ) ( err error ) {
 // another device in as you, so a player can move to their phone without
 // asking an admin. Registered with RequireSession -- an API key must not be
 // able to turn itself into a browser session.
-func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/login-link", summary="Create my login link", tag="Account", access=SESSION_ONLY,
+// )
+func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	credential , token_err := models.IssueLoginToken( handlers.Store , security.UserFrom( c ).ID , handlers.Config.LoginTokenTTL )
 	if token_err != nil {
 		err = serverError( c )
@@ -150,12 +151,10 @@ func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx ) ( err error ) {
 // accounts are protected as from an admin: the owner, and the last admin
 // standing. Session only, like CreateMyLoginLink -- an API key must not be
 // able to delete the account it belongs to.
-func ( handlers *Handlers ) DeleteMyAccount( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/delete", summary="Delete my account", tag="Account", access=SESSION_ONLY,
+// )
+func ( handlers *Handlers ) DeleteMyAccount( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	user := security.UserFrom( c )
 	if models.IsSuperAdmin( handlers.Store , user.ID ) {
 		err = badRequest( c , "superadmin" )

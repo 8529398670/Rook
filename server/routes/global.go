@@ -6,6 +6,8 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	security "rook/server/security"
 )
 
@@ -15,16 +17,20 @@ import (
 // online list (see tables/global.go).
 
 type globalChatRequest struct {
-	Text      string `json:"text"`
-	CSRFToken string `json:"csrf_token"`
+	Text      string `json:"text,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
-func ( handlers *Handlers ) GetGlobal( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/global", summary="Get global", tag="Global chat",
+// )
+func ( handlers *Handlers ) GetGlobal( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	err = c.JSON( handlers.Hub.Global() )
 	return
 }
 
-func ( handlers *Handlers ) GlobalEvents( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/global/events", summary="Global events", tag="Global chat",
+// )
+func ( handlers *Handlers ) GlobalEvents( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	user_id := security.UserFrom( c ).ID
 	hub := handlers.Hub
 	lifetime := handlers.Config.EventStreamLifetime
@@ -40,12 +46,10 @@ func ( handlers *Handlers ) GlobalEvents( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) GlobalChat( c fiber.Ctx ) ( err error ) {
-	var body globalChatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/global/chat", summary="Global chat", tag="Global chat",
+// )
+func ( handlers *Handlers ) GlobalChat( c fiber.Ctx , in *globalChatIn ) ( err error ) {
+	body := in.globalChatRequest
 	if chat_err := handlers.Hub.GlobalChat( security.UserFrom( c ) , body.Text ); chat_err != nil {
 		err = handlers.tableError( c , chat_err )
 		return
@@ -63,12 +67,11 @@ func chatSeq( c fiber.Ctx ) ( seq int , ok bool ) {
 
 // EditGlobalChat and DeleteGlobalChat change one of the caller's own lines,
 // or anyone's for the owner.
-func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx ) ( err error ) {
-	var body globalChatRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/global/chat/{seq}/edit", summary="Edit global chat", tag="Global chat",
+// )
+func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx , in *editGlobalChatIn ) ( err error ) {
+	body := in.globalChatRequest
 	seq , ok := chatSeq( c )
 	if ok == false {
 		err = badRequest( c , "no_such_message" )
@@ -82,12 +85,9 @@ func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/global/chat/{seq}/delete", summary="Delete global chat", tag="Global chat",
+// )
+func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx , in *deleteGlobalChatIn ) ( err error ) {
 	seq , ok := chatSeq( c )
 	if ok == false {
 		err = badRequest( c , "no_such_message" )

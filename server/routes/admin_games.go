@@ -5,6 +5,8 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	botnames "rook/server/botnames"
 	models "rook/server/models"
 	security "rook/server/security"
@@ -16,41 +18,43 @@ import (
 // anyone allowed to invite may make, are in signup_links.go.
 
 type resetRequest struct {
-	To        int    `json:"to"`
-	CSRFToken string `json:"csrf_token"`
+	To        int    `json:"to,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type observersRequest struct {
-	SeeAll    bool   `json:"see_all"`
-	CSRFToken string `json:"csrf_token"`
+	SeeAll    bool   `json:"see_all,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type settingsRequest struct {
 	models.AppSettings
-	CSRFToken string `json:"csrf_token"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type trickPauseRequest struct {
-	MS        int    `json:"ms"`
-	CSRFToken string `json:"csrf_token"`
+	MS        int    `json:"ms,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type setCanUndoRequest struct {
-	CanUndo   bool   `json:"can_undo"`
-	CSRFToken string `json:"csrf_token"`
+	CanUndo   bool   `json:"can_undo,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type setCanReshuffleRequest struct {
-	CanReshuffle bool   `json:"can_reshuffle"`
-	CSRFToken    string `json:"csrf_token"`
+	CanReshuffle bool   `json:"can_reshuffle,omitempty"`
+	CSRFToken    string `json:"csrf_token,omitempty"`
 }
 
 type setCanHintRequest struct {
-	CanHint   bool   `json:"can_hint"`
-	CSRFToken string `json:"csrf_token"`
+	CanHint   bool   `json:"can_hint,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
-func ( handlers *Handlers ) GetHistory( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/tables/{table_id}/history", summary="Get history", tag="Tables", use=[handlers.RequireRewind],
+// )
+func ( handlers *Handlers ) GetHistory( c fiber.Ctx , in *getHistoryIn ) ( err error ) {
 	history , history_err := handlers.Hub.History( c.Params( "table_id" ) )
 	if history_err != nil {
 		err = handlers.tableError( c , history_err )
@@ -72,38 +76,40 @@ func ( handlers *Handlers ) historyStep( c fiber.Ctx , step func( id string ) er
 	return
 }
 
-func ( handlers *Handlers ) Undo( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/tables/{table_id}/undo", summary="Undo", tag="Tables", use=[handlers.RequireRewind],
+// )
+func ( handlers *Handlers ) Undo( c fiber.Ctx , in *undoIn ) ( err error ) {
 	err = handlers.historyStep( c , handlers.Hub.Undo )
 	return
 }
 
-func ( handlers *Handlers ) Redo( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/tables/{table_id}/redo", summary="Redo", tag="Tables", use=[handlers.RequireRewind],
+// )
+func ( handlers *Handlers ) Redo( c fiber.Ctx , in *redoIn ) ( err error ) {
 	err = handlers.historyStep( c , handlers.Hub.Redo )
 	return
 }
 
-func ( handlers *Handlers ) Resume( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/tables/{table_id}/resume", summary="Resume", tag="Tables", use=[handlers.RequireRewind],
+// )
+func ( handlers *Handlers ) Resume( c fiber.Ctx , in *resumeIn ) ( err error ) {
 	err = handlers.historyStep( c , handlers.Hub.Resume )
 	return
 }
 
-func ( handlers *Handlers ) ResetTo( c fiber.Ctx ) ( err error ) {
-	var body resetRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/reset", summary="Reset to", tag="Tables", use=[handlers.RequireRewind],
+// )
+func ( handlers *Handlers ) ResetTo( c fiber.Ctx , in *resetToIn ) ( err error ) {
+	body := in.resetRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.ResetTo( id , body.To ) )
 	return
 }
 
-func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx ) ( err error ) {
-	var body observersRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/observers", summary="Set table observers", tag="Tables", role=ADMIN,
+// )
+func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx , in *setTableObserversIn ) ( err error ) {
+	body := in.observersRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.SetObserversSeeAll( id , body.SeeAll ) )
 	return
@@ -111,12 +117,11 @@ func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx ) ( err error ) {
 
 // SetTableTrickPause is an admin choosing this table's pause after a
 // finished trick; 0 goes back to the app-wide default.
-func ( handlers *Handlers ) SetTableTrickPause( c fiber.Ctx ) ( err error ) {
-	var body trickPauseRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/trick-pause", summary="Set table trick pause", tag="Tables", role=ADMIN,
+// )
+func ( handlers *Handlers ) SetTableTrickPause( c fiber.Ctx , in *setTableTrickPauseIn ) ( err error ) {
+	body := in.trickPauseRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.SetTrickPause( id , body.MS ) )
 	return
@@ -142,17 +147,17 @@ func ( handlers *Handlers ) settingsResult( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) GetSettings( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/admin/settings", summary="Get settings", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) GetSettings( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	err = handlers.settingsResult( c )
 	return
 }
 
-func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
-	var body settingsRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/admin/settings", summary="Save settings", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SaveSettings( c fiber.Ctx , in *saveSettingsIn ) ( err error ) {
+	body := in.settingsRequest
 	if models.ValidTrickPause( body.TrickPauseMS ) == false {
 		err = badRequest( c , "bad_trick_pause" )
 		return
@@ -175,12 +180,10 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx ) ( err error ) {
-	var body setCanHintRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/admin/users/{user_id}/can-hint", summary="Set user can hint", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx , in *setUserCanHintIn ) ( err error ) {
+	body := in.setCanHintRequest
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
 		err = badRequest( c , "invalid user id" )
@@ -197,12 +200,11 @@ func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx ) ( err error ) {
 // SetUserCanUndo switches a player's power to step through the moves of the
 // games they sit in. Their open tables are refreshed so the controls appear
 // or go at once.
-func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx ) ( err error ) {
-	var body setCanUndoRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/admin/users/{user_id}/can-undo", summary="Set user can undo", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx , in *setUserCanUndoIn ) ( err error ) {
+	body := in.setCanUndoRequest
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
 		err = badRequest( c , "invalid user id" )
@@ -219,12 +221,11 @@ func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx ) ( err error ) {
 
 // SetUserCanReshuffle switches a player's power to deal a hand again before
 // they bid. Their open tables are refreshed so the button appears or goes.
-func ( handlers *Handlers ) SetUserCanReshuffle( c fiber.Ctx ) ( err error ) {
-	var body setCanReshuffleRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/admin/users/{user_id}/can-reshuffle", summary="Set user can reshuffle", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SetUserCanReshuffle( c fiber.Ctx , in *setUserCanReshuffleIn ) ( err error ) {
+	body := in.setCanReshuffleRequest
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
 		err = badRequest( c , "invalid user id" )

@@ -3,9 +3,14 @@
   blocks add what a wider one can afford.
 
   Light is the default and stays the default. Dark is opt-in via
-  <html data-theme="dark">, set by the toggle in Settings (see js/theme.js) --
-  never by prefers-color-scheme, so the app looks the same for everyone until
-  someone chooses otherwise.
+  <html data-theme="dark">, set by the toggle in Settings or a theme on the
+  Appearance screen (see js/theme.js) -- never by prefers-color-scheme, so the
+  app looks the same for everyone until someone chooses otherwise.
+
+  The tokens below are the Default theme. Any other theme (or an edited
+  Default) is set on <html> by js/theme.js as the same custom properties, plus
+  a few that only themes set and that fall back to these: --chrome,
+  --nav-link, --nav-current, --nav-current-fg and the --app-btn-* shape.
 
   This file holds the theme tokens and the pieces every screen shares:
   buttons, forms, sheets, toasts. Each screen has its own stylesheet.
@@ -216,6 +221,19 @@ button.small {
   font-size: 0.85rem;
   border-radius: 10px;
 }
+
+/* A theme's button style (js/theme.js buttonChoices): corners, weight, depth
+   and letters, on the app's push buttons -- a plain button, secondary,
+   danger and small. Unset, each falls back to how Rook always drew them. */
+:is(button:not([class]), button.secondary, button.danger, button.small) {
+  border-radius: var(--app-btn-radius, 12px);
+  font-weight: var(--app-btn-weight, 650);
+  text-transform: var(--app-btn-transform, none);
+  letter-spacing: var(--app-btn-spacing, normal);
+  box-shadow: var(--app-btn-shadow, none);
+  background-image: var(--app-btn-image, none);
+}
+button.small { border-radius: calc(var(--app-btn-radius, 12px) * 0.84); }
 
 .icon-button {
   position: relative;
@@ -1038,7 +1056,7 @@ button.danger-text { color: var(--danger); }
   flex-direction: column;
   width: min(var(--sidebar-width), 85vw);
   padding: calc(8px + var(--safe-top)) 0 calc(12px + var(--safe-bottom)) var(--safe-left);
-  background: var(--card-bg);
+  background: var(--chrome, var(--card-bg));
   border-right: 1px solid var(--border);
   box-shadow: var(--shadow);
   transform: translateX(-105%);
@@ -1099,13 +1117,13 @@ body.sidebar-open .app-sidebar {
   min-height: 44px;
   padding: 0 12px;
   border-radius: 10px;
-  color: var(--fg);
+  color: var(--nav-link, var(--fg));
   font-weight: 600;
   text-decoration: none;
 }
 
 .sidebar-link:hover { background: var(--surface-2); }
-.sidebar-link[aria-current="page"] { background: var(--accent-soft); color: var(--accent-strong); }
+.sidebar-link[aria-current="page"] { background: var(--nav-current, var(--accent-soft)); color: var(--nav-current-fg, var(--accent-strong)); }
 
 .sidebar-foot {
   display: flex;
@@ -1332,3 +1350,161 @@ button.log-ip {
   white-space: pre-wrap;
   overflow-wrap: anywhere;
 }
+
+/* --------------------------------------------------------- appearance */
+/* js/themes_editor.js. A phone: the theme list, then the editor, one column.
+   From 48rem the list sits beside the editor; from 80rem the preview sits
+   beside the colors and stays in view while they scroll. */
+
+.lobby-main.appearance-main { max-width: 46rem; }
+.theme-tabs { max-width: 26rem; }
+/* Display's zoom sliders: a slider wider than this is just harder to aim. */
+.display-zoom-card .zoom-controls { max-width: 34rem; }
+
+.theme-editor { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+
+.theme-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.theme-item { display: flex; flex-direction: column; gap: 6px; padding: 6px; border-radius: 12px; }
+.theme-item.selected { background: var(--surface-2); }
+.theme-item-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+button.theme-item-pick {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--fg);
+  background: transparent;
+  border: 1px solid transparent;
+  font-weight: 600;
+  text-align: left;
+}
+button.theme-item-pick[aria-pressed="true"] { border-color: var(--accent); }
+.theme-item-name { flex: 1 1 auto; min-width: 0; overflow-wrap: anywhere; }
+
+.theme-in-use {
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  background: var(--ok-bg);
+  color: var(--ok-fg);
+}
+
+.theme-swatch {
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: linear-gradient(135deg, var(--swatch-accent) 0 50%, var(--swatch-second) 50% 100%);
+  box-shadow: inset 0 0 0 4px var(--swatch-bg);
+}
+
+.theme-list-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 0.75rem; }
+
+.theme-edit { display: flex; flex-direction: column; gap: 0.75rem; min-width: 0; }
+.theme-edit h3 { margin: 0.5rem 0 0; }
+.theme-edit p.muted { margin: 0; }
+.theme-edit-head { display: flex; flex-direction: column; gap: 0.75rem; }
+.theme-edit-head .segmented { max-width: 16rem; }
+.theme-edit-aside { display: flex; flex-direction: column; gap: 0.75rem; }
+.theme-fine-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.75rem; }
+
+.theme-colors { display: flex; flex-direction: column; gap: 0.75rem; }
+.theme-color-row { display: flex; flex-direction: column; gap: 0.25rem; padding: 4px; border-radius: 10px; }
+.theme-color-row.warn { background: var(--warn-bg); }
+.theme-color-row.warn label { color: var(--warn-fg); }
+.theme-color-input { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.theme-color-input input[type="color"] { width: 52px; padding: 3px; cursor: pointer; }
+.theme-color-input input.theme-hex { width: 7.5rem; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.theme-color-input input[aria-invalid="true"] { border-color: var(--danger); }
+.theme-color-input .muted { font-size: 0.8rem; }
+
+.theme-choices { display: flex; flex-direction: column; gap: 0.75rem; }
+.theme-choice .segmented { max-width: 26rem; }
+.theme-choice .segmented button { flex: 1 1 auto; }
+
+.theme-problems ul { margin: 0 0 0.5rem; padding-left: 1.25rem; }
+.theme-problems p { margin: 0 0 0.25rem; }
+
+/* The page in miniature. Its colors are the theme's own custom properties,
+   set on .theme-preview by Theme.apply, so it reads them like the page. */
+.theme-preview {
+  display: flex;
+  min-height: 9rem;
+  overflow: hidden;
+  color: var(--fg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.theme-preview-side {
+  flex: 0 0 6.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 8px;
+  background: var(--chrome, var(--card-bg));
+  border-right: 1px solid var(--border);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.theme-preview-side span { padding: 4px 8px; border-radius: 8px; }
+.theme-preview-current { background: var(--nav-current, var(--accent-soft)); color: var(--nav-current-fg, var(--accent-strong)); }
+.theme-preview-link { color: var(--nav-link, var(--fg)); }
+.theme-preview-page { flex: 1 1 auto; min-width: 0; padding: 10px; background: var(--bg); }
+.theme-preview-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 0.85rem;
+}
+.theme-preview-muted { color: var(--fg-muted); }
+.theme-preview-nested { padding: 8px; background: var(--surface-2); border-radius: 8px; }
+.theme-preview-a { color: var(--accent-strong); text-decoration: underline; }
+.theme-preview-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.theme-preview-buttons button { min-height: 32px; pointer-events: none; }
+/* The trick's two outlines (cards.css draws the real ones), on two blank cards. */
+.theme-preview-trick { display: flex; gap: 14px; padding: 10px 6px 4px; }
+.theme-preview-playcard {
+  width: 28px;
+  aspect-ratio: 5 / 7;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+  outline-offset: 2px;
+}
+.theme-preview-playcard.is-led { outline: 3px solid var(--led-ring); }
+.theme-preview-playcard.is-winner { outline: 3px solid var(--win-ring); }
+
+@media (min-width: 48rem) {
+  .lobby-main.appearance-main { max-width: 72rem; }
+  .theme-editor { display: grid; grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .theme-colors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .theme-edit-head { flex-direction: row; align-items: flex-end; }
+  .theme-edit-head .field { flex: 1 1 auto; }
+}
+
+@media (min-width: 80rem) {
+  .lobby-main.appearance-main { max-width: 90rem; }
+  .theme-edit {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 22rem;
+    column-gap: 1.5rem;
+    align-content: start;
+  }
+  .theme-edit > * { grid-column: 1; }
+  .theme-edit > .theme-edit-aside {
+    grid-column: 2;
+    grid-row: 1 / span 20;
+    position: sticky;
+    top: calc(64px + var(--safe-top));
+  }
+}
+

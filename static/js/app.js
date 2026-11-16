@@ -3,9 +3,12 @@
 //
 //   #/                 the lobby
 //   #/t/<id>           a table
-//   #/settings/<part>  one settings page: account, play, display,
-//                      invites or admin (bare #/settings is account)
+//   #/settings/<part>  one settings page: account, play, invites or
+//                      admin (bare #/settings is account)
 //   #/logs             the activity log (the owner's)
+//   #/display          the zoom sliders and the themes: pick, make and edit
+//                      them (themes_editor.js). #/appearance and
+//                      #/settings/display, from before, land here.
 //   #/games            the game history (#/games/<id> for one game)
 //   #/rules            the rules (#/strategy for the strategy tips, #/bots
 //                      for the computer players, #/about for the app)
@@ -60,6 +63,9 @@ const App = {
       Settings.init( me );
       Profile.init( me );
       Lobby.init( me );
+      // Before Nav: it loads the account's themes, which repaints the page in
+      // the one this account uses if this browser had another.
+      ThemeEditor.init( me );
       Nav.init( me );
       Global.start( me );
     }
@@ -151,7 +157,12 @@ const App = {
   },
 
   route() {
-    const hash = window.location.hash || "#/";
+    let hash = window.location.hash || "#/";
+    // Where the themes and the zoom sliders used to be: both are Display now.
+    if ( hash === "#/appearance" || hash === "#/settings/display" ) {
+      hash = "#/display";
+      window.history.replaceState( null , "" , hash );
+    }
     const match = function ( prefix ) {
       const found = hash.match( new RegExp( "^#/" + prefix + "/([A-Za-z0-9_.-]+)$" ) );
       return found ? found[ 1 ] : null;
@@ -177,6 +188,8 @@ const App = {
       argument = match( "settings" );
     } else if ( hash === "#/logs" && this.me && this.me.owner ) {
       next = Logs;
+    } else if ( hash === "#/display" ) {
+      next = ThemeEditor;
     } else if ( [ "#/rules" , "#/strategy" , "#/bots" , "#/about" ].indexOf( hash ) >= 0 ) {
       next = Guide;
       argument = hash.slice( 2 );

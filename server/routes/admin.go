@@ -5,31 +5,35 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	models "rook/server/models"
 	security "rook/server/security"
 )
 
 type createUserRequest struct {
-	DisplayName string `json:"display_name"`
-	Role        string `json:"role"`
-	CSRFToken   string `json:"csrf_token"`
+	DisplayName string `json:"display_name,omitempty"`
+	Role        string `json:"role,omitempty"`
+	CSRFToken   string `json:"csrf_token,omitempty"`
 }
 
 type csrfOnlyRequest struct {
-	CSRFToken string `json:"csrf_token"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type setCanInviteRequest struct {
-	CanInvite bool   `json:"can_invite"`
-	CSRFToken string `json:"csrf_token"`
+	CanInvite bool   `json:"can_invite,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type setDisabledRequest struct {
-	Disabled  bool   `json:"disabled"`
-	CSRFToken string `json:"csrf_token"`
+	Disabled  bool   `json:"disabled,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
-func ( handlers *Handlers ) ListUsers( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/admin/users", summary="List users", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	users , list_err := models.ListUsers( handlers.Store )
 	if list_err != nil {
 		err = serverError( c )
@@ -65,16 +69,11 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx ) ( err error ) {
 // -- the browser knows the origin it is talking to, whereas the server behind
 // a reverse proxy often does not, and a login link with the wrong host is
 // worse than useless.
-func ( handlers *Handlers ) CreateUser( c fiber.Ctx ) ( err error ) {
-	var body createUserRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+//
+// @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, access=SESSION_ONLY, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err error ) {
+	body := in.createUserRequest
 	if models.ValidDisplayName( body.DisplayName ) == false {
 		err = badRequest( c , "display name must be 1-80 characters" )
 		return
@@ -111,16 +110,10 @@ func ( handlers *Handlers ) CreateUser( c fiber.Ctx ) ( err error ) {
 // It is not a reset: sessions the account already has stay signed in. When
 // the worry is that someone else holds the account's credentials, use
 // RevokeAccess first, then reissue.
-func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+//
+// @route("POST /api/admin/users/{user_id}/reissue-login", summary="Reissue login", tag="Admin", role=ADMIN, access=SESSION_ONLY, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx , in *reissueLoginIn ) ( err error ) {
 
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
@@ -144,16 +137,10 @@ func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx ) ( err error ) {
-	var body setDisabledRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+// @route("POST /api/admin/users/{user_id}/disabled", summary="Set user disabled", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx , in *setUserDisabledIn ) ( err error ) {
+	body := in.setDisabledRequest
 
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
@@ -191,7 +178,10 @@ func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx ) ( err error ) {
 // once. The account itself stays enabled; reissue a login link to let its
 // owner back in. See models.RevokeAllCredentials for why this is separate
 // from both disabling and reissuing.
-func ( handlers *Handlers ) RevokeAccess( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/admin/users/{user_id}/revoke-access", summary="Revoke access", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) RevokeAccess( c fiber.Ctx , in *revokeAccessIn ) ( err error ) {
 	var body csrfOnlyRequest
 	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
 	if ok == false {
@@ -217,16 +207,11 @@ func ( handlers *Handlers ) RevokeAccess( c fiber.Ctx ) ( err error ) {
 // SetUserCanInvite hands one person the ability to bring new players in from
 // a table's empty seat (see InviteToSeat). Admins can always invite, so the
 // flag only means anything on a plain user.
-func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx ) ( err error ) {
-	var body setCanInviteRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
-	if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
-		err = forbidden( c , "invalid csrf token" )
-		return
-	}
+//
+// @route("POST /api/admin/users/{user_id}/can-invite", summary="Set user can invite", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx , in *setUserCanInviteIn ) ( err error ) {
+	body := in.setCanInviteRequest
 
 	user_id , parse_err := strconv.ParseUint( c.Params( "user_id" ) , 10 , 64 )
 	if parse_err != nil {
@@ -246,8 +231,8 @@ func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx ) ( err error ) {
 }
 
 type setRoleRequest struct {
-	Role      string `json:"role"`
-	CSRFToken string `json:"csrf_token"`
+	Role      string `json:"role,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // AdminSetRole promotes someone to admin or makes them a plain user again.
@@ -255,7 +240,10 @@ type setRoleRequest struct {
 // superadmin (see models/superadmin.go) always stays an admin. Nothing else
 // needs telling: every request reads the role fresh, and API keys are capped
 // at their owner's role on each use.
-func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/admin/users/{user_id}/role", summary="Admin set role", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx , in *adminSetRoleIn ) ( err error ) {
 	var body setRoleRequest
 	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
 	if ok == false {
@@ -279,8 +267,8 @@ func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx ) ( err error ) {
 }
 
 type adminRenameRequest struct {
-	DisplayName string `json:"display_name"`
-	CSRFToken   string `json:"csrf_token"`
+	DisplayName string `json:"display_name,omitempty"`
+	CSRFToken   string `json:"csrf_token,omitempty"`
 }
 
 // adminTarget decodes an admin request about one user and loads that user:
@@ -311,7 +299,10 @@ func ( handlers *Handlers ) adminTarget( c fiber.Ctx , body any , csrf func() st
 
 // AdminRenameUser changes someone's name for them; their seats show it at
 // once.
-func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/admin/users/{user_id}/rename", summary="Admin rename user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx , in *adminRenameUserIn ) ( err error ) {
 	var body adminRenameRequest
 	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
 	if ok == false {
@@ -332,7 +323,10 @@ func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx ) ( err error ) {
 }
 
 // AdminSetAvatar picks someone's icon and color for them.
-func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/admin/users/{user_id}/avatar", summary="Admin set avatar", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx , in *adminSetAvatarIn ) ( err error ) {
 	var body avatarRequest
 	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
 	if ok == false {
@@ -351,7 +345,10 @@ func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx ) ( err error ) {
 // DeleteUser removes an account for good, unlike disabling it: the row,
 // every way to sign in as it, and its seats at open tables. Games already
 // in the history keep the name it played under.
-func ( handlers *Handlers ) DeleteUser( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/admin/users/{user_id}/delete", summary="Delete user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) DeleteUser( c fiber.Ctx , in *deleteUserIn ) ( err error ) {
 	var body csrfOnlyRequest
 	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
 	if ok == false {

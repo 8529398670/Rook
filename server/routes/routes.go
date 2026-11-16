@@ -10,17 +10,20 @@ package routes
 
 import (
 	bytes "bytes"
+	json "encoding/json"
 	errors "errors"
 	fs "io/fs"
 	log "log"
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
 	botnames "rook/server/botnames"
 	config "rook/server/config"
 	db "rook/server/db"
 	language "rook/server/language"
 	logs "rook/server/logs"
+	models "rook/server/models"
 	security "rook/server/security"
 	static "rook/server/static"
 	stream "rook/server/stream"
@@ -83,218 +86,71 @@ func ( handlers *Handlers ) LoadBotNames( embedded []byte ) {
 	log.Printf( "[bots] %d names from %s" , len( names ) , source )
 }
 
-// Register wires every route. Read it top to bottom to see the whole surface
-// of this server.
+//go:generate go run ../apidoc/gen
+
+// Register wires every route. The API routes are declared beside their
+// handlers, each with its // @route(...) declaration, and mountDeclared
+// (routes_generated.go, written by go generate) mounts them, the most
+// specific path first, each behind the guards its declaration says:
+//
+//   - Anyone signed in, by a browser session or an API key, is the default.
+//     role=ADMIN is the admins; use=[handlers.RequireOwner] narrows that to
+//     the owner (the superadmin, models/superadmin.go), by session or key.
+//     role=OWNER is the owner from a browser session only (the activity log).
+//   - access=SESSION_ONLY turns an API key away: minting and managing API
+//     keys, and every route that creates a credential, so a leaked key can
+//     never turn itself into a session or a fresh key.
+//   - access=PUBLIC needs no sign-in: logging in, the UI's text, health, and
+//     the watch, join and sign-up links, whose credential is the link.
+//   - A feature that can be switched off while the server runs has a switch
+//     in featureGuards: its routes answer 404 while it is off.
+//
+// Every signed-in POST carries the session's CSRF token in its body; the
+// route table checks it before the handler runs (apidoc.CheckCSRF).
+//
+// Read routes_generated.go to see the whole surface of this server. Only the
+// page a login link opens and the catch-alls are written out here.
 func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// Resolve the session once, before anything else looks at the request.
 	app.Use( handlers.Guard.LoadUser )
+	apidoc.CheckCSRF = handlers.Guard.CheckCSRF
 
-	// Public: the login link's page and the call it makes, and the UI's text
-	// (needed to render the signed-out page at all). Opening a login link
-	// only shows a page; the link is spent by the POST that page sends when
-	// the person confirms. See auth.go.
+	// The page a login link opens. Opening one only shows a page; the link
+	// is spent by the POST that page sends when the person confirms. See
+	// auth.go.
 	app.Get( "/login/*" , handlers.ShowLoginPage )
-	app.Post( "/api/login" , handlers.RedeemLoginLink )
-	app.Get( "/api/language" , handlers.GetLanguage )
-	app.Get( "/api/health" , handlers.GetHealth )
 
-	// Public game links. These must be registered before the "/api" group
-	// below, whose RequireLogin is mounted on the whole prefix.
-	//   - watch links: anyone with the link may watch, signed in or not;
-	//   - a join link's landing info, and its sign-up (only while an admin
-	//     allows it);
-	//   - multi-use sign-up links, where the credential is in the body.
-	app.Get( "/api/watch/:code" , handlers.GetWatch )
-	app.Get( "/api/watch/:code/events" , handlers.WatchEvents )
-	app.Get( "/api/watch/:code/record" , handlers.GetWatchRecord )
-	app.Post( "/api/watch/:code/chat" , handlers.WatchChat )
-	app.Get( "/api/join/:code" , handlers.GetJoin )
-	app.Post( "/api/join/:code/signup" , handlers.JoinSignup )
-	app.Post( "/api/signup/info" , handlers.SignupInfo )
-	app.Post( "/api/signup/match" , handlers.SignupMatch )
-	app.Post( "/api/signup/claim" , handlers.SignupClaim )
-	app.Post( "/api/signup/create" , handlers.SignupCreate )
+	handlers.mountDeclared( app )
 
-	// Any signed-in user.
-	account := app.Group( "/api" , handlers.Guard.RequireLogin )
-	account.Get( "/me" , handlers.GetMe )
-	account.Post( "/account/rename" , handlers.RenameAccount )
-	account.Post( "/logout" , handlers.Logout )
-	account.Get( "/team" , handlers.ListTeam )
-	account.Get( "/profile/options" , handlers.GetProfileOptions )
-	account.Post( "/account/avatar" , handlers.SetAvatar )
-	account.Post( "/account/pin" , handlers.SetPin )
-	account.Post( "/account/bot-level" , handlers.SetBotLevel )
-	account.Post( "/account/auto-play-level" , handlers.SetAutoPlayLevel )
-	account.Post( "/account/hint-level" , handlers.SetHintLevel )
-	account.Post( "/account/partner-bot-outbids" , handlers.SetPartnerBotOutbids )
-	account.Post( "/join/:code" , handlers.JoinTable )
-	// The chat everyone shares, and who is online (see global.go).
-	account.Get( "/global" , handlers.GetGlobal )
-	account.Get( "/global/events" , handlers.GlobalEvents )
-	account.Post( "/global/chat" , handlers.GlobalChat )
-	account.Post( "/global/chat/:seq/edit" , handlers.EditGlobalChat )
-	account.Post( "/global/chat/:seq/delete" , handlers.DeleteGlobalChat )
-	// Guarded per route rather than by a group, for the prefix reason
-	// spelled out at the API keys group below.
-	account.Post( "/account/login-link" , handlers.Guard.RequireSession , handlers.CreateMyLoginLink )
-	account.Post( "/account/delete" , handlers.Guard.RequireSession , handlers.DeleteMyAccount )
-	// Your own signed-in devices (sessions.go). A session only: a key that
-	// could end sessions could lock its owner out of the screen that
-	// revokes it.
-	account.Get( "/account/sessions" , handlers.Guard.RequireSession , handlers.ListMySessions )
-	account.Post( "/account/sessions/revoke-others" , handlers.Guard.RequireSession , handlers.RevokeMyOtherSessions )
-	account.Post( "/account/sessions/:session_id/label" , handlers.Guard.RequireSession , handlers.LabelMySession )
-	account.Post( "/account/sessions/:session_id/revoke" , handlers.Guard.RequireSession , handlers.RevokeMySession )
-
-	// Sign-up links: anyone allowed to invite manages their own, admins
-	// everyone's (see signup_links.go).
-	account.Get( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.ListSignupLinks )
-	account.Post( "/signup-links" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.CreateSignupLink )
-	account.Post( "/signup-links/:link_id/revoke" , handlers.Guard.RequireSession , handlers.RequireInviter , handlers.RevokeSignupLink )
-	account.Post( "/signup-links/:link_id/delete" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.DeleteSignupLink )
-
-	// API keys: any signed-in user manages their own.
-	//
-	// Note the group prefix. A group's middleware is mounted on a path
-	// *prefix*, not on the routes written under it, so it applies to every
-	// route registered after it whose path starts with that prefix. Mounting
-	// these two on "/api" would put RequireSession in front of /api/admin/users
-	// as well, and an admin-scoped API key would then be refused there. That is
-	// also why the prefix is exactly "/api/keys": a future "/api/keysets" would
-	// pick up this middleware by sharing the string, so keep new routes off
-	// these prefixes unless they want these rules.
-	keys := app.Group( "/api/keys" , handlers.RequireAPIKeys , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
-	keys.Get( "" , handlers.ListMyAPIKeys )
-	keys.Post( "" , handlers.CreateMyAPIKey )
-	keys.Post( "/:key_id/revoke" , handlers.RevokeMyAPIKey )
-
-	// Admin only, and of the admins the owner only: deciding who gets in.
-	// RequireOwner is added per route rather than on the group, for the
-	// prefix reason spelled out at the API keys group above. See
-	// architecture.md on defaulting new features to "any signed-in user".
-	//
-	// The two routes that hand out a login link also require a browser
-	// session. A login link becomes a session, and a session can mint API
-	// keys -- so if an admin-scoped key could create accounts or reissue
-	// links, a leaked key could turn itself into a fresh session and a fresh
-	// key, and revoking the leaked one would not end the compromise. The
-	// rule is: an API key may use what an account can do, but it never
-	// creates credentials. (The seat invite under /api/tables follows it too.)
-	admin := app.Group( "/api/admin" , handlers.Guard.RequireAdmin )
-	admin.Get( "/users" , handlers.RequireOwner , handlers.ListUsers )
-	admin.Post( "/users" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.CreateUser )
-	admin.Post( "/users/:user_id/reissue-login" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.ReissueLogin )
-	admin.Post( "/users/:user_id/disabled" , handlers.RequireOwner , handlers.SetUserDisabled )
-	admin.Post( "/users/:user_id/revoke-access" , handlers.RequireOwner , handlers.RevokeAccess )
-	admin.Post( "/users/:user_id/can-invite" , handlers.RequireOwner , handlers.SetUserCanInvite )
-	admin.Post( "/users/:user_id/can-hint" , handlers.RequireOwner , handlers.SetUserCanHint )
-	admin.Post( "/users/:user_id/can-undo" , handlers.RequireOwner , handlers.SetUserCanUndo )
-	admin.Post( "/users/:user_id/can-reshuffle" , handlers.RequireOwner , handlers.SetUserCanReshuffle )
-	admin.Post( "/users/:user_id/role" , handlers.RequireOwner , handlers.AdminSetRole )
-	admin.Post( "/users/:user_id/rename" , handlers.RequireOwner , handlers.AdminRenameUser )
-	admin.Post( "/users/:user_id/avatar" , handlers.RequireOwner , handlers.AdminSetAvatar )
-	admin.Post( "/users/:user_id/delete" , handlers.RequireOwner , handlers.DeleteUser )
-	// Where someone is signed in, for ending one device rather than
-	// everything with revoke-access. A session only, like your own list.
-	admin.Get( "/users/:user_id/sessions" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.ListUserSessions )
-	admin.Post( "/users/:user_id/sessions/:session_id/revoke" , handlers.Guard.RequireSession , handlers.RequireOwner , handlers.RevokeUserSession )
-	// The app-wide game settings: the owner's, not every admin's.
-	admin.Get( "/settings" , handlers.RequireOwner , handlers.GetSettings )
-	admin.Post( "/settings" , handlers.RequireOwner , handlers.SaveSettings )
-
-	// Admin view of every key in the app -- "who has standing access" -- and
-	// the ability to revoke or delete someone else's. Its own prefix for the same reason
-	// as above: mounted on "/api/admin" it would gate the account routes too.
-	// Owner only, like the game settings.
-	admin_keys := app.Group( "/api/admin/keys" , handlers.RequireAPIKeys , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
-	admin_keys.Get( "" , handlers.ListAllAPIKeys )
-	admin_keys.Post( "/:key_id/revoke" , handlers.RevokeAnyAPIKey )
-	admin_keys.Post( "/:key_id/delete" , handlers.DeleteAnyAPIKey )
-
-	// The card game. Any signed-in player, by session or API key -- a key
-	// at a table is how a script (or a test) takes a seat. Everything that
-	// changes a table is a POST carrying the CSRF token, like the rest of
-	// the API; the two /events routes are long-lived Server-Sent Event
-	// streams (see events.go).
-	game_tables := app.Group( "/api/tables" , handlers.Guard.RequireLogin )
-	game_tables.Get( "" , handlers.ListTables )
-	game_tables.Post( "" , handlers.CreateTable )
-	game_tables.Get( "/:table_id" , handlers.GetTable )
-	game_tables.Get( "/:table_id/events" , handlers.TableEvents )
-	game_tables.Post( "/:table_id/sit" , handlers.SitAtTable )
-	game_tables.Post( "/:table_id/leave" , handlers.LeaveTable )
-	game_tables.Post( "/:table_id/bot" , handlers.AddBot )
-	game_tables.Post( "/:table_id/bot/remove" , handlers.RemoveBot )
-	game_tables.Post( "/:table_id/bot/level" , handlers.SetSeatBotLevel )
-	// An invite creates an account and its login link, so like every route
-	// that creates a credential it is browser-only (see the admin group).
-	game_tables.Post( "/:table_id/invite" , handlers.Guard.RequireSession , handlers.InviteToSeat )
-	game_tables.Post( "/:table_id/assign" , handlers.AssignSeat )
-	game_tables.Post( "/:table_id/seat/remove" , handlers.RemovePlayer )
-	game_tables.Post( "/:table_id/seat/rename" , handlers.RenameSeat )
-	game_tables.Post( "/:table_id/seat/shuffle" , handlers.ShuffleSeatBot )
-	game_tables.Post( "/:table_id/seat/unshuffle" , handlers.UnshuffleSeatBot )
-	game_tables.Post( "/:table_id/seat/look" , handlers.SetSeatBotLook )
-	game_tables.Post( "/:table_id/start" , handlers.StartTable )
-	game_tables.Post( "/:table_id/restart" , handlers.RestartTable )
-	game_tables.Post( "/:table_id/delete" , handlers.DeleteTable )
-	game_tables.Post( "/:table_id/bid" , handlers.Bid )
-	game_tables.Post( "/:table_id/bury" , handlers.Bury )
-	game_tables.Post( "/:table_id/play" , handlers.PlayCard )
-	game_tables.Post( "/:table_id/continue" , handlers.ContinueHand )
-	game_tables.Post( "/:table_id/reshuffle" , handlers.Reshuffle )
-	game_tables.Post( "/:table_id/auto-play" , handlers.SetAutoPlay )
-	game_tables.Post( "/:table_id/chat" , handlers.ChatAtTable )
-	game_tables.Post( "/:table_id/chat/:seq/edit" , handlers.EditChatAtTable )
-	game_tables.Post( "/:table_id/chat/:seq/delete" , handlers.DeleteChatAtTable )
-	game_tables.Get( "/:table_id/hint" , handlers.GetHint )
-	game_tables.Get( "/:table_id/record" , handlers.GetRecord )
-	game_tables.Post( "/:table_id/takeover" , handlers.RequestTakeover )
-	game_tables.Post( "/:table_id/takeover/cancel" , handlers.CancelTakeover )
-	game_tables.Post( "/:table_id/takeover/answer" , handlers.AnswerTakeover )
-
-	// The move history: undo / redo / reset and resuming a held game. Admins
-	// anywhere; players given can_undo at their own tables (RequireRewind).
-	// Whether watchers see every hand stays admin-only. Guarded per route,
-	// since the group only requires a login.
-	game_tables.Get( "/:table_id/history" , handlers.RequireRewind , handlers.GetHistory )
-	game_tables.Post( "/:table_id/undo" , handlers.RequireRewind , handlers.Undo )
-	game_tables.Post( "/:table_id/redo" , handlers.RequireRewind , handlers.Redo )
-	game_tables.Post( "/:table_id/reset" , handlers.RequireRewind , handlers.ResetTo )
-	game_tables.Post( "/:table_id/resume" , handlers.RequireRewind , handlers.Resume )
-	game_tables.Post( "/:table_id/observers" , handlers.Guard.RequireAdmin , handlers.SetTableObservers )
-	game_tables.Post( "/:table_id/trick-pause" , handlers.Guard.RequireAdmin , handlers.SetTableTrickPause )
-
-	// The game history: every finished or abandoned game, for anyone
-	// signed in. Only the owner may delete one.
-	games := app.Group( "/api/games" , handlers.Guard.RequireLogin )
-	games.Get( "" , handlers.ListGames )
-	games.Get( "/:game_id" , handlers.GetGame )
-	games.Post( "/:game_id/delete" , handlers.RequireOwner , handlers.DeleteGame )
-
-	// The activity log (logs.go): the owner only, from a browser session --
-	// not other admins, not any API key. Its own prefix, so nothing else
-	// picks up these rules by sharing the string.
-	if handlers.Logs.Enabled() {
-		owner_logs := app.Group( "/api/owner/logs" , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
-		owner_logs.Get( "/stream" , handlers.StreamLogs )
-		owner_logs.Get( "/days" , handlers.ListLogDays )
-		owner_logs.Get( "/days/:date" , handlers.GetLogDay )
-		owner_logs.Get( "/days/:date/download" , handlers.DownloadLogDay )
-		owner_logs.Post( "/days/:date/delete" , handlers.DeleteLogDay )
-		owner_logs.Post( "/prune" , handlers.PruneLogs )
-		owner_logs.Get( "/ip-names" , handlers.ListIPNames )
-		owner_logs.Post( "/ip-names" , handlers.SetIPName )
-		owner_logs.Post( "/ip-names/delete" , handlers.DeleteIPName )
-	}
-
-	lobby := app.Group( "/api/lobby" , handlers.Guard.RequireLogin )
-	lobby.Get( "/events" , handlers.LobbyEvents )
+	// Any other /api/ path is a JSON 404, not a static page.
+	app.Get( "/api/*" , func( c fiber.Ctx ) ( err error ) {
+		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "not found" } )
+		return
+	} )
 
 	// Catch-all static serving. Must be registered last -- it matches every
 	// remaining path, so anything added after this line never runs.
 	app.Get( "/*" , handlers.Static.Handler )
+}
+
+// featureGuards are the switches of the features that can be off while the
+// server runs, by feature name: a route whose op says feature=x answers 404
+// while x is off, exactly what an unregistered route would say. The route
+// table puts the switch in front of every other guard. apidoc/gen reads
+// this map's keys.
+func ( handlers *Handlers ) featureGuards() ( guards map[string]fiber.Handler ) {
+	guards = map[string]fiber.Handler{
+		"api_keys": handlers.RequireAPIKeys,
+		"logs":     handlers.RequireLogs,
+	}
+	return
+}
+
+// cfg is the running configuration, under the name the template's handlers
+// read it by.
+func ( handlers *Handlers ) cfg() ( cfg *config.Config ) {
+	cfg = handlers.Config
+	return
 }
 
 // badRequest / notFound keep error bodies uniform, so the frontend has one
@@ -335,13 +191,33 @@ func conflict( c fiber.Ctx , message string , extra fiber.Map ) ( err error ) {
 	return
 }
 
-// refusal is a reason a request cannot go ahead, worked out before anything
-// is written. cause is why a 5xx happened: it goes to the log, never to the
-// caller.
+// refusal is a rule saying no, kept apart from how it is delivered: a handler
+// sends it as a status and an error body. A declared route's handler may also
+// return it as its error (apidoc.Sender).
 type refusal struct {
 	status  int
 	message string
-	cause   error
+	// cause is why a 5xx happened. It goes to the log, never to the caller.
+	cause error
+	// extra is more for the caller beside the message, such as the current
+	// value a 409 was about.
+	extra fiber.Map
+}
+
+func ( refused *refusal ) Error() ( text string ) {
+	text = refused.message
+	if refused.cause != nil { text = refused.cause.Error() }
+	return
+}
+
+func ( refused *refusal ) Send( c fiber.Ctx ) ( err error ) {
+	err = refused.send( c )
+	return
+}
+
+func ( refused *refusal ) Refused() ( status int , message string ) {
+	status , message = refused.status , refused.message
+	return
 }
 
 func ( refused *refusal ) send( c fiber.Ctx ) ( err error ) {
@@ -349,6 +225,54 @@ func ( refused *refusal ) send( c fiber.Ctx ) ( err error ) {
 		err = serverError( c , refused.cause )
 		return
 	}
-	err = c.Status( refused.status ).JSON( fiber.Map{ "error": refused.message } )
+	body := fiber.Map{ "error": refused.message }
+	for name , value := range refused.extra {
+		body[ name ] = value
+	}
+	err = c.Status( refused.status ).JSON( body )
 	return
 }
+
+// refuse is a refusal with the caller's mistake in it. internalFailure is
+// ours: a 500 whose cause goes to the log.
+func refuse( status int , message string , extra ...fiber.Map ) ( refused *refusal ) {
+	refused = &refusal{ status: status , message: message }
+	if len( extra ) > 0 { refused.extra = extra[ 0 ] }
+	return
+}
+
+func internalFailure( cause error ) ( refused *refusal ) {
+	refused = &refusal{ status: fiber.StatusInternalServerError , message: "internal error" , cause: cause }
+	return
+}
+
+// jsonObjects is rows as the JSON objects they encode to, for a reply that
+// passes on what another package keeps without saying its shape.
+func jsonObjects[ T any ]( rows []T ) ( objects []map[string]any , err error ) {
+	objects = []map[string]any{}
+	encoded , err := json.Marshal( rows )
+	if err != nil { return }
+	err = json.Unmarshal( encoded , &objects )
+	if objects == nil { objects = []map[string]any{} }
+	return
+}
+
+// actOnRefusal turns an error from a model that checked models.mayActOnTx
+// into the answer every account route gives: 404 for a missing account, 403
+// with the same wording for the owner rule, 500 for anything else. what is
+// the action, worded to follow "cannot": "reissue a login link for".
+func actOnRefusal( err error , what string ) ( refused *refusal ) {
+	switch {
+	case err == nil:
+	case errors.Is( err , db.ErrNotFound ):
+		refused = refuse( fiber.StatusNotFound , "no such user" )
+	case errors.Is( err , models.ErrOwnerProtected ):
+		refused = refuse( fiber.StatusForbidden , "nobody can " + what + " the owner account" )
+	case errors.Is( err , models.ErrOwnerRequired ):
+		refused = refuse( fiber.StatusForbidden , "only the owner can " + what + " an admin account" )
+	default:
+		refused = internalFailure( err )
+	}
+	return
+}
+

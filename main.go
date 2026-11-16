@@ -19,6 +19,7 @@ import (
 	log "log"
 	os "os"
 	signal "os/signal"
+	filepath "path/filepath"
 	runtime "runtime"
 	syscall "syscall"
 	time "time"
@@ -106,6 +107,10 @@ func run() ( err error ) {
 	embedded , err := embeddedStatic()
 	if err != nil { return }
 
+	// Everything in static_dir is public, so it may not be, hold, or sit
+	// inside the config or state directory. See server/assets.
+	if err = assets.CheckStaticDir( cfg.StaticDir , filepath.Dir( cfg.ConfigFile ) , cfg.AppDir , cfg.SecretFile , cfg.DatabasePath ); err != nil { return }
+
 	// Disk when it exists, the embedded copy otherwise. See server/assets.
 	bundle , err := assets.Resolve( cfg.StaticDir , cfg.LanguageFile , embedded , embeddedLanguage )
 	if err != nil { return }
@@ -191,9 +196,10 @@ func run() ( err error ) {
 	// RequestID comes first, outside Recover: a panic still has to carry a
 	// reference the activity log can find.
 	app.Use( middleware.RequestID() )
+	app.Use( middleware.NoStore() )
 	app.Use( middleware.Recover( cfg ) )
 	app.Use( middleware.SecurityHeaders( cfg ) )
-	app.Use( middleware.RateLimit( cfg ) )
+	app.Use( middleware.RateLimit( cfg , logger ) )
 	app.Use( middleware.RequestLog( logger ) )
 
 	handlers.Register( app )

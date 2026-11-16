@@ -3,6 +3,8 @@ package routes
 import (
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	game "rook/server/game"
 	models "rook/server/models"
 	security "rook/server/security"
@@ -11,19 +13,22 @@ import (
 // A player's own look, sign-in PIN, and the level of the bots they add.
 
 type avatarRequest struct {
-	Icon      string `json:"icon"`
-	Color     string `json:"color"`
-	CSRFToken string `json:"csrf_token"`
+	Icon      string `json:"icon,omitempty"`
+	Color     string `json:"color,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type pinRequest struct {
-	Pin       string `json:"pin"`
-	CSRFToken string `json:"csrf_token"`
+	Pin       string `json:"pin,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // GetProfileOptions lists the icons and colors a player may pick from. The
 // server is the authority on the list because it validates the choice.
-func ( handlers *Handlers ) GetProfileOptions( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/profile/options", summary="Get profile options", tag="Account",
+// )
+func ( handlers *Handlers ) GetProfileOptions( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	err = c.JSON( fiber.Map{ "icons": models.Icons , "colors": models.Colors } )
 	return
 }
@@ -35,12 +40,10 @@ func ( handlers *Handlers ) refreshTables( user_id uint64 ) {
 	}
 }
 
-func ( handlers *Handlers ) SetAvatar( c fiber.Ctx ) ( err error ) {
-	var body avatarRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/account/avatar", summary="Set avatar", tag="Account",
+// )
+func ( handlers *Handlers ) SetAvatar( c fiber.Ctx , in *setAvatarIn ) ( err error ) {
+	body := in.avatarRequest
 	user := security.UserFrom( c )
 	if models.SetUserAvatar( handlers.Store , user.ID , body.Icon , body.Color ) != nil {
 		err = badRequest( c , "bad_avatar" )
@@ -52,8 +55,8 @@ func ( handlers *Handlers ) SetAvatar( c fiber.Ctx ) ( err error ) {
 }
 
 type botLevelRequest struct {
-	Level     string `json:"level"`
-	CSRFToken string `json:"csrf_token"`
+	Level     string `json:"level,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // botLevelOf is the level the Add bot picker starts on for user.
@@ -64,12 +67,11 @@ func botLevelOf( user *models.User ) ( level string ) {
 }
 
 // SetBotLevel saves the player's default level for the bots they add.
-func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
-	var body botLevelRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/bot-level", summary="Set bot level", tag="Account",
+// )
+func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx , in *setBotLevelIn ) ( err error ) {
+	body := in.botLevelRequest
 	if _ , ok := game.ParseLevel( body.Level ); ok == false || body.Level == "" {
 		err = badRequest( c , string( game.ErrBadLevel ) )
 		return
@@ -85,12 +87,11 @@ func ( handlers *Handlers ) SetBotLevel( c fiber.Ctx ) ( err error ) {
 
 // SetAutoPlayLevel saves the level auto play plays the player's cards at. A
 // table where their auto play is already on switches over at their next move.
-func ( handlers *Handlers ) SetAutoPlayLevel( c fiber.Ctx ) ( err error ) {
-	var body botLevelRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/auto-play-level", summary="Set auto play level", tag="Account",
+// )
+func ( handlers *Handlers ) SetAutoPlayLevel( c fiber.Ctx , in *setAutoPlayLevelIn ) ( err error ) {
+	body := in.botLevelRequest
 	if _ , ok := game.ParseLevel( body.Level ); ok == false || body.Level == "" {
 		err = badRequest( c , string( game.ErrBadLevel ) )
 		return
@@ -106,12 +107,11 @@ func ( handlers *Handlers ) SetAutoPlayLevel( c fiber.Ctx ) ( err error ) {
 }
 
 // SetHintLevel saves the level the hint button suggests at for the player.
-func ( handlers *Handlers ) SetHintLevel( c fiber.Ctx ) ( err error ) {
-	var body botLevelRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/hint-level", summary="Set hint level", tag="Account",
+// )
+func ( handlers *Handlers ) SetHintLevel( c fiber.Ctx , in *setHintLevelIn ) ( err error ) {
+	body := in.botLevelRequest
 	if _ , ok := game.ParseLevel( body.Level ); ok == false || body.Level == "" {
 		err = badRequest( c , string( game.ErrBadLevel ) )
 		return
@@ -126,19 +126,18 @@ func ( handlers *Handlers ) SetHintLevel( c fiber.Ctx ) ( err error ) {
 }
 
 type partnerBotOutbidsRequest struct {
-	On        bool   `json:"on"`
-	CSRFToken string `json:"csrf_token"`
+	On        bool   `json:"on,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // SetPartnerBotOutbids saves whether the player's bot partner may keep
 // raising them once both opponents have passed. Their open tables follow
 // the change at once.
-func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx ) ( err error ) {
-	var body partnerBotOutbidsRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/partner-bot-outbids", summary="Set partner bot outbids", tag="Account",
+// )
+func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx , in *setPartnerBotOutbidsIn ) ( err error ) {
+	body := in.partnerBotOutbidsRequest
 	user := security.UserFrom( c )
 	if models.SetUserPartnerBotOutbids( handlers.Store , user.ID , body.On ) != nil {
 		err = serverError( c )
@@ -151,12 +150,11 @@ func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx ) ( err error ) {
 
 // SetPin sets, or with an empty pin removes, the PIN asked for when someone
 // picks this account from a sign-up link's "did you mean...?".
-func ( handlers *Handlers ) SetPin( c fiber.Ctx ) ( err error ) {
-	var body pinRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/account/pin", summary="Set pin", tag="Account",
+// )
+func ( handlers *Handlers ) SetPin( c fiber.Ctx , in *setPinIn ) ( err error ) {
+	body := in.pinRequest
 	user := security.UserFrom( c )
 	if pin_err := models.SetUserPin( handlers.Store , user.ID , body.Pin ); pin_err != nil {
 		err = badRequest( c , "bad_pin" )

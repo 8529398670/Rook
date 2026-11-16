@@ -11,7 +11,7 @@ import (
 )
 
 type loginRequest struct {
-	Credential string `json:"credential"`
+	Credential string `json:"credential,omitempty"`
 }
 
 // ShowLoginPage answers a visit to a login link with the ordinary app page,
@@ -47,16 +47,15 @@ func ( handlers *Handlers ) ShowLoginPage( c fiber.Ctx ) ( err error ) {
 // form cannot send one, and a cross-origin fetch that tries needs a CORS
 // preflight this server never approves. Sec-Fetch-Site, which every current
 // browser sends, refuses the rest outright.
-func ( handlers *Handlers ) RedeemLoginLink( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/login", summary="Redeem login link", tag="Sign-in", access=PUBLIC,
+// )
+func ( handlers *Handlers ) RedeemLoginLink( c fiber.Ctx , in *redeemLoginLinkIn ) ( err error ) {
 	if sameOriginJSON( c ) == false {
 		err = forbidden( c , "login must be submitted from this site's own login page" )
 		return
 	}
-	var body loginRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
+	body := in.loginRequest
 
 	credential := strings.Trim( strings.TrimSpace( body.Credential ) , "/" )
 	session_credential , user_id , redeem_err := models.RedeemLoginToken( handlers.Store , credential , handlers.Config.SessionTTL )

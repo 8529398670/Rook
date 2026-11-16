@@ -16,10 +16,10 @@ import (
 // URL, so it stays out of access logs.
 
 type signupRequest struct {
-	Credential  string `json:"credential"`
-	DisplayName string `json:"display_name"`
-	UserID      uint64 `json:"user_id"`
-	Pin         string `json:"pin"`
+	Credential  string `json:"credential,omitempty"`
+	DisplayName string `json:"display_name,omitempty"`
+	UserID      uint64 `json:"user_id,omitempty"`
+	Pin         string `json:"pin,omitempty"`
 }
 
 // pinGuard limits wrong PINs per account. Four digits is only ten thousand
@@ -79,7 +79,9 @@ func ( handlers *Handlers ) signupLink( c fiber.Ctx , body *signupRequest ) ( li
 	return
 }
 
-func ( handlers *Handlers ) SignupInfo( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/signup/info", summary="Signup info", tag="Sign-up", access=PUBLIC,
+// )
+func ( handlers *Handlers ) SignupInfo( c fiber.Ctx , in *signupInfoIn ) ( err error ) {
 	var body signupRequest
 	link , err := handlers.signupLink( c , &body )
 	if link == nil { return }
@@ -89,7 +91,10 @@ func ( handlers *Handlers ) SignupInfo( c fiber.Ctx ) ( err error ) {
 
 // SignupMatch is the "did you mean...?": the accounts from this link whose
 // names are close to what was typed.
-func ( handlers *Handlers ) SignupMatch( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/signup/match", summary="Signup match", tag="Sign-up", access=PUBLIC,
+// )
+func ( handlers *Handlers ) SignupMatch( c fiber.Ctx , in *signupMatchIn ) ( err error ) {
 	var body signupRequest
 	link , err := handlers.signupLink( c , &body )
 	if link == nil { return }
@@ -114,7 +119,10 @@ func ( handlers *Handlers ) SignupMatch( c fiber.Ctx ) ( err error ) {
 
 // SignupClaim signs in as an account this link created -- the same person
 // on another device. Asks for the PIN if that person set one.
-func ( handlers *Handlers ) SignupClaim( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/signup/claim", summary="Signup claim", tag="Sign-up", access=PUBLIC,
+// )
+func ( handlers *Handlers ) SignupClaim( c fiber.Ctx , in *signupClaimIn ) ( err error ) {
 	var body signupRequest
 	link , err := handlers.signupLink( c , &body )
 	if link == nil { return }
@@ -146,7 +154,10 @@ func ( handlers *Handlers ) SignupClaim( c fiber.Ctx ) ( err error ) {
 }
 
 // SignupCreate makes a new account through the link, if it has places left.
-func ( handlers *Handlers ) SignupCreate( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/signup/create", summary="Signup create", tag="Sign-up", access=PUBLIC,
+// )
+func ( handlers *Handlers ) SignupCreate( c fiber.Ctx , in *signupCreateIn ) ( err error ) {
 	var body signupRequest
 	link , err := handlers.signupLink( c , &body )
 	if link == nil { return }

@@ -15,9 +15,9 @@ import (
 // typed, marked as a guest.
 
 type watchChatRequest struct {
-	Name      string `json:"name"`
-	Text      string `json:"text"`
-	CSRFToken string `json:"csrf_token"`
+	Name      string `json:"name,omitempty"`
+	Text      string `json:"text,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // guestChatGuard slows down guests, who have no account to answer for what
@@ -58,23 +58,21 @@ func ( guard *guestChatGuard ) allow( address string ) ( ok bool ) {
 	return
 }
 
-func ( handlers *Handlers ) WatchChat( c fiber.Ctx ) ( err error ) {
+// @route("POST /api/watch/{code}/chat", summary="Watch chat", tag="Watch", access=PUBLIC,
+// )
+func ( handlers *Handlers ) WatchChat( c fiber.Ctx , in *watchChatIn ) ( err error ) {
 	if security.SameOrigin( c ) == false {
 		err = forbidden( c , "cross-site request" )
 		return
 	}
-	var body watchChatRequest
-	if c.Bind().JSON( &body ) != nil {
-		err = badRequest( c , "malformed request body" )
-		return
-	}
+	body := in.watchChatRequest
 	id , code_err := handlers.Hub.ByCode( c.Params( "code" ) , true )
 	if code_err != nil {
 		err = handlers.tableError( c , code_err )
 		return
 	}
 	if user := security.UserFrom( c ); user != nil {
-		if handlers.Guard.CheckCSRF( c , body.CSRFToken ) == false {
+		if handlers.Guard.CheckCSRF( c , csrfFromBody( c ) ) == false {
 			err = forbidden( c , "invalid csrf token" )
 			return
 		}

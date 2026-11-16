@@ -30,6 +30,7 @@ import (
 
 	kyberk2so "github.com/symbolicsoft/kyber-k2so"
 	bcrypt "golang.org/x/crypto/bcrypt"
+	blake2b "golang.org/x/crypto/blake2b"
 	chacha "golang.org/x/crypto/chacha20poly1305"
 	curve25519 "golang.org/x/crypto/curve25519"
 	secretbox "golang.org/x/crypto/nacl/secretbox"
@@ -123,6 +124,40 @@ func BcryptCompare( hashed string , plain_text string ) ( ok bool ) {
 
 func GenerateKeyHex() ( key_hex string ) {
 	key_hex = hex.EncodeToString( GenerateRandomBytes( 32 ) )
+	return
+}
+
+// KeyFingerprint names a key without revealing it: the start of a hash of the
+// key, which a backup's manifest can carry so a restore can say which key it
+// needs. The prefix keeps this hash from matching any other use of the key.
+func KeyFingerprint( key_hex string ) ( result string ) {
+	result = Sha256Hex( "key-fingerprint-v1:" + key_hex )[ :16 ]
+	return
+}
+
+// The purposes secret.key is put to. Each seals with its own key, derived
+// from secret.key by SubKey, so a value sealed for one never opens as another:
+// a session cookie is not a log line, and a log line is not a database record.
+const (
+	PurposeDB       = "db"       // database records (server/db)
+	PurposeLogs     = "logs"     // activity log lines (server/logs)
+	PurposeCookie   = "cookie"   // the session cookie (server/security)
+	PurposeTOTP     = "totp"     // two-factor secrets, inside the user record
+	PurposeFiles    = "files"    // each uploaded file's own key, inside its record
+	PurposeWebhooks = "webhooks" // each webhook's signing secret, inside its record
+)
+
+// SubKey is the key one purpose seals with: keyed BLAKE2b-256 of a label,
+// with secret.key as the key. It is one-way, so a subkey that leaks gives away
+// neither secret.key nor any other purpose's key. A key that is not 32 bytes
+// of hex gives "", which every function here refuses with ErrBadKey.
+func SubKey( key_hex string , purpose string ) ( result string ) {
+	key , err := decodeKey( key_hex )
+	if err != nil { return }
+	mac , err := blake2b.New256( key[ : ] )
+	if err != nil { return }
+	mac.Write( []byte( "webserver subkey v1: " + purpose ) )
+	result = hex.EncodeToString( mac.Sum( nil ) )
 	return
 }
 
@@ -300,5 +335,45 @@ func Uint64ToBytes( value uint64 ) ( result []byte ) {
 func BytesToUint64( raw []byte ) ( result uint64 ) {
 	if len( raw ) != 8 { return }
 	result = binary.BigEndian.Uint64( raw )
+	return
+}
+
+// ChaChaEncryptBound seals plain_text to bound as well as to the key: it opens
+// only with the same bound, which is itself not stored. A file's chunks use
+// this, bound to their place in the file, so that one moved, swapped with
+// another file's or dropped from the end fails to open instead of decrypting
+// to the wrong file.
+func ChaChaEncryptBound( key_hex string , plain_text []byte , bound []byte ) ( result []byte , err error ) {
+	key , err := decodeKey( key_hex )
+	if err != nil { return }
+	aead , aead_err := chacha.NewX( key[ : ] )
+	if aead_err != nil {
+		err = aead_err
+		return
+	}
+	nonce := GenerateRandomBytes( aead.NonceSize() )
+	result = aead.Seal( nonce , nonce , plain_text , bound )
+	return
+}
+
+func ChaChaDecryptBound( key_hex string , encrypted []byte , bound []byte ) ( result []byte , err error ) {
+	key , err := decodeKey( key_hex )
+	if err != nil { return }
+	aead , aead_err := chacha.NewX( key[ : ] )
+	if aead_err != nil {
+		err = aead_err
+		return
+	}
+	if len( encrypted ) < aead.NonceSize() {
+		err = ErrCipherText
+		return
+	}
+	nonce := encrypted[ :aead.NonceSize() ]
+	opened , open_err := aead.Open( nil , nonce , encrypted[ aead.NonceSize(): ] , bound )
+	if open_err != nil {
+		err = ErrCipherText
+		return
+	}
+	result = opened
 	return
 }

@@ -8,6 +8,8 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	security "rook/server/security"
 	tables "rook/server/tables"
 )
@@ -76,14 +78,19 @@ func streamLoop( writer *bufio.Writer , hub *tables.Hub , subscriber *tables.Sub
 	}
 }
 
-func ( handlers *Handlers ) TableEvents( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/tables/{table_id}/events", summary="Table events", tag="Tables",
+// )
+func ( handlers *Handlers ) TableEvents( c fiber.Ctx , in *tableEventsIn ) ( err error ) {
 	err = handlers.streamTable( c , c.Params( "table_id" ) )
 	return
 }
 
 // WatchEvents is the same stream for a watch link, open to anyone who has
 // the link -- signed in or not.
-func ( handlers *Handlers ) WatchEvents( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/watch/{code}/events", summary="Watch events", tag="Watch", access=PUBLIC,
+// )
+func ( handlers *Handlers ) WatchEvents( c fiber.Ctx , in *watchEventsIn ) ( err error ) {
 	id , code_err := handlers.Hub.ByCode( c.Params( "code" ) , true )
 	if code_err != nil {
 		err = handlers.tableError( c , code_err )
@@ -94,7 +101,10 @@ func ( handlers *Handlers ) WatchEvents( c fiber.Ctx ) ( err error ) {
 }
 
 // GetWatch is a watch link's first snapshot.
-func ( handlers *Handlers ) GetWatch( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/watch/{code}", summary="Get watch", tag="Watch", access=PUBLIC,
+// )
+func ( handlers *Handlers ) GetWatch( c fiber.Ctx , in *getWatchIn ) ( err error ) {
 	id , code_err := handlers.Hub.ByCode( c.Params( "code" ) , true )
 	if code_err != nil {
 		err = handlers.tableError( c , code_err )
@@ -105,7 +115,10 @@ func ( handlers *Handlers ) GetWatch( c fiber.Ctx ) ( err error ) {
 }
 
 // GetWatchRecord is the game log for a watch link.
-func ( handlers *Handlers ) GetWatchRecord( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/watch/{code}/record", summary="Get watch record", tag="Watch", access=PUBLIC,
+// )
+func ( handlers *Handlers ) GetWatchRecord( c fiber.Ctx , in *getWatchRecordIn ) ( err error ) {
 	id , code_err := handlers.Hub.ByCode( c.Params( "code" ) , true )
 	if code_err != nil {
 		err = handlers.tableError( c , code_err )
@@ -163,7 +176,9 @@ func ( handlers *Handlers ) streamTable( c fiber.Ctx , id string ) ( err error )
 	return
 }
 
-func ( handlers *Handlers ) LobbyEvents( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/lobby/events", summary="Lobby events", tag="Lobby",
+// )
+func ( handlers *Handlers ) LobbyEvents( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	user := *security.UserFrom( c )
 	hub := handlers.Hub
 	lifetime := handlers.Config.EventStreamLifetime

@@ -68,6 +68,10 @@ type User struct {
 	// after both opponents have passed. Off -- the zero value -- is the
 	// default: the bot passes, since the hand is the team's already.
 	PartnerBotOutbids bool `json:"partner_bot_outbids,omitempty"`
+	// Themes is this person's own list on the Appearance screen; nil follows
+	// the app's defaults. ThemeID is the one they use. See themes.go.
+	Themes  []Theme `json:"themes,omitempty"`
+	ThemeID string  `json:"theme_id,omitempty"`
 }
 
 // MayInvite is the single answer to "may this account bring someone new in".
@@ -239,3 +243,15 @@ func DeleteUser( store *db.Store , user_id uint64 ) ( err error ) {
 	} )
 	return
 }
+
+// RenameConflictError is RenameUser's answer when the name was not what the
+// caller expected: someone changed it since. Current is the name it has now.
+type RenameConflictError struct {
+	Current string
+}
+
+func ( conflict *RenameConflictError ) Error() ( result string ) {
+	result = "the name was changed somewhere else in the meantime"
+	return
+}
+

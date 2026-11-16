@@ -13,27 +13,25 @@ import (
 type bidRequest struct {
 	// Amount 0 is a pass. A separate pass endpoint would be one more route
 	// for the same decision.
-	Amount    int    `json:"amount"`
-	CSRFToken string `json:"csrf_token"`
+	Amount    int    `json:"amount,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type buryRequest struct {
-	Cards     []string `json:"cards"`
-	Trump     string   `json:"trump"`
-	CSRFToken string   `json:"csrf_token"`
+	Cards     []string `json:"cards,omitempty"`
+	Trump     string   `json:"trump,omitempty"`
+	CSRFToken string   `json:"csrf_token,omitempty"`
 }
 
 type playRequest struct {
-	Card      string `json:"card"`
-	CSRFToken string `json:"csrf_token"`
+	Card      string `json:"card,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
-func ( handlers *Handlers ) Bid( c fiber.Ctx ) ( err error ) {
-	var body bidRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/bid", summary="Bid", tag="Tables",
+// )
+func ( handlers *Handlers ) Bid( c fiber.Ctx , in *bidIn ) ( err error ) {
+	body := in.bidRequest
 	id , user := c.Params( "table_id" ) , security.UserFrom( c )
 	var action_err error
 	if body.Amount == 0 {
@@ -45,34 +43,27 @@ func ( handlers *Handlers ) Bid( c fiber.Ctx ) ( err error ) {
 	return
 }
 
-func ( handlers *Handlers ) Bury( c fiber.Ctx ) ( err error ) {
-	var body buryRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/bury", summary="Bury", tag="Tables",
+// )
+func ( handlers *Handlers ) Bury( c fiber.Ctx , in *buryIn ) ( err error ) {
+	body := in.buryRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Bury( id , security.UserFrom( c ) , body.Cards , body.Trump ) )
 	return
 }
 
-func ( handlers *Handlers ) PlayCard( c fiber.Ctx ) ( err error ) {
-	var body playRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/play", summary="Play card", tag="Tables",
+// )
+func ( handlers *Handlers ) PlayCard( c fiber.Ctx , in *playCardIn ) ( err error ) {
+	body := in.playRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Play( id , security.UserFrom( c ) , body.Card ) )
 	return
 }
 
-func ( handlers *Handlers ) ContinueHand( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+// @route("POST /api/tables/{table_id}/continue", summary="Continue hand", tag="Tables",
+// )
+func ( handlers *Handlers ) ContinueHand( c fiber.Ctx , in *continueHandIn ) ( err error ) {
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.Continue( id , security.UserFrom( c ) ) )
 	return
@@ -80,12 +71,10 @@ func ( handlers *Handlers ) ContinueHand( c fiber.Ctx ) ( err error ) {
 
 // Reshuffle deals the hand again, for an admin or a player given
 // can_reshuffle, before they have bid or passed in it.
-func ( handlers *Handlers ) Reshuffle( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/reshuffle", summary="Reshuffle", tag="Tables",
+// )
+func ( handlers *Handlers ) Reshuffle( c fiber.Ctx , in *reshuffleIn ) ( err error ) {
 	actor := security.ActorFrom( c )
 	if actor == nil || ( actor.IsAdmin() == false && actor.User.CanReshuffle == false ) {
 		err = forbidden( c , "forbidden" )
@@ -97,19 +86,18 @@ func ( handlers *Handlers ) Reshuffle( c fiber.Ctx ) ( err error ) {
 }
 
 type autoPlayRequest struct {
-	On        bool   `json:"on"`
-	CSRFToken string `json:"csrf_token"`
+	On        bool   `json:"on,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // SetAutoPlay switches auto play on or off for the caller's seat for the rest
 // of this hand. Open to every player, unlike hints: it only plays cards once
 // the hand's real decisions are made.
-func ( handlers *Handlers ) SetAutoPlay( c fiber.Ctx ) ( err error ) {
-	var body autoPlayRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/tables/{table_id}/auto-play", summary="Set auto play", tag="Tables",
+// )
+func ( handlers *Handlers ) SetAutoPlay( c fiber.Ctx , in *setAutoPlayIn ) ( err error ) {
+	body := in.autoPlayRequest
 	id := c.Params( "table_id" )
 	err = handlers.tableResult( c , id , handlers.Hub.SetAutoPlay( id , security.UserFrom( c ) , body.On ) )
 	return
@@ -118,7 +106,10 @@ func ( handlers *Handlers ) SetAutoPlay( c fiber.Ctx ) ( err error ) {
 // GetHint is the hint button: the move a bot would make in your seat, for
 // players an admin has given hints to. It suggests; the player decides --
 // the page shows it, then highlights it, then plays it only if asked.
-func ( handlers *Handlers ) GetHint( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/tables/{table_id}/hint", summary="Get hint", tag="Tables",
+// )
+func ( handlers *Handlers ) GetHint( c fiber.Ctx , in *getHintIn ) ( err error ) {
 	user := security.UserFrom( c )
 	if user.CanHint == false {
 		err = forbidden( c , "hints_off" )

@@ -11,7 +11,9 @@
 package security
 
 import (
+	errors "errors"
 	strings "strings"
+	time "time"
 
 	fiber "github.com/gofiber/fiber/v3"
 
@@ -59,6 +61,14 @@ func ( actor *Actor ) ViaAPIKey() ( result bool ) {
 	return
 }
 
+// KeyID is the id of the API key this request came with, or "" for a browser
+// session. A login link or invite link a key makes records it, so revoking the
+// key voids them (see models.VoidLinksMintedByKeyTx).
+func ( actor *Actor ) KeyID() ( result string ) {
+	if actor.APIKey != nil { result = actor.APIKey.ID }
+	return
+}
+
 func ( actor *Actor ) Method() ( result string ) {
 	result = MethodSession
 	if actor.ViaAPIKey() {
@@ -77,16 +87,23 @@ func New( store *db.Store , cfg *config.Config ) ( guard *Guard ) {
 	return
 }
 
+// cfg is the configuration the guard reads per request, under the name the
+// template's code uses for it.
+func ( guard *Guard ) cfg() ( cfg *config.Config ) {
+	cfg = guard.Config
+	return
+}
+
 // SetSessionCookie stores the session credential encrypted with the server
 // key. The server already checks the credential against the database, so the
 // encryption is not what makes the session unforgeable -- it means the cookie
 // is opaque to anyone reading it out of a browser profile or a proxy log, and
 // that a tampered cookie fails to decrypt instead of reaching the lookup.
 func ( guard *Guard ) SetSessionCookie( c fiber.Ctx , credential string ) ( err error ) {
-	sealed , err := encryption.ChaChaEncryptString( guard.Config.SecretKey , credential )
+	sealed , err := encryption.ChaChaEncryptString( encryption.SubKey( guard.cfg().SecretKey , encryption.PurposeCookie ) , credential )
 	if err != nil { return }
 	c.Cookie( &fiber.Cookie{
-		Name:     guard.Config.CookieName,
+		Name:     guard.cfg().SessionCookieName(),
 		Value:    sealed,
 		Path:     "/",
 		MaxAge:   int( guard.Config.SessionTTL.Seconds() ),
@@ -101,7 +118,7 @@ func ( guard *Guard ) ClearSessionCookie( c fiber.Ctx ) {
 	// Overwrite before clearing: some browsers hold on to a cookie whose
 	// attributes do not match exactly, and an empty value is harmless either way.
 	c.Cookie( &fiber.Cookie{
-		Name:     guard.Config.CookieName,
+		Name:     guard.cfg().SessionCookieName(),
 		Value:    "",
 		Path:     "/",
 		MaxAge:   -1,
@@ -109,15 +126,86 @@ func ( guard *Guard ) ClearSessionCookie( c fiber.Ctx ) {
 		HTTPOnly: true,
 		SameSite: "Strict",
 	} )
-	c.ClearCookie( guard.Config.CookieName )
+	c.ClearCookie( guard.cfg().SessionCookieName() )
+	// A cookie from before the __Host- prefix goes too.
+	if guard.cfg().SecureCookies { c.ClearCookie( guard.cfg().CookieName ) }
 }
 
 // DecryptCookie turns the stored cookie back into a session credential.
 // Exposed because logging out has to destroy the server-side record, not just
 // drop the cookie -- otherwise a copy of the cookie taken earlier still works.
 func ( guard *Guard ) DecryptCookie( raw string ) ( credential string , err error ) {
-	credential , err = encryption.ChaChaDecryptBase64String( guard.Config.SecretKey , raw )
+	credential , err = encryption.ChaChaDecryptBase64String( encryption.SubKey( guard.cfg().SecretKey , encryption.PurposeCookie ) , raw )
 	return
+}
+
+// ---------------------------------------------------------------------------
+// Signed-in browsers from before the upgrade. TEMPORARY: remove after
+// 2027-02-15 (deploy + auth.session_ttl_seconds, 90 days), when every
+// session such a cookie could name has expired anyway.
+//
+// Until the go-webserver security fixes S12 and S16, the session cookie was
+// named server.cookie_name ("session") and sealed with secret.key itself. It
+// is now __Host-<cookie_name> while secure_cookies is on, sealed with the
+// PurposeCookie subkey. The session records did not change, so a browser
+// holding the old cookie still names a live session: SessionCredential
+// accepts it, and resolveSession swaps it for the new cookie on that same
+// response, so nobody is signed out by the upgrade.
+// ---------------------------------------------------------------------------
+
+// ErrNoSessionCookie: the request carries no session cookie that opens.
+var ErrNoSessionCookie = errors.New( "security: no session cookie" )
+
+// SessionCredential is the session credential this request's cookie holds:
+// the current cookie, or else one from before the upgrade (legacy true).
+// Everything that reads the session cookie goes through here.
+func ( guard *Guard ) SessionCredential( c fiber.Ctx ) ( credential string , legacy bool , err error ) {
+	cfg := guard.cfg()
+	if raw := c.Cookies( cfg.SessionCookieName() ); raw != "" {
+		if credential , err = guard.DecryptCookie( raw ); err == nil { return }
+	}
+	raw := c.Cookies( cfg.CookieName )
+	if raw == "" {
+		credential , err = "" , ErrNoSessionCookie
+		return
+	}
+	credential , err = encryption.ChaChaDecryptBase64String( cfg.SecretKey , raw )
+	if err != nil {
+		credential , err = "" , ErrNoSessionCookie
+		return
+	}
+	legacy = true
+	return
+}
+
+// upgradeLegacyCookie replaces a cookie from before the upgrade with the
+// current one, for the rest of the session's life, and expires the old one.
+func ( guard *Guard ) upgradeLegacyCookie( c fiber.Ctx , credential string , session *models.Session ) {
+	cfg := guard.cfg()
+	lifetime := time.Until( session.ExpiresAt )
+	if lifetime <= 0 { return }
+	sealed , err := encryption.ChaChaEncryptString( encryption.SubKey( cfg.SecretKey , encryption.PurposeCookie ) , credential )
+	if err != nil { return }
+	c.Cookie( &fiber.Cookie{
+		Name:     cfg.SessionCookieName(),
+		Value:    sealed,
+		Path:     "/",
+		MaxAge:   int( lifetime.Seconds() ),
+		Secure:   cfg.SecureCookies,
+		HTTPOnly: true,
+		SameSite: "Strict",
+	} )
+	if cfg.CookieName != cfg.SessionCookieName() {
+		c.Cookie( &fiber.Cookie{
+			Name:     cfg.CookieName,
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			Secure:   cfg.SecureCookies,
+			HTTPOnly: true,
+			SameSite: "Strict",
+		} )
+	}
 }
 
 // LoadUser runs on every request. It resolves the caller at most once and
@@ -126,14 +214,21 @@ func ( guard *Guard ) DecryptCookie( raw string ) ( credential string , err erro
 // RequireLogin's job -- because plenty of routes are fine for anonymous
 // visitors.
 //
-// The cookie is tried first and an API key only if there is no live session.
-// Either order is safe, but this one keeps the CSRF rule below unambiguous: a
-// request that arrives with ambient browser credentials is always held to the
-// token check, and cannot opt out of it by also carrying a key.
+// An Authorization: Bearer header decides it: the request is that key or no
+// one, and the cookie is not read. Otherwise the cookie. The CSRF rule below
+// stays sound: a header is never ambient -- a page on another site cannot add
+// one without a CORS preflight this server does not answer -- and a request
+// that skips the token check by carrying a key needed that key to begin with.
 func ( guard *Guard ) LoadUser( c fiber.Ctx ) ( err error ) {
-	actor := guard.resolveSession( c )
-	if actor == nil {
+	var actor *Actor
+	// A request that names a key in its Authorization header acts as that key
+	// and nothing else, even from a browser that is signed in: a script using
+	// a narrow key must not quietly run as the full account whose cookie
+	// happens to be in the jar. A bad key is no one, not the cookie.
+	if hasBearer( c ) {
 		actor = guard.resolveAPIKey( c )
+	} else {
+		actor = guard.resolveSession( c )
 	}
 	if actor != nil {
 		c.Locals( keyActor , actor )
@@ -143,14 +238,12 @@ func ( guard *Guard ) LoadUser( c fiber.Ctx ) ( err error ) {
 }
 
 func ( guard *Guard ) resolveSession( c fiber.Ctx ) ( actor *Actor ) {
-	raw := c.Cookies( guard.Config.CookieName )
-	if raw == "" { return }
-
-	credential , decrypt_err := encryption.ChaChaDecryptBase64String( guard.Config.SecretKey , raw )
-	if decrypt_err != nil { return }
+	credential , legacy , cookie_err := guard.SessionCredential( c )
+	if cookie_err != nil { return }
 
 	session , user := models.LoadSession( guard.Store , credential )
 	if user == nil { return }
+	if legacy { guard.upgradeLegacyCookie( c , credential , session ) }
 
 	// "Last seen" on the devices list. Not for the event streams, which
 	// re-check their session every few seconds whether anyone is there.
@@ -158,6 +251,16 @@ func ( guard *Guard ) resolveSession( c fiber.Ctx ) ( actor *Actor ) {
 		models.TouchSession( guard.Store , session )
 	}
 	actor = &Actor{ User: user , Session: session , Role: user.Role }
+	return
+}
+
+// hasBearer is true when the request carries any Authorization header. Any
+// at all is an attempt at a key, and one that does not hold a good key is
+// nobody (resolveAPIKey): it never falls back to the cookie. Splitting only on
+// a space let "Bearer<TAB>key" fall back and run as the signed-in account
+// (S16).
+func hasBearer( c fiber.Ctx ) ( result bool ) {
+	result = strings.TrimSpace( c.Get( fiber.HeaderAuthorization ) ) != ""
 	return
 }
 
@@ -173,12 +276,10 @@ func ( guard *Guard ) resolveSession( c fiber.Ctx ) ( actor *Actor ) {
 func ( guard *Guard ) resolveAPIKey( c fiber.Ctx ) ( actor *Actor ) {
 	if guard.Config.APIKeysEnabled == false { return }
 
-	header := strings.TrimSpace( c.Get( fiber.HeaderAuthorization ) )
-	if header == "" { return }
-	scheme , credential , found := strings.Cut( header , " " )
-	if found == false || strings.EqualFold( scheme , "bearer" ) == false { return }
-	credential = strings.TrimSpace( credential )
-	if credential == "" { return }
+	// The scheme and the key, split on any whitespace, and nothing else.
+	parts := strings.Fields( c.Get( fiber.HeaderAuthorization ) )
+	if len( parts ) != 2 || strings.EqualFold( parts[ 0 ] , "bearer" ) == false { return }
+	credential := parts[ 1 ]
 
 	key , user := models.LoadAPIKey( guard.Store , credential )
 	if user == nil { return }
@@ -234,13 +335,21 @@ func ( guard *Guard ) RequireAdmin( c fiber.Ctx ) ( err error ) {
 // browser session for all of these means every credential traces back to a
 // person signing in, and revoking a key actually revokes it.
 //
-// What a leaked admin-scoped key can still do is everything else an admin
-// can: list and disable accounts, revoke access. That is why admin keys have
-// to be asked for, and why the admin key list exists.
+// Accounts and ways in are not on that list. An admin key may create and
+// delete accounts, change roles and hand out login links and invite links.
+// A key makes its own account a login link only once that account switched
+// it on for the key, from a session (models.APIKey.MaySignIn), and then one
+// that works once, for at most 15 minutes. What keeps
+// revoking a leaked key meaningful is that every link records the key that
+// made it, and revoking or deleting the key voids those still usable and ends
+// every session one of its login links signed in (models.VoidLinksMintedByKeyTx).
+// Disabling or demoting the key's account does the same for all its keys.
+// What it does not undo is anything such a session did meanwhile, or the
+// accounts made through an invite link it handed out: those show in the
+// activity log and the user list.
 //
-// Drop this from a route if an app genuinely needs to provision accounts or
-// keys programmatically -- but do it knowingly: such a key can then mint its
-// own successors, and that app's docs should say so.
+// Keys themselves stay browser-only: a key that could mint a key would leave
+// a successor behind with nothing to tie it to the one revoked.
 func ( guard *Guard ) RequireSession( c fiber.Ctx ) ( err error ) {
 	actor := ActorFrom( c )
 	if actor == nil {
@@ -358,5 +467,49 @@ func SameOrigin( c fiber.Ctx ) ( ok bool ) {
 		return
 	}
 	ok = origin == c.Scheme()+"://"+c.Host()
+	return
+}
+
+// RequireAPIKey is RequireSession's mirror: it refuses a browser session and
+// lets only a key through. It guards /mcp, which is for agents and scripts.
+// Taking only a header credential there means no ambient cookie can ride
+// along on a request some other page caused, so the endpoint needs no CSRF
+// token and the no-credentials rule for keys covers everything it can do.
+func ( guard *Guard ) RequireAPIKey( c fiber.Ctx ) ( err error ) {
+	actor := ActorFrom( c )
+	if actor == nil {
+		c.Set( fiber.HeaderWWWAuthenticate , "Bearer" )
+		err = c.Status( fiber.StatusUnauthorized ).JSON( fiber.Map{ "error": "not authenticated" } )
+		return
+	}
+	if actor.ViaAPIKey() == false {
+		err = c.Status( fiber.StatusForbidden ).JSON( fiber.Map{ "error": "this endpoint requires an API key, not a signed-in session" } )
+		return
+	}
+	err = c.Next()
+	return
+}
+
+// RequireOwner lets through only the owner, signed in from a browser. It
+// guards the activity log (routes/logs.go), which shows what every account
+// did -- including the other admins, which is exactly why they cannot read
+// it. Everyone else, any API key included, gets the 404 an unknown route
+// gets: the Logs screen is not something to advertise.
+//
+// A session, not a key: the log holds every account's IP addresses and
+// activity, and a key is a credential that lives in files. An app that wants
+// the log readable by a script should add a narrow export, knowingly.
+func ( guard *Guard ) RequireOwner( c fiber.Ctx ) ( err error ) {
+	actor := ActorFrom( c )
+	allowed := actor != nil && actor.ViaAPIKey() == false && actor.IsAdmin()
+	if allowed {
+		owner_id , owner_err := models.SuperAdminID( guard.Store )
+		allowed = owner_err == nil && owner_id != 0 && actor.User.ID == owner_id
+	}
+	if allowed == false {
+		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "not_found" } )
+		return
+	}
+	err = c.Next()
 	return
 }

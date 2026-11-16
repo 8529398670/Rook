@@ -36,7 +36,33 @@ var (
 	// ErrLocked: a key that cannot be changed from here -- docker.* and
 	// build.* inside the container, and what the image pins.
 	ErrLocked = errors.New( "this setting cannot be changed from inside the container" )
+	// ErrFileOnly: a key that names a path, which only config.yaml may set
+	// (see FileOnly).
+	ErrFileOnly = errors.New( "this setting names a path, so it can only be changed in config.yaml" )
 )
+
+// fileOnlyKeys are the keys that name a path on disk. The Settings screen
+// never changes them, inside a container or out: a path decides what the
+// server reads, writes or serves, so letting a web session pick one turns a
+// stolen owner session into reading secret.key -- server.static_dir is served
+// to anyone, without signing in. The person with the file in front of them
+// can still change any of these by editing it. Add a key here when you add
+// a path-typed key to defaults.yaml; schema_test.go fails until you do.
+var fileOnlyKeys = map[string]bool{
+	"server.app_dir":       true,
+	"server.static_dir":    true,
+	"server.language_file": true,
+	"docker.data_dir":      true,
+	"build.output_dir":     true,
+	"game.bot_names_file":  true,
+}
+
+// FileOnly is true for a key the Settings screen never changes (see
+// fileOnlyKeys).
+func FileOnly( key KeySchema ) ( result bool ) {
+	result = fileOnlyKeys[ key.Path ]
+	return
+}
 
 
 // UnknownSettingError: a key the schema does not have.
@@ -275,6 +301,10 @@ func EditChanges( raw []byte , changes map[string]any , label string , from_serv
 		for _ , key := range section.Keys {
 			value , submitted := changes[ key.Path ]
 			if submitted == false { continue }
+			if from_server && FileOnly( key ) {
+				err = fmt.Errorf( "%s: %w" , key.Path , ErrFileOnly )
+				return
+			}
 			if from_server && Locked( key ) {
 				err = fmt.Errorf( "%s: %w" , key.Path , ErrLocked )
 				return
@@ -314,11 +344,15 @@ func EditChanges( raw []byte , changes map[string]any , label string , from_serv
 	return
 }
 
-// Locked is true for a key that cannot be changed from inside the container:
-// docker.* and build.* (a compromised container must not be able to choose
-// what docker/run.sh mounts and chowns on the host next time), and the keys
-// the image pins.
+// Locked is true for a key the Settings screen cannot change: a file-only
+// key (see FileOnly) anywhere, and inside the container docker.* and build.*
+// (a compromised container must not be able to choose what docker/run.sh
+// mounts and chowns on the host next time), and the keys the image pins.
 func Locked( key KeySchema ) ( locked bool ) {
+	if FileOnly( key ) {
+		locked = true
+		return
+	}
 	if InContainer() == false { return }
 	locked = key.Mode == ModeScripts || pinnedKey( key.Path )
 	return

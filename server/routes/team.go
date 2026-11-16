@@ -3,6 +3,8 @@ package routes
 import (
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	models "rook/server/models"
 )
 
@@ -11,7 +13,10 @@ import (
 // of names. It returns id, display name and avatar only; role and disabled status
 // stay behind the admin endpoint, because those are facts about who
 // administers the app rather than about who you can hand work to.
-func ( handlers *Handlers ) ListTeam( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/team", summary="List team", tag="Account",
+// )
+func ( handlers *Handlers ) ListTeam( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	users , list_err := models.ListUsers( handlers.Store )
 	if list_err != nil {
 		err = serverError( c )

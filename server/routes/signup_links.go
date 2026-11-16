@@ -6,6 +6,8 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
+
 	models "rook/server/models"
 	security "rook/server/security"
 )
@@ -20,10 +22,10 @@ import (
 // holding an API key has no business doing.
 
 type signupLinkRequest struct {
-	Label     string `json:"label"`
-	MaxUses   int    `json:"max_uses"`
-	Days      int    `json:"days"`
-	CSRFToken string `json:"csrf_token"`
+	Label     string `json:"label,omitempty"`
+	MaxUses   int    `json:"max_uses,omitempty"`
+	Days      int    `json:"days,omitempty"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 // RequireInviter refuses anyone who may not bring new people in.
@@ -59,7 +61,9 @@ func ( handlers *Handlers ) signupLinkRow( link *models.SignupLink ) ( row fiber
 	return
 }
 
-func ( handlers *Handlers ) ListSignupLinks( c fiber.Ctx ) ( err error ) {
+// @route("GET /api/signup-links", summary="List signup links", tag="Sign-up links", access=SESSION_ONLY, use=[handlers.RequireInviter],
+// )
+func ( handlers *Handlers ) ListSignupLinks( c fiber.Ctx , in *apidoc.None ) ( err error ) {
 	user := security.UserFrom( c )
 	var links []*models.SignupLink
 	var list_err error
@@ -82,12 +86,11 @@ func ( handlers *Handlers ) ListSignupLinks( c fiber.Ctx ) ( err error ) {
 
 // CreateSignupLink returns the link's credential once, like a login link: it
 // is stored only as a hash and cannot be shown again.
-func ( handlers *Handlers ) CreateSignupLink( c fiber.Ctx ) ( err error ) {
-	var body signupLinkRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/signup-links", summary="Create signup link", tag="Sign-up links", access=SESSION_ONLY, use=[handlers.RequireInviter],
+// )
+func ( handlers *Handlers ) CreateSignupLink( c fiber.Ctx , in *createSignupLinkIn ) ( err error ) {
+	body := in.signupLinkRequest
 	label := strings.TrimSpace( body.Label )
 	if label == "" || len( label ) > 80 || body.MaxUses < 1 || body.MaxUses > 1000 || body.Days < 1 || body.Days > 365 {
 		err = badRequest( c , "bad_signup_link" )
@@ -106,12 +109,10 @@ func ( handlers *Handlers ) CreateSignupLink( c fiber.Ctx ) ( err error ) {
 
 // RevokeSignupLink switches a link off. Someone else's link answers the
 // same as no link at all, so ids cannot be probed.
-func ( handlers *Handlers ) RevokeSignupLink( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/signup-links/{link_id}/revoke", summary="Revoke signup link", tag="Sign-up links", access=SESSION_ONLY, use=[handlers.RequireInviter],
+// )
+func ( handlers *Handlers ) RevokeSignupLink( c fiber.Ctx , in *revokeSignupLinkIn ) ( err error ) {
 	user := security.UserFrom( c )
 	link , get_err := models.GetSignupLink( handlers.Store , c.Params( "link_id" ) )
 	if get_err != nil || ( user.IsAdmin() == false && link.CreatedBy != user.ID ) {
@@ -128,12 +129,10 @@ func ( handlers *Handlers ) RevokeSignupLink( c fiber.Ctx ) ( err error ) {
 
 // DeleteSignupLink removes anyone's link, live or dead, so it drops off the
 // list. The owner only (RequireOwner on the route).
-func ( handlers *Handlers ) DeleteSignupLink( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/signup-links/{link_id}/delete", summary="Delete signup link", tag="Sign-up links", access=SESSION_ONLY, use=[handlers.RequireOwner],
+// )
+func ( handlers *Handlers ) DeleteSignupLink( c fiber.Ctx , in *deleteSignupLinkIn ) ( err error ) {
 	link , get_err := models.GetSignupLink( handlers.Store , c.Params( "link_id" ) )
 	if get_err != nil {
 		err = notFound( c , "no such link" )

@@ -1,4 +1,4 @@
-// The settings screen: your account, the light/dark choice, API keys, and --
+// The settings screen: your account, how you play, API keys, and --
 // for admins -- who can get in. Each section is its own page,
 // #/settings/<part>; one screen holds them all and shows only the one the
 // hash names, so the wiring below is done once whichever page opens first.
@@ -21,12 +21,6 @@ const Settings = {
     Dom.get( "device-link-copy" ).addEventListener( "click" , function () {
       Dom.copy( Dom.get( "device-link-value" ) , Dom.get( "device-link-copied" ) );
     } );
-    Dom.all( "[data-theme-choice]" ).forEach( function ( button ) {
-      button.addEventListener( "click" , function () {
-        Theme.set( button.getAttribute( "data-theme-choice" ) );
-        Settings.renderTheme();
-      } );
-    } );
     this.renderWho();
     this.renderLevels();
     // On (the default) means the account's partner_bot_outbids is off.
@@ -42,7 +36,6 @@ const Settings = {
         Toast.error( error );
       }
     } );
-    Zoom.bind( Dom.get( "settings-zoom" ) );
     // A session's own list: an API key has no device to show.
     Dom.show( Dom.get( "sessions-card" ) , me.auth !== "api_key" );
     Sessions.init();
@@ -56,7 +49,6 @@ const Settings = {
       // Fresh each visit: a device signed in elsewhere since should show.
       if ( this.me.auth !== "api_key" ) await Sessions.refresh();
     }
-    if ( part === "display" ) this.renderTheme();
     if ( !this.ready ) {
       this.ready = true;
       await this.loadPanels();
@@ -66,7 +58,7 @@ const Settings = {
   // The pages this account may open: Invites for anyone who may invite;
   // Admin (players, game settings, everyone's API keys) for the owner alone.
   parts() {
-    const parts = [ "account" , "play" , "display" ];
+    const parts = [ "account" , "play" ];
     if ( this.me.can_invite ) parts.push( "invites" );
     if ( this.me.owner ) parts.push( "admin" );
     return parts;
@@ -158,13 +150,6 @@ const Settings = {
     } catch ( error ) {
       Toast.error( error );
     }
-  },
-
-  renderTheme() {
-    const current = Theme.get();
-    Dom.all( "[data-theme-choice]" ).forEach( function ( button ) {
-      button.setAttribute( "aria-checked" , String( button.getAttribute( "data-theme-choice" ) === current ) );
-    } );
   },
 
   async onRename( event ) {

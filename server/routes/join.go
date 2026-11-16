@@ -14,12 +14,15 @@ import (
 // for a login link.
 
 type joinSignupRequest struct {
-	DisplayName string `json:"display_name"`
+	DisplayName string `json:"display_name,omitempty"`
 }
 
 // GetJoin is public: it says what the link leads to and what the visitor
 // can do about it, and nothing about the cards.
-func ( handlers *Handlers ) GetJoin( c fiber.Ctx ) ( err error ) {
+//
+// @route("GET /api/join/{code}", summary="Get join", tag="Join", access=PUBLIC,
+// )
+func ( handlers *Handlers ) GetJoin( c fiber.Ctx , in *getJoinIn ) ( err error ) {
 	id , code_err := handlers.Hub.ByCode( c.Params( "code" ) , false )
 	if code_err != nil {
 		err = handlers.tableError( c , code_err )
@@ -51,12 +54,10 @@ func ( handlers *Handlers ) GetJoin( c fiber.Ctx ) ( err error ) {
 }
 
 // JoinTable is for someone signed in: sit at the first free seat, if any.
-func ( handlers *Handlers ) JoinTable( c fiber.Ctx ) ( err error ) {
-	var body csrfOnlyRequest
-	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
-		err = decode_err
-		return
-	}
+//
+// @route("POST /api/join/{code}", summary="Join table", tag="Join",
+// )
+func ( handlers *Handlers ) JoinTable( c fiber.Ctx , in *joinTableIn ) ( err error ) {
 	user := security.UserFrom( c )
 	id , join_err := handlers.Hub.Join( c.Params( "code" ) , user )
 	if join_err != nil {
@@ -70,7 +71,10 @@ func ( handlers *Handlers ) JoinTable( c fiber.Ctx ) ( err error ) {
 // JoinSignup creates an account from a join link, signs the browser in, and
 // seats them. Only while the admin's "sign up through join links" setting is
 // on; the new account is always a plain player.
-func ( handlers *Handlers ) JoinSignup( c fiber.Ctx ) ( err error ) {
+//
+// @route("POST /api/join/{code}/signup", summary="Join signup", tag="Join", access=PUBLIC,
+// )
+func ( handlers *Handlers ) JoinSignup( c fiber.Ctx , in *joinSignupIn ) ( err error ) {
 	if security.SameOrigin( c ) == false {
 		err = forbidden( c , "cross-site request" )
 		return
