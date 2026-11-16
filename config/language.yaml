@@ -1015,11 +1015,12 @@ theme:
   preset_forest: "Forest"
   preset_sepia: "Sepia"
   preset_grape: "Grape"
+  preset_cerise: "Cerise"
   preset_pink: "Pink"
   preset_wsu: "WSU"
+  preset_osu: "OSU"
   preset_midnight: "Midnight"
   preset_slate: "Slate"
-  preset_cerise: "Cerise"
 
 chat_dock:
   heading: "Chat beside your cards"
@@ -1113,7 +1114,6 @@ new_user_defaults:
 
 zoom:
   heading: "Card size"
-  description: "Make the cards bigger or smaller. Remembered on this device, so your phone and computer can differ. The table cards never grow past what fits between the seats."
   table: "Cards on the table"
   hand: "Your hand"
   reset: "Reset to 100%"

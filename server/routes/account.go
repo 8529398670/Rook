@@ -65,13 +65,14 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// the app's defaults, else null for the built-in ones.
 		"theme_id":         user.ThemeID,
 	}
-	themes , themes_custom , themes_err := handlers.myThemes( user )
+	themes , themes_custom , themes_builtins , themes_err := handlers.myThemes( user )
 	if themes_err != nil {
 		err = serverError( c , themes_err )
 		return
 	}
 	payload[ "themes" ] = themes
 	payload[ "themes_custom" ] = themes_custom
+	payload[ "themes_builtins" ] = themes_builtins
 	// Only a session has a CSRF token. A key-authenticated request has no
 	// ambient credential to protect, so there is nothing to hand back -- see
 	// Guard.CheckCSRF.

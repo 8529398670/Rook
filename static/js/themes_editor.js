@@ -3,7 +3,8 @@
 // Rook's own buttons, cards and segmented controls rather than Bootstrap's.
 //
 // Everyone gets "My themes": pick one to use, add, duplicate, rename, delete,
-// and change any color. Until someone changes something they follow the
+// and change any color. Use opens that theme in the editor, and the editor's
+// Light/Dark switch puts the theme being edited to use. Until someone changes something they follow the
 // app's defaults; the first change saves the whole list to their account and
 // from then on it is theirs ("Go back to the defaults" undoes that).
 //
@@ -64,7 +65,6 @@ const ThemeEditor = {
     this.me = me;
     Theme.load( me );
     Dom.get( "appearance-back" ).addEventListener( "click" , function () { App.go( "#/" ); } );
-    Zoom.bind( Dom.get( "display-zoom" ) );
     Dom.get( "theme-confirm-button" ).addEventListener( "click" , () => {
       const resolve = this.confirmed;
       this.confirmed = null;
@@ -111,7 +111,7 @@ const ThemeEditor = {
     } );
     defaults.render();
     return Api.themeDefaults().then( ( reply ) => {
-      this.defaults = reply.themes || null;
+      this.defaults = this.savedDefaults( reply );
       defaults.render();
     } ).catch( ( error ) => Toast.error( error ) );
   },
@@ -152,11 +152,17 @@ const ThemeEditor = {
   },
 
   async saveDefaults( next ) {
-    const reply = await Api.setThemeDefaults( next );
-    this.defaults = reply.themes || null;
+    const reply = await Api.setThemeDefaults( next , Theme.builtInsSeen() );
+    this.defaults = this.savedDefaults( reply );
     // Someone following the defaults sees the new ones at once, admin included.
-    if ( !Theme.custom ) Theme.load( { themes: this.defaults , themes_custom: false , theme_id: Theme.current } );
+    if ( !Theme.custom ) Theme.load( { themes: this.defaults , themes_custom: false , themes_builtins: Theme.builtInsSeen() , theme_id: Theme.current } );
     this.editors.forEach( ( editor ) => editor.render() );
+  },
+
+  // The admin's saved list from a reply, with any built-in theme added since
+  // it was saved; null while the built-in themes apply.
+  savedDefaults( reply ) {
+    return reply.themes ? Theme.withNewBuiltIns( reply.themes.map( ( theme ) => Theme.copy( theme ) ) , reply.builtins || 0 ) : null;
   },
 
   newID() {
@@ -240,9 +246,10 @@ const ThemeEditor = {
         } ) );
       },
       // Light or dark: each keeps its own colors (Theme.setMode), so switching
-      // back finds the colors from before.
+      // back finds the colors from before. In My themes it also puts the theme
+      // to use, so the switch is seen on the page at once (one undo step).
       mode( theme , value ) {
-        return save( edited( theme , ( copy ) => { Theme.setMode( copy , value ); } ) );
+        return save( edited( theme , ( copy ) => { Theme.setMode( copy , value ); } ) , source.use ? theme.id : undefined );
       },
       override( theme , field , value ) {
         return save( edited( theme , ( copy ) => {

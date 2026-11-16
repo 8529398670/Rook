@@ -28,14 +28,12 @@
 # hex characters, mode 0600, never committed (.gitignore), never baked into an
 # image (.dockerignore). Back the two up together with the app directory.
 #
-# It can be changed while the server runs -- by hand, or from the owner's
-# Settings screen, which edits only the values it changes and leaves every
-# comment where it is. The server checks this file every two seconds; an
-# edit that does not validate is reported and ignored, and the server keeps
-# running on the last good version. Each key is tagged:
+# Rook reads this file when the server starts, so a change takes effect on
+# the next scripts/run.sh (or docker/run.sh). `rook config check` validates
+# it first. Each key is tagged with what the template it came from would do:
 #
-#   [live]      takes effect within seconds of saving
-#   [restart]   saved now, takes effect when the server restarts
+#   [live]      could take effect while the server runs (Rook: on restart)
+#   [restart]   takes effect when the server restarts
 #   [scripts]   read by docker/run.sh or scripts/build.sh, not the server
 #
 # Where it is read from, first match wins:
@@ -123,9 +121,16 @@ server:
   # trusted_proxies is refused.
   #
   #   proxy on the same host, bare binary:  [127.0.0.1, "::1"]
-  #   proxy on the host, app in Docker:     [172.16.0.0/12] (the bridge
-  #                                         gateway; check with
+  #   proxy on the host, app in Docker:     [172.17.0.1] (the bridge
+  #                                         gateway exactly, not a range:
+  #                                         172.16.0.0/12 trusts every
+  #                                         container; find it with
   #                                         `docker network inspect bridge`)
+  #   Cloudflare Tunnel (cloudflared here): [127.0.0.1, "::1"] with
+  #                                         proxy_header: CF-Connecting-IP
+  #
+  # A range wider than /8 (IPv4) or /16 (IPv6) is refused. Running behind
+  # Cloudflare: see references/deploy-cloudflare.md in the webserver skill.
   #
   # This only holds if clients cannot reach this server except through the
   # proxy. With a single-value header (X-Real-IP, CF-Connecting-IP) the proxy
@@ -226,7 +231,7 @@ game:
   max_tables: 50
   # A CSV of names random bots are given. The default, misc/biblical-persons.csv,
   # is read from disk when it is there and from the copy in the binary when not.
-  bot_names_file: misc/hand-picked-biblical-names.csv
+  bot_names_file: misc/biblical-persons.csv
 
 # [scripts] Read by docker/run.sh, which applies a change the next time it
 # runs. Edit these on the host: inside the container they are read-only.

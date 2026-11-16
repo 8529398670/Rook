@@ -49,6 +49,24 @@ const ThemePalettes = {
     faded_gold: "#e7e3c6",
     off_white: "#f2f1f0",
   },
+  // The Ohio State University. Primary: scarlet, gray and white. Scarlet is
+  // for what you press; it has shades but no tints (nothing lighter).
+  osu: {
+    scarlet: "#ba0c2f",
+    gray: "#a7b1b7",
+    white: "#ffffff",
+    scarlet_dark_40: "#70071c",
+    scarlet_dark_60: "#4a0513",
+    gray_light_20: "#bfc6cb",
+    gray_light_40: "#cfd4d8",
+    gray_light_60: "#dfe3e5",
+    gray_light_80: "#eff1f2",
+    gray_light_90: "#f6f7f8",
+    gray_dark_20: "#868e92",
+    gray_dark_40: "#646a6e",
+    gray_dark_60: "#3f4443",
+    gray_dark_80: "#212325",
+  },
 };
 
 const Theme = {
@@ -67,6 +85,12 @@ const Theme = {
   // mode's under its name, which the editor's Light/Dark swaps in (setMode).
   // Default comes first and starts light: it is what a new browser shows, and
   // its colors are style.css's own.
+  //
+  // A theme added after the first ones carries since: one more than the
+  // highest so far. A saved list remembers the highest it has seen
+  // (builtInsSeen), and withNewBuiltIns adds any newer one to it, so a new
+  // theme reaches people who already made their own list. Never reuse or
+  // lower a since; moving a theme in this list does not move it in saved ones.
   builtIn: [
     { id: "default" , mode: "light" , accent: "#157f92" , second: "#a8641c" ,
       dark: { accent: "#4cc3d6" , second: "#e8b45e" } },
@@ -78,17 +102,26 @@ const Theme = {
       dark: { accent: "#e0a15e" , second: "#6cc4bb" , background: "#1c1712" , surface: "#262019" } },
     { id: "grape" , mode: "light" , accent: "#7048c8" , second: "#c0267e" , background: "#f5f2fc" , surface: "#ffffff" ,
       dark: { accent: "#b197fc" , second: "#f783ac" , background: "#15111f" , surface: "#1e182c" } },
+    { id: "cerise" , mode: "dark" , accent: "#f06595" , second: "#ffa8d0" , background: "#1f0d16" , surface: "#2a1220" ,
+      light: { accent: "#b0164c" , second: "#e64980" , background: "#fdf2f6" , surface: "#ffffff" } },
     { id: "pink" , mode: "light" , accent: "#c2255c" , second: "#6b3fc0" , background: "#fdf0f5" , surface: "#ffffff" ,
       dark: { accent: "#f783ac" , second: "#b197fc" , background: "#1f1018" , surface: "#2a1621" } },
     // Wright State University: Green on Off White; switched to dark, Gold on Black with Dark Green panels.
     { id: "wsu" , mode: "light" , accent: ThemePalettes.wsu.green , second: ThemePalettes.wsu.gold , background: ThemePalettes.wsu.off_white , surface: "#ffffff" ,
       dark: { accent: ThemePalettes.wsu.gold , second: ThemePalettes.wsu.yellow , background: ThemePalettes.wsu.black , surface: ThemePalettes.wsu.dark_green } },
+    // The Ohio State University: Scarlet on Gray Light 90 with Gray Dark 40 for
+    // where you are; switched to dark, Scarlet on Gray Dark 80 with Gray Dark 60 panels.
+    // Text is the gray shades; dark links and outline buttons are gray tints,
+    // never a scarlet tint (no scarlet reads on a dark card).
+    { id: "osu" , since: 1 , mode: "light" , accent: ThemePalettes.osu.scarlet , second: ThemePalettes.osu.gray_dark_40 , background: ThemePalettes.osu.gray_light_90 , surface: ThemePalettes.osu.white ,
+      overrides: { text: ThemePalettes.osu.gray_dark_80 } ,
+      dark: { accent: ThemePalettes.osu.scarlet , second: ThemePalettes.osu.gray , background: ThemePalettes.osu.gray_dark_80 , surface: ThemePalettes.osu.gray_dark_60 ,
+        overrides: { text: ThemePalettes.osu.gray_light_60 , link: ThemePalettes.osu.gray_light_40 , navLink: ThemePalettes.osu.gray_light_40 ,
+          accentText: ThemePalettes.osu.gray_light_40 } } },
     { id: "midnight" , mode: "dark" , accent: "#8c7cff" , second: "#ffb86b" , background: "#0e1020" , surface: "#171a30" ,
       light: { accent: "#5b4bd6" , second: "#c26a00" , background: "#f3f3fb" , surface: "#ffffff" } },
     { id: "slate" , mode: "dark" , accent: "#4fb3a9" , second: "#e6b450" , background: "#15191e" , surface: "#1d232a" ,
       light: { accent: "#2b7a72" , second: "#a0711a" , background: "#f2f4f6" , surface: "#ffffff" } },
-    { id: "cerise" , mode: "dark" , accent: "#f06595" , second: "#ffa8d0" , background: "#1f0d16" , surface: "#2a1220" ,
-      light: { accent: "#b0164c" , second: "#e64980" , background: "#fdf2f6" , surface: "#ffffff" } },
   ],
 
   // What a theme leaves out: Rook's own page, card and text, and the outlines
@@ -134,8 +167,9 @@ const Theme = {
   tints: { page: 3.5 , surface: 1.75 , nested: 8.75 , chrome: 10 },
 
   // The fields of colors() a theme may override (the server checks the same
-  // names, server/models/themes.go).
-  fields: [ "text" , "accent" , "accentFg" , "second" , "secondFg" , "link" , "navLink" ,
+  // names, server/models/themes.go). accentText is kept for the template's
+  // themes (OSU dark sets it); Rook draws no outline primary button with it.
+  fields: [ "text" , "accent" , "accentFg" , "accentText" , "second" , "secondFg" , "link" , "navLink" ,
     "background" , "surface" , "nested" , "chrome" , "border" , "ledRing" , "winRing" ],
 
   // Pairs that must stay readable: [ front , back ] fields of colors(). Names
@@ -164,6 +198,7 @@ const Theme = {
   // A built-in theme with its name filled in, ready to be saved in a list.
   named( theme ) {
     const copy = this.copy( theme );
+    delete copy.since;
     if ( !copy.name ) copy.name = ( typeof I18n === "undefined" ? "" : I18n.get( "theme.preset_" + theme.id ) ) || theme.id;
     return copy;
   },
@@ -348,7 +383,7 @@ const Theme = {
     this.signedIn = true;
     this.custom = Boolean( me.themes_custom );
     this.list = Array.isArray( me.themes ) && me.themes.length > 0
-      ? me.themes.map( ( theme ) => this.copy( theme ) )
+      ? this.withNewBuiltIns( me.themes.map( ( theme ) => this.copy( theme ) ) , me.themes_builtins || 0 )
       : this.builtIn.map( ( theme ) => this.named( theme ) );
     this.current = this.find( me.theme_id || kept ).id;
     const restored = this.restored;
@@ -386,8 +421,34 @@ const Theme = {
   // Saves someone's whole list (null: back to the defaults) and which one they
   // use, and takes the server's answer as the new state.
   async store( list , id ) {
-    const reply = await Api.setThemes( list , id );
+    const reply = await Api.setThemes( list , id , this.builtInsSeen() );
     this.load( reply );
+  },
+
+  // Which built-in themes a list saved now has seen: the highest since.
+  builtInsSeen() {
+    return Math.max( 0 , ...this.builtIn.map( ( theme ) => theme.since || 0 ) );
+  },
+
+  // A saved list with every built-in theme newer than seen added, each just
+  // after the built-in before it (or at the end), while there is room (40, the
+  // server's limit). One already there by id is left as it is.
+  withNewBuiltIns( list , seen ) {
+    const result = list.slice();
+    this.builtIn.forEach( ( theme , index ) => {
+      if ( ( theme.since || 0 ) <= seen || result.length >= 40 ) return;
+      if ( result.some( ( item ) => item.id === theme.id ) ) return;
+      let at = result.length;
+      for ( let back = index - 1; back >= 0; back -= 1 ) {
+        const found = result.findIndex( ( item ) => item.id === this.builtIn[ back ].id );
+        if ( found >= 0 ) {
+          at = found + 1;
+          break;
+        }
+      }
+      result.splice( at , 0 , this.named( theme ) );
+    } );
+    return result;
   },
 
   // Every color the page needs, from a theme's few, before its overrides.
@@ -405,6 +466,8 @@ const Theme = {
       text: mode.text,
       accent: theme.accent,
       accentFg: this.readableOn( theme.accent ),
+      // The outline button's label and border, read on the card.
+      accentText: this.asText( theme.accent , card ),
       second: second,
       secondFg: this.readableOn( second ),
       link: this.asText( theme.accent , nested ),

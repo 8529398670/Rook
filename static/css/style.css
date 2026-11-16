@@ -1353,13 +1353,12 @@ button.log-ip {
 
 /* --------------------------------------------------------- appearance */
 /* js/themes_editor.js. A phone: the theme list, then the editor, one column.
-   From 48rem the list sits beside the editor; from 80rem the preview sits
-   beside the colors and stays in view while they scroll. */
+   From 48rem the page takes the full width and the list sits beside the
+   editor; from 80rem the preview sits beside the colors and stays in view
+   while they scroll. */
 
 .lobby-main.appearance-main { max-width: 46rem; }
 .theme-tabs { max-width: 26rem; }
-/* Display's zoom sliders: a slider wider than this is just harder to aim. */
-.display-zoom-card .zoom-controls { max-width: 34rem; }
 
 .theme-editor { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
 
@@ -1484,18 +1483,17 @@ button.theme-item-pick[aria-pressed="true"] { border-color: var(--accent); }
 .theme-preview-playcard.is-winner { outline: 3px solid var(--win-ring); }
 
 @media (min-width: 48rem) {
-  .lobby-main.appearance-main { max-width: 72rem; }
-  .theme-editor { display: grid; grid-template-columns: 15rem minmax(0, 1fr); align-items: start; }
+  .lobby-main.appearance-main { max-width: none; }
+  .theme-editor { display: grid; grid-template-columns: minmax(18rem, 24rem) minmax(0, 1fr); align-items: start; column-gap: 1.5rem; }
   .theme-colors { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .theme-edit-head { flex-direction: row; align-items: flex-end; }
   .theme-edit-head .field { flex: 1 1 auto; }
 }
 
 @media (min-width: 80rem) {
-  .lobby-main.appearance-main { max-width: 90rem; }
   .theme-edit {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 22rem;
+    grid-template-columns: minmax(0, 1fr) 24rem;
     column-gap: 1.5rem;
     align-content: start;
   }

@@ -370,9 +370,10 @@
   </section>
 
   <!-- ======================================================== display -->
-  <!-- Display (#/display): the zoom sliders, then the themes
-       (js/themes_editor.js, js/theme.js): pick one, make your own, change any
-       color, light or dark. Admins also edit the defaults everyone starts with. -->
+  <!-- Display (#/display): the themes (js/themes_editor.js, js/theme.js):
+       pick one, make your own, change any color, light or dark. Admins also
+       edit the defaults everyone starts with. Card size lives in the table
+       menu (#menu-zoom). -->
   <section id="screen-appearance" class="screen screen-appearance" hidden>
     <header class="page-header">
       <button id="appearance-back" type="button" class="icon-button" data-i18n-attr="aria-label:nav.back,title:nav.back">
@@ -384,11 +385,6 @@
     <!-- Wide: the theme list beside the editor, and from a desktop width the
          preview beside the colors, staying in view while they scroll. -->
     <main class="lobby-main appearance-main">
-      <div class="card display-zoom-card">
-        <h2 data-i18n="zoom.heading"></h2>
-        <p class="muted" data-i18n="zoom.description"></p>
-        <div id="display-zoom" class="zoom-controls" data-zoom-controls></div>
-      </div>
       <div id="theme-tabs" class="segmented theme-tabs" role="tablist" data-i18n-attr="aria-label:theme.heading" hidden>
         <button id="theme-tab-mine" type="button" role="tab" aria-selected="true" aria-controls="theme-pane-mine" data-theme-tab="mine" data-i18n="theme.tab_mine"></button>
         <button id="theme-tab-defaults" type="button" role="tab" aria-selected="false" aria-controls="theme-pane-defaults" data-theme-tab="defaults" data-i18n="theme.tab_defaults"></button>
