@@ -5621,7 +5621,10 @@
                   "options": {
                     "properties": {
                       "play_to": {
-                        "type": "integer"
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
                       },
                       "rook_anytime": {
                         "type": "boolean"
@@ -5633,12 +5636,6 @@
                         "type": "string"
                       }
                     },
-                    "required": [
-                      "play_to",
-                      "rook_anytime",
-                      "rook_first_trick",
-                      "rook_rank"
-                    ],
                     "type": "object"
                   }
                 },

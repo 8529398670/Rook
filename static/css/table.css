@@ -1532,6 +1532,8 @@
 .history-move[aria-current="step"] { color: var(--accent-fg); background: var(--accent); }
 
 .menu-switch { padding: 6px 12px; border: 1px solid var(--border); border-radius: 12px; background: var(--surface-2); }
+/* Theme and Light/Dark in one card: the switch fills the card's width. */
+.menu-theme { display: flex; flex-direction: column; gap: 8px; padding-bottom: 10px; }
 
 /* ------------------------------------------- history: hands and tricks */
 

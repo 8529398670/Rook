@@ -1180,6 +1180,18 @@
           </span>
           <input type="checkbox" role="switch" data-win-glow-toggle />
         </label>
+        <!-- The theme in use and its light/dark, switched live while
+             playing (js/theme_menu.js). The Display screen edits them. -->
+        <div class="menu-switch menu-theme">
+          <label class="switch-row pause-row">
+            <span>
+              <span class="switch-title" data-i18n="table_theme.heading"></span>
+              <span class="switch-help" data-i18n="table_theme.description"></span>
+            </span>
+            <select id="menu-theme" class="pause-select"></select>
+          </label>
+          <div id="menu-theme-mode" class="segmented" role="radiogroup" data-i18n-attr="aria-label:theme.mode"></div>
+        </div>
       </nav>
     </div>
 
@@ -1461,6 +1473,7 @@
   <script src="/js/guide.js"></script>
   <script src="/js/logs.js"></script>
   <script src="/js/themes_editor.js"></script>
+  <script src="/js/theme_menu.js"></script>
   <script src="/js/nav.js"></script>
   <script src="/js/app.js"></script>
 </body>

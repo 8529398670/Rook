@@ -69,6 +69,7 @@ const App = {
       Nav.init( me );
       Global.start( me );
     }
+    ThemeMenu.init();
     window.addEventListener( "hashchange" , this.route.bind( this ) );
     this.route();
   },

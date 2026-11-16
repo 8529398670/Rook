@@ -1954,10 +1954,10 @@ Create table
 | `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
 | `name` | string | no |  |  |
 | `options` | object | no |  |  |
-| `options.play_to` | integer | yes |  |  |
-| `options.rook_anytime` | boolean | yes |  |  |
-| `options.rook_first_trick` | boolean | yes |  |  |
-| `options.rook_rank` | string | yes |  |  |
+| `options.play_to` | integer or null | no |  |  |
+| `options.rook_anytime` | boolean | no |  |  |
+| `options.rook_first_trick` | boolean | no |  |  |
+| `options.rook_rank` | string | no |  |  |
 
 **Reply 200**: Success
 

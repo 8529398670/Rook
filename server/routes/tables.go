@@ -19,9 +19,29 @@ import (
 // Every rule and every refusal reason lives in server/tables or server/game.
 
 type createTableRequest struct {
-	Name      string       `json:"name,omitempty"`
-	Options   game.Options `json:"options,omitempty"`
-	CSRFToken string       `json:"csrf_token,omitempty"`
+	Name      string             `json:"name,omitempty"`
+	Options   createTableOptions `json:"options,omitempty"`
+	CSRFToken string             `json:"csrf_token,omitempty"`
+}
+
+// createTableOptions is what a new table's creator may send: every field is
+// optional, so the lobby can send play_to alone. The bird's rules are taken
+// but ignored -- Hub.Create sets them from the app's settings -- and are here
+// only so a client that still sends them is not refused. PlayTo is a pointer
+// because 0 is a real choice (one hand) and leaving it out means the default.
+type createTableOptions struct {
+	PlayTo         *int          `json:"play_to,omitempty"`
+	RookRank       game.RookRank `json:"rook_rank,omitempty"`
+	RookAnytime    bool          `json:"rook_anytime,omitempty"`
+	RookFirstTrick bool          `json:"rook_first_trick,omitempty"`
+}
+
+// game turns the request's options into a table's, the defaults filling in
+// whatever was left out.
+func ( sent createTableOptions ) game() ( options game.Options ) {
+	options = game.DefaultOptions()
+	if sent.PlayTo != nil { options.PlayTo = *sent.PlayTo }
+	return
 }
 
 type seatRequest struct {
@@ -147,12 +167,12 @@ func ( handlers *Handlers ) ListTables( c fiber.Ctx , in *apidoc.None ) ( err er
 // @route("POST /api/tables", summary="Create table", tag="Tables",
 // )
 func ( handlers *Handlers ) CreateTable( c fiber.Ctx , in *createTableIn ) ( err error ) {
-	body := createTableRequest{ Options: game.DefaultOptions() }
+	body := createTableRequest{}
 	if ok , decode_err := handlers.decode( c , &body , func() string { return body.CSRFToken } ); ok == false {
 		err = decode_err
 		return
 	}
-	id , create_err := handlers.Hub.Create( security.UserFrom( c ) , body.Name , body.Options )
+	id , create_err := handlers.Hub.Create( security.UserFrom( c ) , body.Name , body.Options.game() )
 	if create_err != nil {
 		err = handlers.tableError( c , create_err )
 		return
