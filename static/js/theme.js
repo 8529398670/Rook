@@ -352,6 +352,7 @@ const Theme = {
       // Storage blocked (private window, previews) or unreadable: stay light.
     }
     if ( !this.valid( saved ) ) saved = this.builtIn[ 0 ];
+    else this.withoutOldBar( saved );
     this.restored = saved;
     this.list = this.builtIn.map( ( theme ) => ( theme.id === saved.id ? this.copy( saved ) : this.copy( theme ) ) );
     this.current = saved.id;
@@ -386,8 +387,15 @@ const Theme = {
   },
 
   // A quieter line of text in this color, still readable on ground.
+  // It moves toward the text itself, never away from it: on a mid-tone bar
+  // (a pink or gold second color) pushing toward white would turn dark words
+  // white.
   muted( text , ground ) {
-    return this.asText( this.mix( text , ground , 62 ) , ground );
+    for ( let percent = 62 ; percent < 100 ; percent += 2 ) {
+      const tried = this.mix( text , ground , percent );
+      if ( this.contrast( tried , ground ) >= this.minContrast ) return tried;
+    }
+    return text;
   },
 
   // The custom properties style.css and table.css read, from colors(); the
@@ -396,8 +404,9 @@ const Theme = {
     const palette = this.tablePalettes[ this.tableLook( theme ) ];
     const soft = this.teamSoft[ theme.mode ] || this.teamSoft.light;
     // The bar while an admin holds the game: tinted with the theme's main
-    // color, or its second where the bar is already the main one (WSU, OSU).
-    const held = this.contrast( colors.accent , colors.tableBar ) >= 1.6 ? colors.accent : colors.second;
+    // color, or its second, or its own words' color: the first that shows on it.
+    const resume = this.contrast( colors.accent , colors.tableBar ) >= 1.6 ? colors.accent : colors.tableBarText;
+    const held = [ colors.accent , colors.second ].find( ( color ) => this.contrast( color , colors.tableBar ) >= 1.6 ) || colors.tableBarText;
     const vars = {
       "--fg": colors.text,
       "--fg-muted": this.asText( this.mix( colors.text , colors.surface , 62 ) , colors.surface ),
@@ -433,6 +442,10 @@ const Theme = {
       "--game-tray-muted": this.muted( colors.trayText , colors.tray ),
       "--game-held": this.mix( held , colors.tableBar , 16 ),
       "--game-held-line": held,
+      // The resume button on the bar: the main color, or the bar's words
+      // where the main color is the bar's own (OSU, WSU dark).
+      "--game-resume": resume,
+      "--game-resume-fg": resume === colors.accent ? colors.accentFg : colors.tableBar,
       "--us": colors.us,
       "--us-soft": this.mix( colors.us , colors.surface , soft ),
       "--them": colors.them,
@@ -556,13 +569,52 @@ const Theme = {
 
   // Which built-in themes a list saved now has seen: the highest since.
   builtInsSeen() {
-    return Math.max( this.gameSince , ...this.builtIn.map( ( theme ) => theme.since || 0 ) );
+    return Math.max( this.gameSince , this.barSince , ...this.builtIn.map( ( theme ) => theme.since || 0 ) );
   },
 
   // The "builtins" at which the built-in themes got their game screen colors
   // (ThemeGames, below). A list saved before that gets them too: see
   // withGame. Keep it above every since in builtIn.
   gameSince: 2,
+
+  // The "builtins" at which the bar across the top became the theme's
+  // second color, and Grape and Pink in light mode got deep felts
+  // (pastel pink beside pastel lavender read as a flag, not a theme). A list
+  // saved before that still carries the old colors as overrides;
+  // withNewBuiltIns swaps exactly those (one someone set to anything else
+  // stays). Keep it above every since too.
+  barSince: 3,
+  // id -> mode -> field -> [ old , new ]; a null new drops the override, so
+  // the worked-out color shows.
+  oldGames: {
+    wsu: {
+      light: { tableBar: [ ThemePalettes.wsu.green , null ] , tableBarText: [ "#ffffff" , null ] },
+      dark: { tableBar: [ ThemePalettes.wsu.dark_green , ThemePalettes.wsu.gold ] ,
+        tableBarText: [ ThemePalettes.wsu.yellow , ThemePalettes.wsu.black ] },
+    },
+    grape: { light: { table: [ "#d9cff3" , "#4a3a7c" ] , tableText: [ "#2e1f5c" , "#efeaff" ] } },
+    pink: { light: { table: [ "#f6c9da" , "#6e2448" ] , tableText: [ "#4b0f26" , "#fde6ef" ] } },
+  },
+
+  // A theme with the old built-in game colors swapped for the new, in place,
+  // for each mode.
+  withoutOldBar( theme ) {
+    const old = this.oldGames[ theme.id ];
+    if ( !old ) return theme;
+    const modes = [ [ theme.mode , theme ] ];
+    Object.keys( this.modes ).forEach( ( mode ) => { if ( theme[ mode ] ) modes.push( [ mode , theme[ mode ] ] ); } );
+    modes.forEach( ( [ mode , colors ] ) => {
+      const overrides = colors.overrides;
+      if ( !overrides || !old[ mode ] ) return;
+      Object.keys( old[ mode ] ).forEach( ( field ) => {
+        const [ was , now ] = old[ mode ][ field ];
+        if ( String( overrides[ field ] || "" ).toLowerCase() !== was.toLowerCase() ) return;
+        if ( now ) overrides[ field ] = now;
+        else delete overrides[ field ];
+      } );
+    } );
+    return theme;
+  },
 
   // The game screen's fields: a theme that sets any of them, or a table,
   // has made its own choice there.
@@ -587,7 +639,8 @@ const Theme = {
   // after the built-in before it (or at the end), while there is room (40, the
   // server's limit). One already there by id is left as it is.
   withNewBuiltIns( list , seen ) {
-    const result = seen < this.gameSince ? list.map( ( theme ) => this.withGame( theme ) ) : list.slice();
+    let result = seen < this.gameSince ? list.map( ( theme ) => this.withGame( theme ) ) : list.slice();
+    if ( seen < this.barSince ) result = result.map( ( theme ) => this.withoutOldBar( theme ) );
     this.builtIn.forEach( ( theme , index ) => {
       if ( ( theme.since || 0 ) <= seen || result.length >= 40 ) return;
       if ( result.some( ( item ) => item.id === theme.id ) ) return;
@@ -636,15 +689,18 @@ const Theme = {
       winRing: mode.winRing,
     };
     // The game screen, as the page has it until a theme says otherwise: the
-    // felt as its look draws it, the panels on it and the bar as cards, the
-    // tray and hand on the page, and the mode's two teams.
+    // felt as its look draws it, the panels on it as cards, the bar across
+    // the top in the theme's second color (so it never melts into the felt),
+    // the tray and hand on the page, and the mode's two teams.
     const palette = this.tablePalettes[ this.tableLook( theme ) ];
     result.table = palette.table || nested;
     result.tableText = palette.text || this.asText( mode.text , nested );
     result.tablePanel = card;
     result.tablePanelText = mode.text;
-    result.tableBar = card;
-    result.tableBarText = mode.text;
+    // Default keeps its bar a card, as style.css draws it.
+    const cardBar = theme.id === this.builtIn[ 0 ].id;
+    result.tableBar = cardBar ? card : this.barColor( second , surface , theme.mode , result.table );
+    result.tableBarText = cardBar ? mode.text : this.readableOn( result.tableBar );
     result.tray = result.background;
     result.trayText = mode.text;
     result.us = mode.us;
@@ -657,6 +713,45 @@ const Theme = {
       result[ name + "Fg" ] = this.readableOn( fill );
     } );
     return result;
+  },
+
+  // A light theme's bar is a pale tint of its second color, at least this
+  // light (relative luminance), with dark words: a light page gets a light
+  // band, never one darker than the same theme's dark bar. Where the felt is
+  // the same hue and as pale (Cerise: pink on pink), the bar keeps getting
+  // paler until it stands off the felt by barApart. Dark themes keep the second as
+  // it is.
+  barLightness: 0.65,
+  barApart: 1.2,
+  // Hues closer than this (degrees) count as the same color.
+  barHueGap: 30,
+
+  // How far apart two colors' hues are, 0 to 180 degrees.
+  hueGap( first , second ) {
+    const hue = ( hex ) => {
+      const [ r , g , b ] = [ 1 , 3 , 5 ].map( ( offset ) => parseInt( hex.slice( offset , offset + 2 ) , 16 ) / 255 );
+      const max = Math.max( r , g , b ) , min = Math.min( r , g , b ) , d = max - min;
+      if ( d === 0 ) return 0;
+      const h = max === r ? ( ( g - b ) / d ) % 6 : max === g ? ( b - r ) / d + 2 : ( r - g ) / d + 4;
+      return ( h * 60 + 360 ) % 360;
+    };
+    const gap = Math.abs( hue( first ) - hue( second ) );
+    return Math.min( gap , 360 - gap );
+  },
+
+  // The bar across the top for this second color, over this felt.
+  barColor( second , surface , mode , table ) {
+    if ( mode !== "light" ) return second;
+    const tableLight = this.luminance( table );
+    const sameHue = this.hueGap( second , table ) < this.barHueGap;
+    for ( let percent = 100 ; percent > 0 ; percent -= 2 ) {
+      const tried = this.mix( second , surface , percent );
+      const light = this.luminance( tried );
+      if ( light < this.barLightness ) continue;
+      if ( sameHue && light > tableLight && this.contrast( tried , table ) < this.barApart ) continue;
+      return tried;
+    }
+    return surface;
   },
 
   // "danger" -> "btnDanger", the field of colors() for that button's fill.
@@ -678,9 +773,15 @@ const Theme = {
   // What the page uses: the worked-out colors, with the theme's overrides on top.
   colors( theme ) {
     const colors = this.derived( theme );
-    Object.keys( theme.overrides || {} ).forEach( ( field ) => {
-      if ( field in colors ) colors[ field ] = theme.overrides[ field ];
+    const overrides = theme.overrides || {};
+    Object.keys( overrides ).forEach( ( field ) => {
+      if ( field in colors ) colors[ field ] = overrides[ field ];
     } );
+    // The bar stands off the felt the theme ends up with, not the look's own.
+    if ( !overrides.tableBar && overrides.table && theme.id !== this.builtIn[ 0 ].id ) {
+      colors.tableBar = this.barColor( colors.second , theme.surface || this.modes[ theme.mode ].surface , theme.mode , colors.table );
+      if ( !overrides.tableBarText ) colors.tableBarText = this.readableOn( colors.tableBar );
+    }
     return colors;
   },
 
@@ -743,8 +844,9 @@ Theme.variants.forEach( ( variant ) => {
 // Each built-in theme's game screen (Default keeps the stylesheet's own):
 // a table look, and per mode the felt and its words, and the two teams --
 // your team in the theme's main color, the other in its second, or another
-// that stays apart where those two are too alike. WSU and OSU also put their
-// school color on the bar across the top. They are overrides like any other,
+// that stays apart where those two are too alike. The bar across the top is
+// the theme's second color (derived), never the felt's; OSU keeps scarlet
+// there. They are overrides like any other,
 // so the editor shows them and Reset puts the worked-out color back.
 const ThemeGames = {
   ocean: { look: "blue" ,
@@ -757,21 +859,21 @@ const ThemeGames = {
     light: { table: "#e4cfa8" , tableText: "#3d2a12" , us: "#9c5a1c" , them: "#2f6f6a" } ,
     dark: { table: "#3b2a1a" , tableText: "#f1e4cf" , us: "#e0a15e" , them: "#6cc4bb" } },
   grape: { look: "slate" ,
-    light: { table: "#d9cff3" , tableText: "#2e1f5c" , us: "#7048c8" , them: "#c0267e" } ,
+    light: { table: "#4a3a7c" , tableText: "#efeaff" , us: "#7048c8" , them: "#c0267e" } ,
     dark: { table: "#2a2145" , tableText: "#ece6ff" , us: "#b197fc" , them: "#f783ac" } },
   cerise: { look: "red" ,
     light: { table: "#f3c6d6" , tableText: "#4a0f27" , us: "#b0164c" , them: "#a85d00" } ,
     dark: { table: "#4a1530" , tableText: "#fde8f1" , us: "#f06595" , them: "#ffc078" } },
   pink: { look: "red" ,
-    light: { table: "#f6c9da" , tableText: "#4b0f26" , us: "#c2255c" , them: "#6b3fc0" } ,
+    light: { table: "#6e2448" , tableText: "#fde6ef" , us: "#c2255c" , them: "#6b3fc0" } ,
     dark: { table: "#4a1a2e" , tableText: "#fde6ef" , us: "#f783ac" , them: "#b197fc" } },
   wsu: { look: "baize" ,
     light: { table: ThemePalettes.wsu.green , tableText: ThemePalettes.wsu.off_white ,
-      tableBar: ThemePalettes.wsu.green , tableBarText: "#ffffff" ,
       // Deep Gold a shade darker, so the other team's score reads on its chip.
       us: ThemePalettes.wsu.green , them: "#8c6a2f" } ,
     dark: { table: ThemePalettes.wsu.dark_green , tableText: ThemePalettes.wsu.faded_gold ,
-      tableBar: ThemePalettes.wsu.dark_green , tableBarText: ThemePalettes.wsu.yellow ,
+      // Gold, not the brighter Yellow: a dark bar never outshines the light one.
+      tableBar: ThemePalettes.wsu.gold , tableBarText: ThemePalettes.wsu.black ,
       // Yellow, and Leaf lightened: both read on a dark chip, and stay apart.
       us: ThemePalettes.wsu.yellow , them: "#b5d38c" } },
   osu: { look: "slate" ,

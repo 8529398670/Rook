@@ -1315,7 +1315,7 @@
 .bar-icon { width: 36px; min-width: 36px; min-height: 36px; }
 .bar-icon svg { width: 20px; height: 20px; }
 .bar-icon:disabled { opacity: 0.35; }
-.bar-resume { color: var(--accent-fg); background: var(--accent); border-radius: 50%; }
+.bar-resume { color: var(--game-resume-fg, var(--accent-fg)); background: var(--game-resume, var(--accent)); border-radius: 50%; }
 .bar-resume[hidden] { display: none; }
 .admin-position { margin-right: 4px; font-size: 0.75rem; color: var(--fg-muted); white-space: nowrap; }
 
