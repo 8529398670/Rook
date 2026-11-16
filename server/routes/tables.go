@@ -363,8 +363,8 @@ func ( handlers *Handlers ) AnswerTakeover( c fiber.Ctx , in *answerTakeoverIn )
 	return
 }
 
-// RestartTable starts the game over at the same table: the host's or an
-// admin's call.
+// RestartTable starts the game over at the same table: the call of the
+// table's creator, its host, or an admin.
 //
 // @route("POST /api/tables/{table_id}/restart", summary="Restart table", tag="Tables",
 // )
@@ -374,7 +374,8 @@ func ( handlers *Handlers ) RestartTable( c fiber.Ctx , in *restartTableIn ) ( e
 	return
 }
 
-// DeleteTable removes the table for everyone: the host's or an admin's call.
+// DeleteTable removes the table for everyone: the call of the table's
+// creator, its host, or an admin.
 //
 // @route("POST /api/tables/{table_id}/delete", summary="Delete table", tag="Tables",
 // )

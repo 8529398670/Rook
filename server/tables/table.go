@@ -173,6 +173,10 @@ type Table struct {
 	ID        string       `json:"id"`
 	Name      string       `json:"name"`
 	HostID    uint64       `json:"host_id"`
+	// CreatorID is who opened the table. Hosting can pass to someone else
+	// when the host leaves; this never moves, so the creator can always
+	// restart or delete their table. Zero on tables saved before it existed.
+	CreatorID uint64       `json:"creator_id,omitempty"`
 	Options   game.Options `json:"options"`
 	Seats     [4]Seat      `json:"seats"`
 	Game      *game.State  `json:"game,omitempty"`

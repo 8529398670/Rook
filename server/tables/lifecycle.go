@@ -4,14 +4,19 @@ import (
 	models "rook/server/models"
 )
 
-// Restarting and deleting a table: the host's call, or an admin's. Both are
+// Restarting and deleting a table: the call of whoever created it, the
+// current host, or an admin. Both are
 // final -- a restart throws away the game's history along with its scores,
 // so there is nothing for undo to step back into.
 
 func ( table *Table ) mayManage( user *models.User , admin bool ) ( err error ) {
-	if admin == false && ( user == nil || table.HostID != user.ID ) {
-		err = ErrNotHost
-	}
+	if table.canManage( user , admin ) == false { err = ErrNotHost }
+	return
+}
+
+// canManage is called with the table locked.
+func ( table *Table ) canManage( user *models.User , admin bool ) ( result bool ) {
+	result = admin || ( user != nil && ( table.HostID == user.ID || ( table.CreatorID != 0 && table.CreatorID == user.ID ) ) )
 	return
 }
 

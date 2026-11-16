@@ -231,6 +231,7 @@ func ( hub *Hub ) Create( user *models.User , name string , options game.Options
 		ID:          encryption.GenerateURLToken( 9 ),
 		Name:        name,
 		HostID:      user.ID,
+		CreatorID:   user.ID,
 		Options:     options,
 		Chat:        []ChatLine{},
 		Version:     1,

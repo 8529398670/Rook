@@ -65,6 +65,9 @@ type TableView struct {
 	Version   uint64       `json:"version"`
 	You       int          `json:"you"`
 	IsHost    bool         `json:"is_host"`
+	// CanManage: the viewer may restart, end or delete this table (its
+	// creator, its host, or an admin).
+	CanManage bool         `json:"can_manage"`
 	CanInvite bool         `json:"can_invite"`
 	CanHint   bool         `json:"can_hint"`
 	// AutoPlay: the viewer switched auto play on for this hand.
@@ -129,6 +132,9 @@ type Summary struct {
 	Options    game.Options `json:"options"`
 	Seats      [4]SeatInfo  `json:"seats"`
 	You        int          `json:"you"`
+	// CanManage: you created or host this table, so you may restart or
+	// delete it from the lobby. Admins may on every table regardless.
+	CanManage  bool         `json:"can_manage"`
 	HandNumber int          `json:"hand_number"`
 	Scores     [2]int       `json:"scores"`
 	UpdatedAt  time.Time    `json:"updated_at"`
@@ -227,6 +233,7 @@ func ( hub *Hub ) View( id string , viewer Viewer , options ViewOptions ) ( view
 			view.MyRequest = table.Requests[ index ].Seat
 		}
 	}
+	view.CanManage = table.canManage( viewer.User , viewer.Admin )
 	if view.IsHost || viewer.Admin {
 		for _ , request := range table.Requests {
 			view.Requests = append( view.Requests , RequestInfo{
@@ -292,6 +299,7 @@ func ( hub *Hub ) List( user *models.User ) ( summaries []Summary ) {
 			Options:   table.Options,
 			Seats:     table.seatInfo(),
 			You:       table.seatOf( user.ID ),
+			CanManage: table.canManage( user , false ),
 			UpdatedAt: table.UpdatedAt,
 		}
 		if table.Game != nil {

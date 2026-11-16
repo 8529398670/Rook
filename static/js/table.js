@@ -886,10 +886,11 @@ const Table = {
       Dom.get( "menu-auto-play" ).disabled = !playing;
       Dom.text( Dom.get( "menu-auto-play-help" ) , playing ? I18n.format( "auto_play.description" , { level: this.autoPlayLevelName() } ) : I18n.get( "auto_play.only_playing" ) );
       Dom.show( document.querySelector( "[data-menu='leave']" ) , view.you >= 0 );
-      // End game, restart and delete: the host's call, or an admin's. With a
+      // End game, restart and delete: the creator's or host's call, or an
+      // admin's. With a
       // game under way, deleting the table is ending the game; before the
       // deal it is just deleting the table.
-      const manager = view.is_host || view.is_admin;
+      const manager = view.can_manage || view.is_host || view.is_admin;
       Dom.show( document.querySelector( "[data-menu='end']" ) , manager && Boolean( view.game ) );
       Dom.show( document.querySelector( "[data-menu='restart']" ) , manager && Boolean( view.game ) );
       Dom.show( document.querySelector( "[data-menu='delete']" ) , manager && !view.game );

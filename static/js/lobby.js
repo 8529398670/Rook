@@ -208,8 +208,9 @@ const Lobby = {
     } else if ( open.length > 0 ) {
       action( "lobby.join" , "" , function () { Lobby.sit( table , open[ 0 ] ); } );
     }
-    // Admins can start any game over, or remove the table, from here.
-    if ( this.me && this.me.role === "admin" ) {
+    // Whoever created or hosts the table can start the game over, or remove
+    // the table, from here; admins can on any table.
+    if ( table.can_manage || ( this.me && this.me.role === "admin" ) ) {
       if ( table.status !== "waiting" ) action( "lobby.restart" , "secondary" , function () { Table.confirmManage( "restart" , table.id ); } );
       action( "lobby.delete" , "secondary table-card-delete" , function () { Table.confirmManage( "delete" , table.id ); } );
     }
