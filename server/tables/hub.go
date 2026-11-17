@@ -40,6 +40,8 @@ type Hub struct {
 	global_seq    int
 	presence      map[ uint64 ]int
 	presence_left map[ uint64 ]time.Time
+	// When each person last did something in the app (activity.go).
+	active_at map[ uint64 ]time.Time
 	// Direct messages, every conversation, keyed by models.DMKey (dm.go).
 	// Under global_mu too: they travel on the same stream.
 	dms map[ string ]*models.DMConversation
@@ -56,6 +58,7 @@ func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
 		global:        map[ *Subscriber ]struct{}{},
 		presence:      map[ uint64 ]int{},
 		presence_left: map[ uint64 ]time.Time{},
+		active_at:     map[ uint64 ]time.Time{},
 	}
 
 	if hub.settings , err = models.LoadSettings( store ); err != nil { return }

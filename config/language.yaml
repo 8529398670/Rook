@@ -1111,6 +1111,12 @@ dm:
 player:
   online: "Online now"
   offline: "Not online"
+  # Online, but nothing done in the app for five minutes. {since} is a time
+  # (or a date and time), {for} how long, as below.
+  idle: "Idle since {since} ({for})"
+  idle_minutes: "{m} min"
+  idle_hours: "{h} h {m} min"
+  idle_days: "{d} d {h} h"
   message: "Message"
   invite_partner: "Invite as partner"
   invite_opponent: "Invite as opponent"

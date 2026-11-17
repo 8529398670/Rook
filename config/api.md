@@ -1703,11 +1703,30 @@ Delete game
 
 | Method | Path | Summary | Who may call |
 |---|---|---|---|
+| POST | [`/api/activity`](#post-apiactivity) | Report activity | browser session or API key, anyone signed in |
 | GET | [`/api/global`](#get-apiglobal) | Get global | browser session or API key, anyone signed in |
 | POST | [`/api/global/chat`](#post-apiglobalchat) | Global chat | browser session or API key, anyone signed in |
 | POST | [`/api/global/chat/{seq}/delete`](#post-apiglobalchatseqdelete) | Delete global chat | browser session or API key, anyone signed in |
 | POST | [`/api/global/chat/{seq}/edit`](#post-apiglobalchatseqedit) | Edit global chat | browser session or API key, anyone signed in |
 | GET | [`/api/global/events`](#get-apiglobalevents) | Global events | browser session or API key, anyone signed in |
+| GET | [`/api/players/{user_id}/presence`](#get-apiplayersuser_idpresence) | Player presence | browser session or API key, anyone signed in |
+
+### POST /api/activity
+
+Report activity
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Reply 200**: Success
 
 ### GET /api/global
 
@@ -1793,6 +1812,23 @@ Global events
 |---|---|
 | Who may call | browser session or API key, anyone signed in |
 | Errors | 401, 429, 503 |
+
+**Reply 200**: Success
+
+### GET /api/players/{user_id}/presence
+
+Player presence
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
 
 **Reply 200**: Success
 

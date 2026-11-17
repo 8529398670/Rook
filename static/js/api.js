@@ -149,6 +149,10 @@ const Api = {
   readDM( userId , seq )       { return this.post( "/api/dm/" + userId + "/read" , { seq: seq } ); },
   editDM( userId , seq , text ) { return this.post( "/api/dm/" + userId + "/" + seq + "/edit" , { text: text } ); },
   deleteDM( userId , seq )     { return this.post( "/api/dm/" + userId + "/" + seq + "/delete" ); },
+  // Presence: "I am using the app" (so you do not show as idle), and whether
+  // someone else is online and idle.
+  activity()                   { return this.post( "/api/activity" ); },
+  presence( userId )           { return this.request( "/api/players/" + userId + "/presence" ); },
   invitePlayer( userId , as , tableId , name ) { return this.post( "/api/invite" , { user_id: userId , as: as , table_id: tableId || "" , name: name || "" } ); },
 
   // The game history: finished and abandoned games, newest first.

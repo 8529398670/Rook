@@ -9,6 +9,7 @@ const Player = {
   seat: -1,
 
   init() {
+    this.watchActivity();
     Dom.get( "player-sheet-message" ).addEventListener( "click" , function () {
       const person = Player.person;
       Sheet.close();
@@ -50,6 +51,7 @@ const Player = {
     Art.avatar( Dom.get( "player-sheet-avatar" ) , this.person );
     Dom.text( Dom.get( "player-sheet-name" ) , this.person.display_name );
     Dom.text( Dom.get( "player-sheet-status" ) , I18n.get( live ? "player.online" : "player.offline" ) );
+    if ( live ) this.showPresence( this.person.id );
     const playing = this.playing();
     Dom.show( Dom.get( "player-sheet-partner" ) , !playing );
     Dom.show( Dom.get( "player-sheet-opponent" ) , !playing );
@@ -58,6 +60,64 @@ const Player = {
     Dom.text( Dom.get( "player-sheet-where" ) , playing ? I18n.get( "player.where_playing" ) :
       here ? I18n.format( "player.where_here" , { table: Table.view.name } ) : I18n.get( "player.where_new" ) );
     Sheet.open( "sheet-player" );
+  },
+
+  // Asks the server whether they are idle -- nothing done in the app for
+  // five minutes -- and since when, and puts that under their name.
+  async showPresence( id ) {
+    let presence;
+    try {
+      presence = await Api.presence( id );
+    } catch ( error ) {
+      return;
+    }
+    if ( !this.person || this.person.id !== id ) return;
+    const status = Dom.get( "player-sheet-status" );
+    if ( !presence.online ) {
+      Dom.text( status , I18n.get( "player.offline" ) );
+      return;
+    }
+    if ( !presence.idle ) {
+      Dom.text( status , I18n.get( "player.online" ) );
+      return;
+    }
+    const seconds = presence.idle_seconds || 0;
+    // From the server's count rather than its timestamp, so a page whose
+    // clock is off still shows the right time.
+    const since = new Date( Date.now() - seconds * 1000 );
+    Dom.text( status , I18n.format( "player.idle" , { since: this.when( since ) , for: this.howLong( seconds ) } ) );
+  },
+
+  // A time today, or a date and time before that.
+  when( date ) {
+    const today = date.toDateString() === new Date().toDateString();
+    return today ? date.toLocaleTimeString( undefined , { timeStyle: "short" } ) :
+      date.toLocaleString( undefined , { dateStyle: "medium" , timeStyle: "short" } );
+  },
+
+  howLong( seconds ) {
+    const minutes = Math.floor( seconds / 60 );
+    const hours = Math.floor( minutes / 60 );
+    const days = Math.floor( hours / 24 );
+    if ( days > 0 ) return I18n.format( "player.idle_days" , { d: days , h: hours % 24 } );
+    if ( hours > 0 ) return I18n.format( "player.idle_hours" , { h: hours , m: minutes % 60 } );
+    return I18n.format( "player.idle_minutes" , { m: minutes } );
+  },
+
+  // Tells the server you are using the app -- a click, tap, key, scroll or
+  // coming back to the tab -- at most once a minute, so you show as idle
+  // only after five minutes of none of those (server/tables/activity.go).
+  watchActivity() {
+    let sent = Date.now();
+    const report = function () {
+      if ( document.visibilityState === "hidden" || Date.now() - sent < 60000 ) return;
+      sent = Date.now();
+      Api.activity().catch( function () {} );
+    };
+    [ "pointerdown" , "keydown" , "wheel" , "touchstart" , "scroll" ].forEach( function ( type ) {
+      window.addEventListener( type , report , { passive: true , capture: true } );
+    } );
+    document.addEventListener( "visibilitychange" , report );
   },
 
   // Whether you are sitting in a game that has started at the table on

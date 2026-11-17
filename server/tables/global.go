@@ -43,6 +43,8 @@ func ( hub *Hub ) SubscribeGlobal( user_id uint64 ) ( subscriber *Subscriber ) {
 	hub.global[ subscriber ] = struct{}{}
 	hub.presence[ user_id ]++
 	arrived := hub.presence[ user_id ] == 1 && hub.wasOnline( user_id ) == false
+	// Opening the app is activity; a stream's routine reconnect is not.
+	if arrived { hub.active_at[ user_id ] = time.Now() }
 	others := hub.globalList()
 	hub.global_mu.Unlock()
 	if arrived {

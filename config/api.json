@@ -1810,6 +1810,60 @@
       },
       "x-feature": "appearance"
     },
+    "/api/activity": {
+      "post": {
+        "operationId": "post_api_activity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Report activity",
+        "tags": [
+          "Global chat"
+        ]
+      }
+    },
     "/api/admin/backgrounds": {
       "post": {
         "description": "Like POST /api/account/backgrounds, but everyone signed in may see and use the picture: for the default themes.",
@@ -5609,6 +5663,50 @@
         "x-required-role": "owner"
       },
       "x-feature": "logs"
+    },
+    "/api/players/{user_id}/presence": {
+      "get": {
+        "operationId": "get_api_players_user_id_presence",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Player presence",
+        "tags": [
+          "Global chat"
+        ]
+      }
     },
     "/api/profile/options": {
       "get": {

@@ -8,7 +8,9 @@ import (
 
 	apidoc "rook/server/apidoc"
 
+	models "rook/server/models"
 	security "rook/server/security"
+	tables "rook/server/tables"
 )
 
 // The global chat and the "online now" list: one snapshot, one stream, one
@@ -98,5 +100,37 @@ func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx , in *deleteGlobalChat
 		return
 	}
 	err = c.JSON( handlers.Hub.GlobalFor( security.UserFrom( c ).ID ) )
+	return
+}
+
+// Activity tells the server the caller is using the app, so they do not show
+// as idle. Open pages send it on a click, tap, key or scroll, at most once a
+// minute.
+//
+// @route("POST /api/activity", summary="Report activity", tag="Global chat",
+// )
+func ( handlers *Handlers ) Activity( c fiber.Ctx , in *apidoc.None ) ( err error ) {
+	handlers.Hub.Touch( security.UserFrom( c ).ID )
+	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// PlayerPresence is what the player menu shows: whether someone is online,
+// and whether -- and since when -- they have been idle (no activity for five
+// minutes).
+//
+// @route("GET /api/players/{user_id}/presence", summary="Player presence", tag="Global chat",
+// )
+func ( handlers *Handlers ) PlayerPresence( c fiber.Ctx , in *dmUserIn ) ( err error ) {
+	other , ok := dmUser( c )
+	if ok == false {
+		err = badRequest( c , "no_such_user" )
+		return
+	}
+	presence := tables.Presence{}
+	if user , user_err := models.GetUser( handlers.Store , other ); user_err == nil && user.Disabled() == false {
+		presence = handlers.Hub.PresenceOf( other )
+	}
+	err = c.JSON( presence )
 	return
 }

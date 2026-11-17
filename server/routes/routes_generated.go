@@ -123,6 +123,11 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "appearance",
 		Errors: []int{ 400 , 401 , 403 },
 	} , handlers.setMyThemes , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/activity" , apidoc.Op{
+		Summary: "Report activity",
+		Tag: "Global chat",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.Activity , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "POST" , "/api/admin/backgrounds" , apidoc.Op{
 		Summary: "Upload a shared table picture",
 		Description: "Like POST /api/account/backgrounds, but everyone signed in may see and use the picture: for the default themes.",
@@ -527,6 +532,11 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		ReplyType: "text/event-stream",
 		Errors: []int{ 400 , 404 },
 	} , handlers.streamLogs , handlers.featureGuards()[ "logs" ] , handlers.Guard.RequireOwner )
+	apidoc.MountStream( app , "GET" , "/api/players/{user_id}/presence" , apidoc.Op{
+		Summary: "Player presence",
+		Tag: "Global chat",
+		Errors: []int{ 400 , 401 },
+	} , handlers.PlayerPresence , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "GET" , "/api/profile/options" , apidoc.Op{
 		Summary: "Get profile options",
 		Tag: "Account",
