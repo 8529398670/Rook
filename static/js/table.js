@@ -41,6 +41,7 @@ const Table = {
     this.me = me;
     Seats.init( Dom.get( "felt" ) );
     Trick.init( Dom.get( "trick" ) );
+    Hint.init();
     Hand.init( Dom.get( "hand" ) , {
       play: function ( card ) { return Table.act( Api.play( Table.id , card ) ); },
       buryChanged: function () { Kitty.refresh(); },
@@ -160,6 +161,11 @@ const Table = {
     Dom.get( "admin-undo" ).addEventListener( "click" , function () { Table.act( Api.undo( Table.id ) ); } );
     Dom.get( "admin-redo" ).addEventListener( "click" , function () { Table.act( Api.redo( Table.id ) ); } );
     Dom.get( "admin-resume" ).addEventListener( "click" , function () { Table.act( Api.resume( Table.id ) ); } );
+    // The phone's copies, in the menu: it stays open, so several steps back
+    // are several taps.
+    Dom.get( "menu-undo" ).addEventListener( "click" , function () { Table.act( Api.undo( Table.id ) ); } );
+    Dom.get( "menu-redo" ).addEventListener( "click" , function () { Table.act( Api.redo( Table.id ) ); } );
+    Dom.get( "menu-resume" ).addEventListener( "click" , function () { Table.act( Api.resume( Table.id ) ); } );
     Observe.init();
     Zoom.bind( Dom.get( "menu-zoom" ) );
     Dom.all( "[data-player-scores-toggle]" ).forEach( function ( toggle ) {
@@ -478,6 +484,7 @@ const Table = {
     Hand.render( view );
     Observe.renderHands( view );
     this.renderAdmin( view );
+    Hint.update( view );
     this.renderRequests( previous , view );
     this.renderTray( view );
     this.renderWaiting( view );
@@ -514,9 +521,17 @@ const Table = {
     const handLine = playing || ( game && game.phase === "bidding" );
     Dom.get( "screen-table" ).classList.toggle( "has-contract" , Boolean( handLine ) );
     if ( playing ) {
-      contract.appendChild( Dom.el( "span" , { class: "contract-bid" , text: I18n.format( "table.contract" , { name: Seats.name( view.seats[ game.bidder ] ) , bid: game.bid } ) } ) );
+      // Long and short forms; a phone's one line under the bar takes the
+      // short ("Ana bid 120", just the color).
+      const bidder = { name: Seats.name( view.seats[ game.bidder ] ) , bid: game.bid };
+      contract.appendChild( Dom.el( "span" , { class: "contract-bid" , children: [
+        Dom.el( "span" , { class: "status-long" , text: I18n.format( "table.contract" , bidder ) } ),
+        Dom.el( "span" , { class: "status-short" , text: I18n.format( "table.contract_short" , bidder ) } ),
+      ] } ) );
       if ( game.trump ) contract.appendChild( Dom.el( "span" , { class: "contract-trump trump-" + game.trump , children: [
-        Art.glyphIcon( game.trump ) , Dom.el( "span" , { text: I18n.format( "table.trump" , { color: I18n.get( "colors." + game.trump ) } ) } ),
+        Art.glyphIcon( game.trump ),
+        Dom.el( "span" , { class: "status-long" , text: I18n.format( "table.trump" , { color: I18n.get( "colors." + game.trump ) } ) } ),
+        Dom.el( "span" , { class: "status-short" , text: I18n.get( "colors." + game.trump ) } ),
       ] } ) );
       contract.appendChild( Dom.el( "span" , { class: "contract-dealer" , text: I18n.format( "table.dealer" , { name: Seats.name( view.seats[ game.dealer ] ) } ) } ) );
     } else if ( game && game.phase === "bidding" ) {
@@ -553,6 +568,10 @@ const Table = {
       if ( players ) children.push( Table.scorePlayers( view , [ pair[ 2 ] % 4 , ( pair[ 2 ] + 2 ) % 4 ] ) );
       scores.appendChild( Dom.el( "div" , { class: "score score-" + pair[ 1 ] , children: children } ) );
     } );
+    // The phone's copy, at the top of the menu (the bar has no room).
+    const menuScores = Dom.get( "menu-scores" );
+    menuScores.classList.toggle( "has-players" , Boolean( players ) );
+    menuScores.replaceChildren( ...Array.from( scores.childNodes ).map( function ( node ) { return node.cloneNode( true ); } ) );
   },
 
   // One team's players under its score. The name is swapped for initials (or
@@ -641,13 +660,6 @@ const Table = {
     }
     if ( !game || view.status === "waiting" ) return;
 
-    // The hint button, for players an admin gave hints to, on their turn.
-    // It goes inside the panel it helps with (its [data-hint-slot]), so the
-    // panel stays centered and the tray keeps its one fixed height.
-    const withHint = function () {
-      if ( !view.can_hint || !Table.isMyTurn( view ) ) return;
-      ( tray.querySelector( "[data-hint-slot]" ) || tray ).appendChild( Hint.element( view ) );
-    };
     // Reshuffle, for players an admin allowed it, until they bid or pass:
     // in the bid row on their turn, on its own while they wait for it.
     const reshuffle = function () {
@@ -664,7 +676,6 @@ const Table = {
         pass: function () { Table.act( Api.pass( Table.id ) ); },
       } );
       if ( view.can_reshuffle ) tray.querySelector( ".bid-row" ).appendChild( reshuffle() );
-      withHint();
       return;
     }
     if ( view.can_reshuffle && game.phase === "bidding" ) {
@@ -675,7 +686,6 @@ const Table = {
       Kitty.render( tray , view , {
         bury: function ( cards , trump ) { return Table.act( Api.bury( Table.id , cards , trump ) ); },
       } );
-      withHint();
       return;
     }
 
@@ -694,7 +704,6 @@ const Table = {
       ] } ) );
       return;
     }
-    withHint();
   },
 
   // People asking to take over a bot, for the host (and admins) to answer.
@@ -740,11 +749,15 @@ const Table = {
   renderAdmin( view ) {
     const controls = Dom.get( "admin-controls" );
     controls.hidden = !view.can_rewind;
+    Dom.get( "menu-history-controls" ).hidden = !view.can_rewind;
     Dom.get( "screen-table" ).classList.toggle( "is-held" , Boolean( view.held ) );
     if ( !view.can_rewind ) return;
     Dom.get( "admin-undo" ).disabled = !view.can_undo;
     Dom.get( "admin-redo" ).disabled = !view.can_redo;
     Dom.show( Dom.get( "admin-resume" ) , view.held );
+    Dom.get( "menu-undo" ).disabled = !view.can_undo;
+    Dom.get( "menu-redo" ).disabled = !view.can_redo;
+    Dom.show( Dom.get( "menu-resume" ) , view.held );
     Dom.text( Dom.get( "admin-position" ) , view.moves > 0 ? I18n.format( "admin_game.position" , { at: view.cursor , of: view.moves } ) : "" );
   },
 

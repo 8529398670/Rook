@@ -16,10 +16,19 @@ const Hint = {
   button: null,
   message: null,
 
+  // The button lives in the bar (index.html) and the suggestion floats at
+  // the bottom of the felt, over your own seat, where it covers nothing.
+  init() {
+    this.button = Dom.get( "table-hint" );
+    this.message = Dom.get( "hint-message" );
+    this.button.addEventListener( "click" , this.press.bind( this ) );
+  },
+
   reset() {
     this.stage = 0;
     this.key = null;
     this.data = null;
+    if ( this.button ) this.paint();
   },
 
   // A hint is about one decision; a new turn starts the steps over.
@@ -28,21 +37,28 @@ const Hint = {
     return [ game.hand_number , game.phase , game.turn , game.trick_number , game.trick.plays.length , game.bid ].join( ":" );
   },
 
-  element( view ) {
-    const key = this.keyFor( view );
+  // Every snapshot: the button shows for the whole hand once hints are on,
+  // so the bar never shifts, and can be pressed on your own turn.
+  update( view ) {
+    const game = view.game;
+    const shown = Boolean( view.can_hint && game && view.you >= 0 && !view.observing &&
+      view.status !== "waiting" && [ "bidding" , "kitty" , "playing" ].indexOf( game.phase ) >= 0 );
+    Dom.show( this.button , shown );
+    const usable = shown && Table.isMyTurn( view ) && !( view.auto_play && game.phase === "playing" );
+    this.button.disabled = !usable;
+    const key = usable ? this.keyFor( view ) : null;
     if ( key !== this.key ) {
       this.key = key;
       this.stage = 0;
       this.data = null;
     }
-    this.button = Dom.el( "button" , { class: "hint-button small secondary" , attrs: { type: "button" } , on: { click: this.press.bind( this ) } } );
-    this.message = Dom.el( "span" , { class: "hint-message" , attrs: { "aria-live": "polite" } } );
     this.paint();
-    return Dom.el( "div" , { class: "hint-row" , children: [ this.button , this.message ] } );
   },
 
   paint() {
-    Dom.text( this.button , I18n.get( [ "hint.button" , "hint.show" , "hint.do" ][ this.stage ] ) );
+    const label = I18n.get( [ "hint.button" , "hint.show" , "hint.do" ][ this.stage ] );
+    Dom.text( this.button , label );
+    this.button.classList.toggle( "is-armed" , this.stage > 0 );
     Dom.text( this.message , this.data ? this.describe( this.data ) : "" );
   },
 

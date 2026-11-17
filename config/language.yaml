@@ -179,6 +179,7 @@ table:
   paused: "Game paused"
   paused_detail: "A seat is empty. Sit there, add a bot, or invite someone to carry on."
   contract: "{name} won the bid at {bid}"
+  contract_short: "{name} bid {bid}"
   hand_number: "Hand {hand} · {dealer} dealt"
   trump: "Trump: {color}"
   dealer: "Dealer: {name}"

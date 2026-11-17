@@ -1,9 +1,9 @@
 /*
   The table, phone portrait first. One screen, no page scroll:
 
-    [ bar: back · table & contract / whose turn · (admin) · scores · menu ]
+    [ bar: back · table & contract / whose turn · (admin) · hint · scores · menu ]
     [ felt: partner top, opponents left/right, you bottom-left, trick between ]
-    [ tray: bid stepper / kitty / hint -- a fixed slot, empty between turns ]
+    [ tray: bid stepper / kitty -- a fixed slot, empty between turns ]
     [ hand ]
 
   The rows only change size when the window does. Nothing the game does --
@@ -70,7 +70,7 @@
   border-bottom: 1px solid var(--border);
 }
 
-.table-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.table-title { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
 
 .table-headline {
   display: flex;
@@ -90,7 +90,11 @@
 
 .table-contract {
   display: flex;
-  flex: 0 0 auto;
+  /* Gives way, clipped, rather than running under the bar's buttons when
+     the bar is crowded (an iPad held upright). */
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
   align-items: center;
   gap: 6px;
   font-size: 0.8rem;
@@ -99,34 +103,82 @@
 
 .table-contract:empty { display: none; }
 /* Who won the bid, and for how much: the line's lead, so it reads first. */
-.contract-bid { font-weight: 750; color: var(--fg); }
+.contract-bid { flex: 0 0 auto; font-weight: 750; color: var(--fg); }
+.table-contract > * { flex: 0 0 auto; }
 
 .table-contract-row { display: none; }
 
-/* On a phone, once a hand is under way its line -- who dealt, or who won
-   the bid, trump and dealer -- matters more than the table's name, and is
-   too long to sit beside the scores. The name gives up its room and the
-   line moves to a full-width row of its own under the bar. */
-@media (max-width: 30rem) {
-  .table-bar { flex-wrap: wrap; }
-  /* Shrink, never wrap: only the contract row may start a new line. */
-  .table-title { flex-basis: 0; }
+/* The hint (hint.js): a small pill in the bar, its label the next step --
+   Hint, Show me, Do it. Shown all hand once hints are on, so nothing in the
+   bar shifts; pressable on your turn. */
+.bar-hint {
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0.15rem 0.75rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--fg);
+  background: transparent;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+}
+.bar-hint[hidden] { display: none; }
+.bar-hint:disabled { opacity: 0.4; }
+/* Pressed once: the next press shows or plays the suggestion. */
+.bar-hint.is-armed { color: var(--game-bar); background: var(--fg); border-color: var(--fg); }
+
+/* A phone held upright, or any window narrower than a tablet: the bar is
+   two tidy rows of fixed height.
+
+     [ back | whose turn · trick | Hint | menu ]
+     [ who bid · trump · who led             ]
+
+   Everything else -- the score, undo and redo -- is in the menu
+   (index.html, .menu-bar-extras), so neither row ever wraps or changes
+   height as the hand goes on. Before a hand starts, the second row is
+   not there and the first shows the table's name over its status. */
+@media (max-width: 47.99rem) {
+  .table-bar {
+    flex-wrap: wrap;
+    row-gap: 0;
+    column-gap: 4px;
+    padding: calc(2px + var(--safe-top)) calc(4px + var(--safe-right)) 2px calc(4px + var(--safe-left));
+  }
+  .table-bar > .icon-button { width: 36px; min-width: 36px; height: 36px; min-height: 36px; }
+  .table-bar > .admin-controls,
+  .table-bar > .scoreboard { display: none; }
+  .table-title { flex-basis: 0; min-height: 36px; justify-content: center; }
   .screen-table.has-contract .table-name { display: none; }
   .table-headline .table-contract { display: none; }
   .table-contract-row:not(:empty) {
     display: flex;
     flex: 1 1 100%;
-    flex-wrap: wrap;
-    gap: 2px 6px;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    height: 22px;
     min-width: 0;
-    padding: 0 4px 2px;
+    /* Lined up with the status above it, past the back button. */
+    padding: 0 4px 0 40px;
+    overflow: hidden;
     font-size: 0.76rem;
+    white-space: nowrap;
   }
+  .table-contract-row > * { flex: 0 0 auto; }
+  /* The bidder's name gives way first if a long one would not fit. */
+  .table-contract-row > .contract-bid { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  /* The dealer is on the seats; this line keeps to the contract. */
+  .table-contract-row > .contract-dealer { display: none; }
+  .table-contract-row .contract-trump { line-height: 18px; }
   /* Who led moves down here, card name in full. */
   .table-status .status-lead { display: none; }
-  .table-contract-row .status-lead::before { content: none; }
+  .table-contract-row .status-lead::before { content: "·"; margin-right: 0; }
   .table-contract-row .status-lead .status-long { display: inline; }
   .table-contract-row .status-lead .status-short { display: none; }
+  .table-contract-row .lead-card { line-height: 18px; }
+  .bar-hint { min-height: 30px; padding: 0.1rem 0.65rem; font-size: 0.78rem; }
 }
 
 /* What is happening right now: whose turn, and the trick count. */
@@ -156,7 +208,9 @@
 .lead-card { display: inline-flex; flex: 0 0 auto; align-items: center; gap: 2px; padding: 0 6px; font-weight: 750; border-radius: 999px; background: var(--surface-2); }
 .lead-card .glyph { width: 0.8em; height: 0.8em; align-self: center; }
 
-.table-status.is-your-turn .status-title { color: var(--accent-strong); }
+/* Your turn: bold in the bar's own color with a pulsing dot. The theme's
+   accent can be the bar's color, which made it vanish. */
+.table-status.is-your-turn .status-title { color: var(--fg); }
 .table-status.is-your-turn .status-title::before {
   content: "";
   display: inline-block;
@@ -165,7 +219,7 @@
   margin-right: 6px;
   vertical-align: 1px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--fg);
   animation: turn-dot 1.4s ease-in-out infinite;
 }
 
@@ -243,8 +297,9 @@
    hand so it never moves anything. */
 .card-entry {
   position: absolute;
-  /* Clear of your own seat, which sits at the bottom of the felt. */
-  bottom: 64px;
+  /* Over your own seat, at the bottom of the felt: any higher and it sat
+     on the pile, where your card lands, once the felt got short. */
+  bottom: 10px;
   left: 50%;
   z-index: 8;
   transform: translateX(-50%);
@@ -624,6 +679,10 @@
   --card-w: var(--trick-card-w);
   rotate: var(--tilt, 0deg);
   transition: filter 0.2s ease;
+  /* Each trick card flies in and sweeps out (trick.js): a layer of its own
+     from the start, so Safari moves the picture it already has instead of
+     redrawing the card every frame. */
+  will-change: translate, scale, opacity;
 }
 
 /* Positions use left/top only, never transform: the fly-in and sweep
@@ -642,7 +701,7 @@
   width: var(--trick-card-w);
   aspect-ratio: 5 / 7;
   border: 2px dashed var(--table-fg);
-  border-radius: 7%;
+  border-radius: 6.4% / 4.57%;
   opacity: 0;
   scale: 0.96;
   transition: opacity 0.18s ease, scale 0.18s ease, background-color 0.18s ease;
@@ -666,7 +725,7 @@
   outline-offset: 2px;
 }
 
-.show-led.show-win .trick-card.is-led.is-winner { box-shadow: 0 0 0 8px var(--win-ring); }
+.show-led.show-win .trick-card.is-led.is-winner { box-shadow: 0 0 0 8px var(--win-ring), var(--card-drop, 0 2px 3px rgba(40, 25, 5, 0.28)); }
 
 /* ------------------------------------------------------- waiting room */
 
@@ -785,18 +844,14 @@
   width: 100%;
 }
 
-/* On a phone the hint takes the second line under the bid buttons. */
-.bid-row > .hint-row { flex-basis: 100%; justify-content: center; }
-
 /* Buttons never break their label over two lines. On a wide screen the bid
-   panel gets more room than other panels, so the stepper, Bid, Pass,
-   Reshuffle and Hint all fit on one line without squeezing. */
+   panel gets more room than other panels, so the stepper, Bid, Pass and
+   Reshuffle all fit on one line without squeezing. */
 .bid-row > button { white-space: nowrap; }
 
 @media (min-width: 40rem) {
   .bid-panel { max-width: 44rem; }
   .bid-row { flex-wrap: nowrap; }
-  .bid-row > .hint-row { flex-basis: auto; }
 }
 
 .bid-stepper {
@@ -860,7 +915,6 @@
 .kitty-count { flex: 0 1 auto; min-width: 0; margin: 0; font-size: 0.82rem; font-weight: 700; white-space: nowrap; }
 .kitty-count-long { display: none; }
 .kitty-done { flex: 1 1 auto; min-height: 38px; }
-.kitty-actions > .hint-row { flex: 0 0 auto; }
 
 /* "Done" swaps the picker for one question: this color, these five? */
 .kitty-confirm { display: none; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
@@ -924,7 +978,7 @@
   --lift: 0px;
   transform: translate(var(--x, 0px), calc(var(--y, 0px) + var(--lift))) rotate(var(--r, 0deg));
   transform-origin: 50% 120%;
-  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.25, 1), filter 0.2s ease;
+  transition: transform 0.24s cubic-bezier(0.2, 0.8, 0.25, 1), box-shadow 0.2s ease, filter 0.2s ease;
   cursor: pointer;
 }
 
@@ -942,7 +996,8 @@
 .hand .playing-card.is-cursor.is-buried { --lift: -20px; }
 
 .hand .playing-card.is-blocked {
-  filter: grayscale(0.55) brightness(0.88) drop-shadow(0 1px 2px rgba(40, 25, 5, 0.2));
+  --card-drop: 0 1px 2px rgba(40, 25, 5, 0.2);
+  filter: grayscale(0.55) brightness(0.88);
 }
 
 .hand .playing-card.is-selected,
@@ -1260,6 +1315,25 @@
 
 .menu-chat-dock { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
 
+/* The phone's bar extras at the top of the menu: the two team scores side
+   by side, then undo, redo and resume for those allowed them. Wider screens
+   keep these in the bar, so here they are phone-only. */
+.menu-bar-extras { display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+.menu-scores { gap: 8px; }
+.menu-scores .score { flex: 1 1 0; min-width: 0; padding: 6px 8px; border-radius: 12px; }
+.menu-scores .score-label { font-size: 0.72rem; }
+.menu-scores .score-value { font-size: 1.5rem; }
+.menu-scores .score-players { flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 0.72rem; }
+.menu-scores .score-player-name { max-width: 7em; }
+.menu-history-controls { display: flex; gap: 6px; }
+.menu-history-controls[hidden] { display: none; }
+.menu-history-controls button { flex: 1 1 0; }
+.menu-history-controls button[hidden] { display: none; }
+
+@media (min-width: 48rem) {
+  .menu-bar-extras { display: none; }
+}
+
 /* ------------------------------------------------------ wider screens */
 
 @media (min-width: 48rem) {
@@ -1308,6 +1382,31 @@
   .waiting-panel { padding: 8px 12px; gap: 0.3rem; }
 }
 
+/* A laptop, or an iPad on its side: wide, but short once the browser's own
+   bars are taken off. Sized from the width, the hand and the trick ate the
+   height and the pile was crushed between your partner's seat and yours.
+   Here your cards take a smaller share of the height, the seats sit closer
+   to the edges of the felt, and the pile lies flatter and wider -- top and
+   bottom cards overlapping the side ones like a real pile -- using the
+   width a short screen has to spare. A phone on its side (under 30rem
+   tall) keeps its own layout above. */
+@media (min-width: 48rem) and (min-height: 30.01rem) and (max-height: 54rem) and (min-aspect-ratio: 4 / 3) {
+  .screen-table {
+    --hand-base: clamp(64px, min(9vw, 11dvh), 120px);
+    /* The flat pile needs less height, so its cards can be a little bigger;
+       the fit cap on .felt still keeps it off the seats. */
+    --trick-base: clamp(84px, min(10vw, 17dvh), 150px);
+  }
+  .felt { --trick-gap-top: 74px; --trick-gap-bottom: 52px; }
+  .seat.pos-top { top: 12px; }
+  .seat.pos-bottom { bottom: 8px; }
+  .seat.pos-left, .seat.pos-right { top: 34%; }
+  .trick {
+    --trick-h: min(calc(var(--trick-card-w) * 1.4 * 1.6), var(--trick-room));
+    width: calc(var(--trick-card-w) * 3.1);
+  }
+}
+
 /* ----------------------------------------------- admin controls (bar) */
 
 .admin-controls { display: flex; flex: 0 0 auto; align-items: center; gap: 2px; }
@@ -1328,18 +1427,27 @@
 }
 .screen-table.is-held .admin-position { color: var(--fg); font-weight: 700; }
 
-@media (max-width: 48rem) {
+/* Up to a small laptop the bar is crowded (an iPad held upright): the move
+   count and, once a hand is on, the table's name give their room to the
+   contract and whose turn it is. */
+@media (max-width: 63.99rem) {
   .admin-position { display: none; }
+  .screen-table.has-contract .table-headline .table-name { display: none; }
 }
 
-@media (max-width: 30rem) {
-  .score { min-width: 36px; padding: 2px 4px; }
-  .score-label { font-size: 0.58rem; }
-  .score-players { gap: 4px; }
-  .score-player-name { display: none; }
-  .score-player-short { display: inline; }
-  .table-bar > .icon-button { width: 36px; min-width: 36px; }
-  .bar-icon { width: 32px; min-width: 32px; }
+/* A phone on its side: every pixel of the bar comes out of the table, so it
+   hugs its contents -- buttons a little shorter than the usual 44px (still
+   an easy tap), less padding, and scores that set the height kept low. */
+@media (max-height: 30rem) and (orientation: landscape) {
+  .table-bar {
+    row-gap: 0;
+    padding-top: calc(2px + var(--safe-top));
+    padding-bottom: 2px;
+  }
+  .table-bar .icon-button { min-height: 36px; height: 36px; }
+  .table-bar .bar-icon { min-height: 32px; height: 32px; }
+  .score { padding-top: 1px; padding-bottom: 1px; line-height: 1.02; }
+  .score-value { font-size: 1.05rem; }
 }
 
 .watchers-chip {
@@ -1436,34 +1544,42 @@
 
 /* ----------------------------------------------------------- hints */
 
-.hint-row { display: flex; align-items: center; gap: 8px; }
-
-/* What the hint suggests floats just above the tray, over the edge of the
-   table, so it never adds a line to the fixed slot. */
+/* What the hint suggests (its button is in the bar) floats at the bottom of
+   the felt, over your own seat, so it never covers the pile or moves a row. */
 .hint-message {
   position: absolute;
-  bottom: calc(100% + 6px);
+  bottom: 6px;
   left: 50%;
-  z-index: 6;
+  z-index: 7;
   transform: translateX(-50%);
   width: max-content;
   max-width: min(34rem, calc(100% - 24px));
   padding: 6px 12px;
-  border-radius: 12px;
+  font-size: 0.86rem;
+  font-weight: 650;
+  text-align: center;
+  color: var(--accent);
   background: var(--card-bg);
+  border-radius: 12px;
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
   pointer-events: none;
 }
 
 .hint-message:empty { display: none; }
 
-.hint-button { flex: 0 0 auto; }
-.hint-message { font-size: 0.86rem; font-weight: 650; color: var(--accent); text-align: center; }
+/* A takeover request on a phone sits in the same spot; while one waits,
+   the hint stacks just above it. */
+.screen-table:has(.takeover-requests:not([hidden]) .takeover-card) .hint-message { bottom: 60px; }
+@media (min-width: 48rem) {
+  .screen-table:has(.takeover-requests:not([hidden]) .takeover-card) .hint-message { bottom: 6px; }
+}
+@media (max-height: 30rem) and (orientation: landscape) {
+  .screen-table:has(.takeover-requests:not([hidden]) .takeover-card) .hint-message { bottom: 6px; }
+}
 
 .hand .playing-card.is-hinted {
   --lift: -24px;
-  --card-drop: 0 0 0 transparent;
-  filter: drop-shadow(0 0 5px #f5b301) drop-shadow(0 0 2px #f5b301);
+  --card-drop: 0 0 5px #f5b301, 0 0 2px #f5b301;
 }
 
 /* --------------------------------------------------- sheets: share, history */
@@ -1722,30 +1838,30 @@
 
 /* ------------------------------------------- taking over a bot's seat */
 
-/* Below your partner's seat on a phone; tucked into the top-left corner,
-   clear of every seat, where there is room. */
+/* On a phone there is no free corner: anything over the middle of the felt
+   lands on the pile or the side seats. So the requests sit at the bottom of
+   the felt, over your own seat badge -- the one seat you never need to see
+   -- each one compact: avatar, words and both buttons on one row. Where
+   there is room they are tucked into the top-left corner instead, clear of
+   every seat, as a roomier card. */
 .takeover-requests {
   position: absolute;
-  top: 76px;
+  bottom: 6px;
   left: 50%;
   z-index: 6;
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   gap: 6px;
-  width: min(calc(100% - 24px), 24rem);
+  width: min(calc(100% - 16px), 26rem);
   transform: translateX(-50%);
-}
-
-@media (min-width: 48rem) {
-  .takeover-requests { top: 12px; left: calc(16px + var(--safe-left)); width: 20rem; transform: none; }
 }
 
 .takeover-card {
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  gap: 6px 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 6px 8px;
   color: var(--fg);
   background: var(--card-bg);
   border: 2px solid var(--accent);
@@ -1754,8 +1870,34 @@
   animation: takeover-in 0.28s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 
-.takeover-text { margin: 0; font-size: 0.88rem; font-weight: 600; }
-.takeover-actions { grid-column: 1 / -1; display: flex; gap: 6px; justify-content: flex-end; }
+.takeover-text { margin: 0; font-size: 0.8rem; font-weight: 600; line-height: 1.25; }
+.takeover-actions { display: flex; gap: 4px; }
+.takeover-actions button.small { min-height: 32px; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
+
+@media (min-width: 48rem) {
+  .takeover-requests {
+    top: 12px;
+    bottom: auto;
+    left: calc(16px + var(--safe-left));
+    flex-direction: column;
+    width: 20rem;
+    transform: none;
+  }
+  .takeover-card { grid-template-columns: auto 1fr; gap: 6px 10px; padding: 10px 12px; }
+  .takeover-text { font-size: 0.88rem; line-height: inherit; }
+  .takeover-actions { grid-column: 1 / -1; gap: 6px; justify-content: flex-end; }
+  .takeover-actions button.small { min-height: 36px; padding: 0.3rem 0.75rem; font-size: 0.85rem; }
+}
+
+/* A phone on its side: your partner has the top-left corner, so the
+   requests take the bottom-right one. */
+@media (max-height: 30rem) and (orientation: landscape) {
+  .takeover-requests { top: auto; bottom: 6px; left: auto; right: calc(10px + var(--safe-right)); flex-direction: column-reverse; width: 20rem; }
+  .takeover-card { grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; padding: 6px 8px; }
+  .takeover-text { font-size: 0.8rem; line-height: 1.25; }
+  .takeover-actions { grid-column: auto; gap: 4px; }
+  .takeover-actions button.small { min-height: 32px; padding: 0.2rem 0.6rem; font-size: 0.8rem; }
+}
 
 @keyframes takeover-in {
   from { opacity: 0; translate: 0 -10px; }

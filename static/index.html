@@ -428,6 +428,9 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l10.5-6.5z" fill="currentColor"/></svg>
         </button>
       </div>
+      <!-- The hint, for players an admin gave hints to: three presses, its
+           label saying what the next one does (hint.js). -->
+      <button id="table-hint" type="button" class="bar-hint" hidden></button>
       <div id="table-scores" class="scoreboard"></div>
       <button id="table-fullscreen" type="button" class="icon-button bar-fullscreen" data-fullscreen data-i18n-attr="aria-label:table.fullscreen,title:table.fullscreen">
           <svg class="fs-enter" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -455,6 +458,7 @@
       <div id="auction" class="auction" hidden></div>
       <div id="takeover-requests" class="takeover-requests" aria-live="polite" hidden></div>
       <div id="card-entry" class="card-entry" aria-live="polite" hidden></div>
+      <div id="hint-message" class="hint-message" aria-live="polite"></div>
       <!-- Before the deal: the outer box spans the room between your
            partner's seat and yours, so the seats stay clickable; the panel
            inside hugs its contents and scrolls on a short screen. -->
@@ -1116,6 +1120,17 @@
     <div id="sheet-menu" class="sheet" hidden>
       <div class="sheet-grip" aria-hidden="true"></div>
       <h2 id="menu-title"></h2>
+      <!-- On a phone the bar keeps only what you press every turn; the
+           score and the history controls move here (table.js keeps both
+           current). Hidden on wider screens, where the bar has them. -->
+      <div class="menu-bar-extras">
+        <div id="menu-scores" class="scoreboard menu-scores"></div>
+        <div id="menu-history-controls" class="menu-history-controls" hidden>
+          <button id="menu-undo" type="button" class="secondary small" data-i18n="admin_game.undo"></button>
+          <button id="menu-redo" type="button" class="secondary small" data-i18n="admin_game.redo"></button>
+          <button id="menu-resume" type="button" class="small" data-i18n="admin_game.resume" hidden></button>
+        </div>
+      </div>
       <nav class="menu-list">
         <button type="button" data-menu="chat"><span data-i18n="menu.chat"></span><span id="menu-chat-unread" class="badge-dot" hidden></span></button>
         <button type="button" data-menu="last-trick" data-i18n="menu.last_trick"></button>

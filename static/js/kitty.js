@@ -57,7 +57,7 @@ const Kitty = {
     this.swatches = swatches;
     this.panel = Dom.el( "div" , { class: "tray-panel kitty-panel" , children: [
       swatches,
-      Dom.el( "div" , { class: "kitty-actions" , attrs: { "data-hint-slot": "" } , children: [
+      Dom.el( "div" , { class: "kitty-actions" , children: [
         Dom.el( "p" , { class: "kitty-count" , attrs: { "aria-live": "polite" } , children: [ this.countLong , this.countShort ] } ),
         this.done,
       ] } ),

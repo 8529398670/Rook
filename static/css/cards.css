@@ -14,8 +14,15 @@
   color: inherit;
   background: none;
   border: 0;
-  border-radius: 7%;
-  filter: drop-shadow(var(--card-drop, 0 2px 3px rgba(40, 25, 5, 0.28)));
+  /* The artwork's own corner (rx 16 on a 250 x 350 card), so the shadow,
+     outlines and rings follow the card's edge exactly. */
+  border-radius: 6.4% / 4.57%;
+  /* A box-shadow, not filter: drop-shadow(). The card is a plain rounded
+     rectangle, so both look the same, but a filter makes Safari redraw the
+     whole card picture and its blur on every frame a card moves or scales:
+     large cards on an iPad stuttered through every trick. --card-drop may
+     be a list (the hint's glow is two). */
+  box-shadow: var(--card-drop, 0 2px 3px rgba(40, 25, 5, 0.28));
   user-select: none;
   -webkit-user-select: none;
   -webkit-touch-callout: none;
