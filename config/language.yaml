@@ -1122,6 +1122,10 @@ player:
   invited_partner: "Invited {name} as your partner"
   invited_opponent: "Invited {name} to play against you"
   open_label: "Options for {name}"
+  # The host's way from the player menu to the seat's own menu.
+  manage: "Manage seat"
+  # Shown instead of the invite lines while you are in the middle of a game.
+  where_playing: "You can invite them once this game is over."
 
 # The notice an invited player gets, wherever they are in the app.
 play_invite:

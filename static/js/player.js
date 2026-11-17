@@ -5,6 +5,8 @@
 // otherwise it opens a new table for the two of you.
 const Player = {
   person: null,
+  // The seat this menu was opened from, when you may manage it; else -1.
+  seat: -1,
 
   init() {
     Dom.get( "player-sheet-message" ).addEventListener( "click" , function () {
@@ -14,6 +16,11 @@ const Player = {
     } );
     Dom.get( "player-sheet-partner" ).addEventListener( "click" , function () { Player.invite( "partner" ); } );
     Dom.get( "player-sheet-opponent" ).addEventListener( "click" , function () { Player.invite( "opponent" ); } );
+    Dom.get( "player-sheet-manage" ).addEventListener( "click" , function () {
+      const seat = Player.seat;
+      Sheet.close();
+      if ( seat >= 0 ) Table.manageSeat( seat );
+    } );
   },
 
   // A name on a chat line that opens the menu.
@@ -33,16 +40,31 @@ const Player = {
     return online.find( function ( person ) { return person.id === id; } ) || null;
   },
 
-  open( person ) {
+  // seat: the seat at the table on screen it was opened from, when you may
+  // manage that seat; leave it out otherwise.
+  open( person , seat ) {
     if ( !person || !Global.me || person.id === Global.me.id ) return;
     const live = this.online( person.id );
     this.person = live || person;
+    this.seat = typeof seat === "number" ? seat : -1;
     Art.avatar( Dom.get( "player-sheet-avatar" ) , this.person );
     Dom.text( Dom.get( "player-sheet-name" ) , this.person.display_name );
     Dom.text( Dom.get( "player-sheet-status" ) , I18n.get( live ? "player.online" : "player.offline" ) );
+    const playing = this.playing();
+    Dom.show( Dom.get( "player-sheet-partner" ) , !playing );
+    Dom.show( Dom.get( "player-sheet-opponent" ) , !playing );
+    Dom.show( Dom.get( "player-sheet-manage" ) , this.seat >= 0 );
     const here = this.hereTable();
-    Dom.text( Dom.get( "player-sheet-where" ) , here ? I18n.format( "player.where_here" , { table: Table.view.name } ) : I18n.get( "player.where_new" ) );
+    Dom.text( Dom.get( "player-sheet-where" ) , playing ? I18n.get( "player.where_playing" ) :
+      here ? I18n.format( "player.where_here" , { table: Table.view.name } ) : I18n.get( "player.where_new" ) );
     Sheet.open( "sheet-player" );
+  },
+
+  // Whether you are sitting in a game that has started at the table on
+  // screen: an invite would open a new table and pull you away from it.
+  playing() {
+    const view = App.screen === Table ? Table.view : null;
+    return Boolean( view ) && view.you >= 0 && view.status !== "waiting" && view.status !== "over";
   },
 
   // The table an invite goes to: the one on screen, if you sit there, the

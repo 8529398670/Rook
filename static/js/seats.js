@@ -20,21 +20,43 @@ const Seats = {
         Dom.el( "div" , { class: "seat-actions" } ),
       ] } );
       felt.appendChild( element );
-      // The host (or an admin) clicks any player's avatar to rename them or
-      // take them out of the seat.
+      // Clicking another person's avatar or name opens the player menu:
+      // message them, invite them, and -- for the host or an admin --
+      // manage their seat. A bot, or your own seat, goes straight to
+      // managing it, for whoever may.
       const avatar = element.querySelector( ".seat-avatar" );
-      const manage = function () {
-        const seat = Number( avatar.getAttribute( "data-seat" ) );
-        if ( avatar.hasAttribute( "data-manageable" ) && Seats.handlers ) Seats.handlers.manageSeat( seat );
-      };
-      avatar.addEventListener( "click" , manage );
-      avatar.addEventListener( "keydown" , function ( event ) {
-        if ( event.key !== "Enter" && event.key !== " " ) return;
-        event.preventDefault();
-        manage();
+      const nameLine = element.querySelector( ".seat-name" );
+      const open = function () { Seats.open( Number( avatar.getAttribute( "data-seat" ) ) ); };
+      [ avatar , nameLine ].forEach( function ( target ) {
+        target.addEventListener( "click" , open );
+        target.addEventListener( "keydown" , function ( event ) {
+          if ( event.key !== "Enter" && event.key !== " " ) return;
+          event.preventDefault();
+          open();
+        } );
       } );
       return element;
     } );
+  },
+
+  // The person in a seat, when they are someone the player menu can
+  // offer: signed in, and not you.
+  person( info ) {
+    if ( !info || info.kind !== "human" || !info.user_id || !Global.me || info.user_id === Global.me.id ) return null;
+    return { id: info.user_id , display_name: info.name , icon: info.icon , color: info.color };
+  },
+
+  open( seat ) {
+    const view = Table.view;
+    const info = view && view.seats[ seat ];
+    if ( !info ) return;
+    const manageable = ( view.is_host || view.is_admin ) && info.kind !== "";
+    const person = this.person( info );
+    if ( person ) {
+      Player.open( person , manageable ? seat : -1 );
+    } else if ( manageable && this.handlers ) {
+      this.handlers.manageSeat( seat );
+    }
   },
 
   name( seat ) {
@@ -144,21 +166,27 @@ const Seats = {
 
       const avatar = element.querySelector( ".seat-avatar" );
       const manageable = ( view.is_host || view.is_admin ) && info.kind !== "";
+      const person = this.person( info );
+      const label = person ? I18n.format( "player.open_label" , { name: this.name( info ) } ) :
+        manageable ? I18n.format( "seat_manage.open" , { name: this.name( info ) } ) : "";
       avatar.setAttribute( "data-seat" , String( seat ) );
-      avatar.classList.toggle( "is-manageable" , manageable );
-      if ( manageable ) {
-        avatar.setAttribute( "data-manageable" , "" );
+      avatar.classList.toggle( "is-manageable" , Boolean( label ) );
+      const nameLine = element.querySelector( ".seat-name" );
+      nameLine.classList.toggle( "is-clickable" , Boolean( person ) );
+      if ( label ) {
         avatar.setAttribute( "role" , "button" );
         avatar.setAttribute( "tabindex" , "0" );
-        avatar.setAttribute( "aria-label" , I18n.format( "seat_manage.open" , { name: this.name( info ) } ) );
-        avatar.setAttribute( "title" , I18n.format( "seat_manage.open" , { name: this.name( info ) } ) );
+        avatar.setAttribute( "aria-label" , label );
+        avatar.setAttribute( "title" , label );
       } else {
-        [ "data-manageable" , "role" , "tabindex" , "aria-label" , "title" ].forEach( function ( name ) { avatar.removeAttribute( name ); } );
+        [ "role" , "tabindex" , "aria-label" , "title" ].forEach( function ( name ) { avatar.removeAttribute( name ); } );
       }
+      // The name is a second way in, for a person; the avatar already is
+      // the keyboard's.
+      if ( person ) nameLine.setAttribute( "role" , "button" ); else nameLine.removeAttribute( "role" );
       this.avatar( avatar , info );
 
       // A ⏩ after the name while auto play is playing that person's cards.
-      const nameLine = element.querySelector( ".seat-name" );
       const shown = seat === view.you ? I18n.format( "seats.you" , { name: this.name( info ) } ) : this.name( info );
       Dom.text( nameLine , info.auto_play ? shown + " ⏩" : shown );
       if ( info.auto_play ) nameLine.setAttribute( "title" , I18n.get( "auto_play.seat" ) ); else nameLine.removeAttribute( "title" );

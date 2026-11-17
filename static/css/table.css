@@ -1849,3 +1849,7 @@
 .seat-rename-row { display: flex; gap: 8px; }
 .seat-rename-row input { flex: 1 1 auto; min-width: 0; }
 #seat-sheet-reset { align-self: flex-start; min-height: 32px; padding: 0.2rem 0.4rem; font-size: 0.85rem; }
+
+/* Another person's name on their seat opens the player menu, like the avatar. */
+.seat-name.is-clickable { cursor: pointer; }
+.seat-name.is-clickable:hover { text-decoration: underline; }

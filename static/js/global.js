@@ -166,6 +166,11 @@ const Global = {
     }
     this.active = person.id;
     if ( App.screen === Table && Table.view ) {
+      // On a wide screen with this chat's dock closed, open the dock, on
+      // the side the table's chat is not using.
+      if ( Chat.dockWide && Chat.dockWide.matches && Chat.dockedSide( "global" ) === "off" ) {
+        Chat.setDockSide( "global" , Chat.dockedSide( "table" ) === "right" ? "left" : "right" );
+      }
       if ( Chat.dockedSide( "global" ) !== "off" ) {
         this.render();
         Dom.get( "global-dock-input" ).focus();
