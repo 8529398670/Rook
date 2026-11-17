@@ -239,6 +239,9 @@ const Chat = {
     Dom.all( "[data-chat-tab]" ).forEach( function ( button ) {
       button.addEventListener( "click" , function () {
         Chat.tab = button.getAttribute( "data-chat-tab" );
+        // The sheet's own "Everyone" button; a conversation's tab is
+        // drawn by global.js and picks its own.
+        if ( Chat.tab === "global" ) Global.active = 0;
         Chat.render( Table.view );
       } );
     } );
@@ -292,10 +295,13 @@ const Chat = {
     if ( !view ) return;
     const tabs = this.tabs( view );
     if ( tabs.indexOf( this.tab ) < 0 ) this.tab = tabs[ 0 ];
+    if ( this.tab === "global" ) Global.settle();
     Dom.all( "[data-chat-tab]" ).forEach( function ( button ) {
       const tab = button.getAttribute( "data-chat-tab" );
-      button.hidden = tabs.indexOf( tab ) < 0;
-      button.setAttribute( "aria-selected" , String( tab === Chat.tab ) );
+      // "Everyone" is one of the global tabs: hidden while switched off
+      // even when a direct-message conversation keeps the others showing.
+      button.hidden = tabs.indexOf( tab ) < 0 || ( tab === "global" && !Global.everyoneOn() );
+      button.setAttribute( "aria-selected" , String( tab === Chat.tab && ( tab !== "global" || Global.active === 0 ) ) );
     } );
     const chatList = Dom.get( "chat-list" );
     const logList = Dom.get( "log-list" );
@@ -455,7 +461,9 @@ const Chat = {
   },
 
   lineEl( view , line ) {
-    const name = Dom.el( "span" , { class: "chat-name" , text: line.name } );
+    // Another signed-in player's name opens the player menu.
+    const other = line.user_id && !( Table.me && line.user_id === Table.me.id ) && view.signed_in;
+    const name = other ? Player.nameButton( { id: line.user_id , display_name: line.name } , line.name ) : Dom.el( "span" , { class: "chat-name" , text: line.name } );
     // Someone watching is marked as such, and a guest (not signed in) more
     // plainly still, so nobody can pass for a player by typing their name.
     if ( line.watcher ) {

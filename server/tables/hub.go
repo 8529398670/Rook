@@ -40,6 +40,9 @@ type Hub struct {
 	global_seq    int
 	presence      map[ uint64 ]int
 	presence_left map[ uint64 ]time.Time
+	// Direct messages, every conversation, keyed by models.DMKey (dm.go).
+	// Under global_mu too: they travel on the same stream.
+	dms map[ string ]*models.DMConversation
 }
 
 func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
@@ -59,6 +62,7 @@ func New( store *db.Store , cfg *config.Config ) ( hub *Hub , err error ) {
 	hub.trick_pause.Store( int64( hub.settings.TrickPause() ) )
 	if hub.global_chat , err = models.LoadGlobalChat( store ); err != nil { return }
 	if count := len( hub.global_chat ); count > 0 { hub.global_seq = hub.global_chat[ count-1 ].Seq }
+	if hub.dms , err = models.LoadDMs( store ); err != nil { return }
 
 	stored , err := models.ListTables( store )
 	if err != nil { return }
@@ -149,6 +153,7 @@ func ( hub *Hub ) mutate( id string , fn func( table *Table ) error ) ( err erro
 	}
 
 	table.mu.Lock()
+	invited_before := table.invitees()
 	if err = fn( table ); err != nil {
 		table.mu.Unlock()
 		return
@@ -168,6 +173,7 @@ func ( hub *Hub ) mutate( id string , fn func( table *Table ) error ) ( err erro
 		if table.bot_timer != nil { table.bot_timer.Stop() }
 	}
 	subscribers := table.subscriberList()
+	invited_changed := inviteesChanged( invited_before , table.invitees() )
 	table.mu.Unlock()
 
 	if abandoned {
@@ -179,6 +185,9 @@ func ( hub *Hub ) mutate( id string , fn func( table *Table ) error ) ( err erro
 		subscriber.ring()
 	}
 	hub.notifyLobby()
+	// Someone invited, or no longer: their notice comes and goes on the
+	// global stream.
+	hub.ringUsers( invited_changed... )
 	return
 }
 
@@ -413,6 +422,7 @@ func ( hub *Hub ) RefreshUser( user *models.User ) {
 // over a seat is dropped. A table left with nobody but computer players goes,
 // as when the last person leaves.
 func ( hub *Hub ) ForgetUser( user_id uint64 ) {
+	hub.forgetDMs( user_id )
 	hub.mu.RLock()
 	ids := []string{}
 	for id , table := range hub.tables {

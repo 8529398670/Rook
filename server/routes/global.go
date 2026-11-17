@@ -24,7 +24,7 @@ type globalChatRequest struct {
 // @route("GET /api/global", summary="Get global", tag="Global chat",
 // )
 func ( handlers *Handlers ) GetGlobal( c fiber.Ctx , in *apidoc.None ) ( err error ) {
-	err = c.JSON( handlers.Hub.Global() )
+	err = c.JSON( handlers.Hub.GlobalFor( security.UserFrom( c ).ID ) )
 	return
 }
 
@@ -40,7 +40,7 @@ func ( handlers *Handlers ) GlobalEvents( c fiber.Ctx , in *apidoc.None ) ( err 
 	err = c.SendStreamWriter( func( writer *bufio.Writer ) {
 		defer hub.UnsubscribeGlobal( subscriber )
 		streamLoop( writer , hub , subscriber , lifetime , func() bool {
-			return writeEvent( writer , "global" , hub.Global() )
+			return writeEvent( writer , "global" , hub.GlobalFor( user_id ) )
 		} )
 	} )
 	return
@@ -54,7 +54,7 @@ func ( handlers *Handlers ) GlobalChat( c fiber.Ctx , in *globalChatIn ) ( err e
 		err = handlers.tableError( c , chat_err )
 		return
 	}
-	err = c.JSON( handlers.Hub.Global() )
+	err = c.JSON( handlers.Hub.GlobalFor( security.UserFrom( c ).ID ) )
 	return
 }
 
@@ -81,7 +81,7 @@ func ( handlers *Handlers ) EditGlobalChat( c fiber.Ctx , in *editGlobalChatIn )
 		err = handlers.tableError( c , chat_err )
 		return
 	}
-	err = c.JSON( handlers.Hub.Global() )
+	err = c.JSON( handlers.Hub.GlobalFor( security.UserFrom( c ).ID ) )
 	return
 }
 
@@ -97,6 +97,6 @@ func ( handlers *Handlers ) DeleteGlobalChat( c fiber.Ctx , in *deleteGlobalChat
 		err = handlers.tableError( c , chat_err )
 		return
 	}
-	err = c.JSON( handlers.Hub.Global() )
+	err = c.JSON( handlers.Hub.GlobalFor( security.UserFrom( c ).ID ) )
 	return
 }

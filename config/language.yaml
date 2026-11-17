@@ -1098,6 +1098,39 @@ global:
   off: "Global chat is switched off by an admin."
   online_heading: "Online now · {count}"
 
+# Direct messages: a private conversation with one person, a tab of its own
+# beside "Everyone" wherever the global chat shows.
+dm:
+  placeholder: "Message {name}"
+  empty: "Nothing said yet. Say hi to {name}."
+  close: "Close the conversation with {name}"
+  unread: "{name} — new messages"
+  toast: "{name}: {text}"
+
+# The player menu: tap a name in "Online now" or in the chat.
+player:
+  online: "Online now"
+  offline: "Not online"
+  message: "Message"
+  invite_partner: "Invite as partner"
+  invite_opponent: "Invite as opponent"
+  # Where an invite puts them: the waiting table you are at, or a new one.
+  where_here: "Invites hold a seat at “{table}”."
+  where_new: "Invites open a new table for you both."
+  # {a} is you, {b} the person invited: the new table's name.
+  table_name: "{a} & {b}"
+  invited_partner: "Invited {name} as your partner"
+  invited_opponent: "Invited {name} to play against you"
+  open_label: "Options for {name}"
+
+# The notice an invited player gets, wherever they are in the app.
+play_invite:
+  as_partner: "{name} invited you to be their partner at “{table}”"
+  as_opponent: "{name} invited you to play against them at “{table}”"
+  plain: "{name} invited you to “{table}”"
+  join: "Join"
+  decline: "Decline"
+
 # The Reshuffle button, for players an admin allowed it: deals the hand again,
 # as often as they like, until they bid or pass.
 reshuffle:
@@ -1333,8 +1366,11 @@ errors:
   last_admin: "That is the last admin. Make someone else an admin first."
   no_such_game: "That game is not in the history."
   cannot_invite: "An admin needs to let you invite people."
+  cannot_message_self: "That's you."
+  cannot_invite_self: "That's you."
+  no_seat_for_invite: "There's no free seat for them on that side of the table."
   not_a_player: "Nobody is sitting there."
-  no_such_user: "That person can't be seated."
+  no_such_user: "That player's account isn't available."
   bad_seat_name: "A name here is at most 40 characters."
   not_a_bot: "That seat isn't a bot."
   not_playing: "Auto play can only be switched on while the cards are being played."

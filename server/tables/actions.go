@@ -386,6 +386,13 @@ func ( hub *Hub ) IsHost( id string , user_id uint64 ) ( result bool ) {
 // Reserve holds an empty seat for someone just invited, so the link they are
 // sent leads straight to a place at this table.
 func ( hub *Hub ) Reserve( id string , seat int , invitee *models.User ) ( err error ) {
+	err = hub.ReserveFrom( id , seat , invitee , nil )
+	return
+}
+
+// ReserveFrom is Reserve with who did the inviting, so the invitee is told
+// who asked them (inviter may be nil).
+func ( hub *Hub ) ReserveFrom( id string , seat int , invitee *models.User , inviter *models.User ) ( err error ) {
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
 		if validSeat( seat ) == false {
 			fn_err = ErrBadSeat
@@ -401,6 +408,9 @@ func ( hub *Hub ) Reserve( id string , seat int , invitee *models.User ) ( err e
 		}
 		table.Seats[ seat ] = Seat{ Pending: true }
 		fillSeat( &table.Seats[ seat ] , invitee )
+		if inviter != nil {
+			table.Seats[ seat ].InvitedBy , table.Seats[ seat ].InvitedByName = inviter.ID , inviter.DisplayName
+		}
 		return
 	} )
 	return

@@ -67,6 +67,7 @@ const App = {
       // the one this account uses if this browser had another.
       ThemeEditor.init( me );
       Nav.init( me );
+      Player.init();
       Global.start( me );
     }
     ThemeMenu.init();

@@ -301,6 +301,36 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		ReplyType: "image/jpeg",
 		Errors: []int{ 400 , 401 , 404 },
 	} , handlers.getBackground , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}" , apidoc.Op{
+		Summary: "Send direct message",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.SendDM , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}/close" , apidoc.Op{
+		Summary: "Close direct message",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.CloseDM , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}/open" , apidoc.Op{
+		Summary: "Open direct message",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.OpenDM , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}/read" , apidoc.Op{
+		Summary: "Mark direct messages read",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.ReadDM , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}/{seq}/delete" , apidoc.Op{
+		Summary: "Delete direct message",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.DeleteDM , handlers.Guard.RequireLogin )
+	apidoc.MountStream( app , "POST" , "/api/dm/{user_id}/{seq}/edit" , apidoc.Op{
+		Summary: "Edit direct message",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.EditDM , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "GET" , "/api/games" , apidoc.Op{
 		Summary: "List games",
 		Tag: "Games",
@@ -346,6 +376,11 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Tag: "Monitoring",
 		Access: apidoc.Public,
 	} , handlers.getHealth )
+	apidoc.MountStream( app , "POST" , "/api/invite" , apidoc.Op{
+		Summary: "Invite player",
+		Tag: "Direct messages",
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.InvitePlayer , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "GET" , "/api/join/{code}" , apidoc.Op{
 		Summary: "Get join",
 		Tag: "Join",

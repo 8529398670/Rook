@@ -1,9 +1,14 @@
 // The global chat -- one conversation for everyone signed in, at any table
-// or none -- and the "online now" list. Its stream opens once, at sign-in,
-// and stays open on every screen: having it open is what puts you on the
-// online list. It is drawn in three places: the lobby's side panel, a dock
-// beside your cards, and the "Everyone" tab of a table's chat sheet. Lines
-// are plain text from other players and only ever set with textContent.
+// or none -- the "online now" list, and your direct messages. Its stream
+// opens once, at sign-in, and stays open on every screen: having it open is
+// what puts you on the online list. It is drawn in three places: the lobby's
+// side panel, a dock beside your cards, and the chat sheet. Each place shows
+// one conversation at a time: "Everyone", or a direct-message tab of its
+// own for each person you are talking to. Lines are plain text from other
+// players and only ever set with textContent.
+//
+// The same snapshot carries the seats other players are holding for you
+// (invitations to play), shown as notices that stay until answered.
 const Global = {
   me: null,
   view: null,
@@ -11,6 +16,12 @@ const Global = {
   seen: 0,
   primed: false,
   enabled: null,
+  // The conversation showing: 0 for "Everyone", or the other person's id.
+  active: 0,
+  // The last line of each conversation already toasted, so each new
+  // message pops up once; and how far each has been marked read.
+  toasted: {},
+  readSent: {},
 
   start( me ) {
     this.me = me;
@@ -25,14 +36,40 @@ const Global = {
     } );
   },
 
-  // Whether the global chat shows at all: an admin may have switched it
-  // off, and each player may hide it on their device (chat.js).
-  available() {
-    return Boolean( this.me && this.view && this.view.enabled );
+  dms() {
+    return this.view && this.view.dms ? this.view.dms : [];
   },
 
+  dm( id ) {
+    return this.dms().find( function ( dm ) { return dm.user_id === id; } ) || null;
+  },
+
+  // The "Everyone" conversation: on unless an admin switched it off or this
+  // player hid it. The lobby still offers it while switched off, to say so.
+  everyoneOn() {
+    return Boolean( this.view && this.view.enabled && Chat.shown( "global" ) );
+  },
+
+  everyoneHere() {
+    if ( App.screen === Lobby ) return Boolean( this.view ) && Chat.shown( "global" );
+    return this.everyoneOn();
+  },
+
+  // Whether there is anything to show at all.
+  available() {
+    return Boolean( this.me && this.view );
+  },
+
+  // Whether the dock and the sheet's tabs show: "Everyone" is on, or a
+  // direct-message conversation is open.
   shown() {
-    return this.available() && Chat.shown( "global" );
+    return this.available() && ( this.everyoneOn() || this.dms().length > 0 );
+  },
+
+  // Keep the conversation showing to one that exists here.
+  settle() {
+    if ( this.active && !this.dm( this.active ) ) this.active = 0;
+    if ( this.active === 0 && !this.everyoneHere() && this.dms().length ) this.active = this.dms()[ 0 ].user_id;
   },
 
   latest() {
@@ -41,7 +78,8 @@ const Global = {
   },
 
   unread() {
-    return this.shown() && this.latest() > this.seen;
+    const everyone = this.everyoneOn() && this.latest() > this.seen;
+    return everyone || this.dms().some( function ( dm ) { return dm.unread > 0; } );
   },
 
   update( view ) {
@@ -49,8 +87,10 @@ const Global = {
     if ( !this.primed ) {
       // Signing in should not light up everything said before you arrived.
       this.seen = this.latest();
-      this.primed = true;
     }
+    this.toastNew();
+    this.primed = true;
+    this.renderInvites();
     if ( this.enabled !== view.enabled ) {
       // Switched on or off by an admin: the docks and the sheet's tabs
       // change with it.
@@ -58,14 +98,46 @@ const Global = {
       Chat.refresh();
       return;
     }
+    // A conversation opening or closing changes whether the dock shows.
+    const docks = this.shown();
+    if ( docks !== this.docksShown ) {
+      this.docksShown = docks;
+      Chat.refresh();
+      return;
+    }
     this.render();
+  },
+
+  // A direct message that arrives while its conversation is not on screen
+  // pops up, once.
+  toastNew() {
+    const me = this.me;
+    this.dms().forEach( function ( dm ) {
+      let last = null;
+      dm.lines.forEach( function ( line ) { if ( line.user_id !== me.id ) last = line; } );
+      if ( !last ) return;
+      const before = Global.toasted[ dm.user_id ] || 0;
+      Global.toasted[ dm.user_id ] = Math.max( before , last.seq );
+      if ( !Global.primed || last.seq <= before || last.seq <= dm.read ) return;
+      if ( Global.active === dm.user_id && Global.onScreen() ) return;
+      Toast.show( I18n.format( "dm.toast" , { name: dm.display_name , text: last.text } ) );
+    } );
+  },
+
+  // Whether the conversation showing is in front of the player right now.
+  onScreen() {
+    if ( App.screen === Lobby ) return !Dom.get( "lobby-global" ).hidden;
+    if ( App.screen === Table ) {
+      return Chat.dockedSide( "global" ) !== "off" || ( Sheet.isOpen( "sheet-chat" ) && Chat.tab === "global" );
+    }
+    return false;
   },
 
   async send( input ) {
     const text = input.value.trim();
     if ( !text ) return;
     try {
-      const view = await Api.globalChat( text );
+      const view = this.active ? await Api.sendDM( this.active , text ) : await Api.globalChat( text );
       input.value = "";
       this.update( view );
     } catch ( error ) {
@@ -73,20 +145,147 @@ const Global = {
     }
   },
 
-  // Draw every place the global chat shows, and mark lines read where
-  // someone can see them.
+  // Show a conversation: 0 for "Everyone".
+  select( id ) {
+    this.active = id;
+    if ( Sheet.isOpen( "sheet-chat" ) && Table.view ) {
+      Chat.tab = "global";
+      Chat.render( Table.view );
+    }
+    this.render();
+  },
+
+  // Open (or start) the conversation with person and put the cursor in
+  // its box, wherever the chat shows on this screen.
+  async message( person ) {
+    try {
+      this.update( await Api.openDM( person.id ) );
+    } catch ( error ) {
+      Toast.error( error );
+      return;
+    }
+    this.active = person.id;
+    if ( App.screen === Table && Table.view ) {
+      if ( Chat.dockedSide( "global" ) !== "off" ) {
+        this.render();
+        Dom.get( "global-dock-input" ).focus();
+      } else {
+        Chat.tab = "global";
+        Chat.open();
+        Dom.get( "global-input" ).focus();
+      }
+      return;
+    }
+    if ( App.screen !== Lobby ) App.go( "#/" );
+    this.render();
+    const panel = Dom.get( "lobby-global" );
+    panel.scrollIntoView( { block: "nearest" , behavior: Motion.reduced() ? "auto" : "smooth" } );
+    Dom.get( "lobby-global-input" ).focus( { preventScroll: true } );
+  },
+
+  async close( id ) {
+    if ( this.active === id ) this.active = 0;
+    try {
+      this.update( await Api.closeDM( id ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
+  },
+
+  // Draw every place the chat shows, and mark lines read where someone can
+  // see them.
   render() {
     if ( !this.view ) return;
+    this.settle();
     this.renderLobby();
-    if ( Chat.dockedSide( "global" ) !== "off" ) {
+    const dock = Chat.dockedSide( "global" ) !== "off";
+    if ( dock ) {
+      this.tabsInto( Dom.get( "dock-dm-tabs" ) , true );
       this.fill( Dom.get( "global-dock-list" ) );
-      if ( App.screen === Table ) this.seen = this.latest();
+      this.placeholder( Dom.get( "global-dock-input" ) );
     }
-    if ( Sheet.isOpen( "sheet-chat" ) && Chat.tab === "global" ) {
+    const sheet = Sheet.isOpen( "sheet-chat" ) && Chat.tab === "global";
+    this.tabsInto( Dom.get( "sheet-dm-tabs" ) , false );
+    if ( sheet ) {
       this.fill( Dom.get( "global-list" ) );
-      this.seen = this.latest();
+      this.placeholder( Dom.get( "global-input" ) );
     }
+    const lobby = App.screen === Lobby && !Dom.get( "lobby-global" ).hidden;
+    if ( lobby || ( App.screen === Table && ( dock || sheet ) ) ) this.markRead();
     Chat.showUnread();
+  },
+
+  // The conversation showing has been seen.
+  markRead() {
+    if ( this.active === 0 ) {
+      this.seen = this.latest();
+      return;
+    }
+    const dm = this.dm( this.active );
+    if ( !dm || dm.unread === 0 || !dm.lines.length ) return;
+    const last = dm.lines[ dm.lines.length - 1 ].seq;
+    if ( ( this.readSent[ dm.user_id ] || 0 ) >= last ) return;
+    this.readSent[ dm.user_id ] = last;
+    Api.readDM( dm.user_id , last ).then( function ( view ) { Global.update( view ); } , function () {
+      delete Global.readSent[ dm.user_id ];
+    } );
+  },
+
+  placeholder( input ) {
+    const dm = this.active ? this.dm( this.active ) : null;
+    const text = dm ? I18n.format( "dm.placeholder" , { name: dm.display_name } ) : I18n.get( "global.placeholder" );
+    input.setAttribute( "placeholder" , text );
+    input.setAttribute( "aria-label" , text );
+  },
+
+  // The conversation tabs. In the lobby and the dock they are a strip of
+  // their own, "Everyone" first, shown once there is a conversation; in
+  // the sheet they sit in the sheet's own tab row, whose "Everyone" button
+  // chat.js draws.
+  tabsInto( container , withEveryone ) {
+    const dms = this.dms();
+    const inSheet = !withEveryone;
+    const selected = function ( id ) { return Global.active === id && ( !inSheet || Chat.tab === "global" ); };
+    const key = dms.map( function ( dm ) { return dm.user_id + ":" + dm.display_name + ":" + dm.unread + ":" + dm.online; } ).join( "|" ) + "#" + ( inSheet ? Chat.tab : "" ) + this.active + ( this.everyoneHere() ? "e" : "" ) + ( this.everyoneOn() && this.latest() > this.seen ? "u" : "" );
+    if ( container.getAttribute( "data-shown" ) === key ) return;
+    container.setAttribute( "data-shown" , key );
+    Dom.clear( container );
+    if ( withEveryone ) {
+      container.hidden = dms.length === 0;
+      if ( container.hidden ) return;
+      if ( this.everyoneHere() ) {
+        const everyone = Dom.el( "button" , {
+          class: "dm-tab-name dm-tab-everyone",
+          text: I18n.get( "global.tab" ),
+          attrs: { type: "button" , role: "tab" , "aria-selected": String( selected( 0 ) ) },
+          on: { click: function () { Global.select( 0 ); } },
+        } );
+        if ( this.everyoneOn() && this.latest() > this.seen && !selected( 0 ) ) everyone.appendChild( Dom.el( "span" , { class: "badge-dot" } ) );
+        container.appendChild( Dom.el( "span" , { class: "dm-tab" + ( selected( 0 ) ? " is-selected" : "" ) , children: [ everyone ] } ) );
+      }
+    }
+    dms.forEach( function ( dm ) {
+      const name = Dom.el( "button" , {
+        class: "dm-tab-name",
+        attrs: {
+          type: "button" , role: "tab" , "aria-selected": String( selected( dm.user_id ) ),
+          "aria-label": dm.unread > 0 ? I18n.format( "dm.unread" , { name: dm.display_name } ) : dm.display_name,
+        },
+        children: [
+          Dom.el( "span" , { class: "dm-presence" + ( dm.online ? " is-online" : "" ) , attrs: { "aria-hidden": "true" } } ),
+          Dom.el( "span" , { class: "dm-tab-label" , text: dm.display_name } ),
+        ],
+        on: { click: function () { Global.select( dm.user_id ); } },
+      } );
+      if ( dm.unread > 0 ) name.appendChild( Dom.el( "span" , { class: "badge-dot" } ) );
+      const close = Dom.el( "button" , {
+        class: "dm-tab-close",
+        text: "×",
+        attrs: { type: "button" , "aria-label": I18n.format( "dm.close" , { name: dm.display_name } ) , title: I18n.format( "dm.close" , { name: dm.display_name } ) },
+        on: { click: function () { Global.close( dm.user_id ); } },
+      } );
+      container.appendChild( Dom.el( "span" , { class: "dm-tab" + ( selected( dm.user_id ) ? " is-selected" : "" ) , children: [ name , close ] } ) );
+    } );
   },
 
   renderLobby() {
@@ -95,48 +294,74 @@ const Global = {
     const list = Dom.get( "online-list" );
     Dom.clear( list );
     online.forEach( function ( person ) {
+      const you = Boolean( Global.me && person.id === Global.me.id );
       const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
       Art.avatar( avatar , person );
-      list.appendChild( Dom.el( "li" , {
-        class: "online-person" + ( Global.me && person.id === Global.me.id ? " is-you" : "" ),
-        children: [ avatar , Dom.el( "span" , { class: "online-name" , text: person.display_name } ) ],
-      } ) );
+      const name = Dom.el( "span" , { class: "online-name" , text: person.display_name } );
+      // Anyone but you opens the player menu: message them, or invite them.
+      const inner = you ? Dom.el( "span" , { class: "online-person-inner" , children: [ avatar , name ] } ) : Dom.el( "button" , {
+        class: "online-person-inner",
+        attrs: { type: "button" , "aria-label": I18n.format( "player.open_label" , { name: person.display_name } ) },
+        children: [ avatar , name ],
+        on: { click: function () { Player.open( person ); } },
+      } );
+      list.appendChild( Dom.el( "li" , { class: "online-person" + ( you ? " is-you" : "" ) , children: [ inner ] } ) );
     } );
 
-    // Hidden by this player: no panel. Switched off by an admin: say so,
-    // rather than leaving an empty box.
-    Dom.show( Dom.get( "lobby-global" ) , Chat.shown( "global" ) );
-    Dom.show( Dom.get( "lobby-global-off" ) , !this.view.enabled );
-    Dom.show( Dom.get( "lobby-global-list" ) , this.view.enabled );
-    Dom.show( Dom.get( "lobby-global-form" ) , this.view.enabled );
-    if ( this.view.enabled ) {
+    // Hidden by this player, with no conversation open: no panel. Switched
+    // off by an admin: say so, rather than leaving an empty box.
+    Dom.show( Dom.get( "lobby-global" ) , Chat.shown( "global" ) || this.dms().length > 0 );
+    if ( App.screen === Lobby ) this.settle();
+    this.tabsInto( Dom.get( "lobby-dm-tabs" ) , true );
+    const off = this.active === 0 && !this.view.enabled;
+    Dom.show( Dom.get( "lobby-global-off" ) , off );
+    Dom.show( Dom.get( "lobby-global-list" ) , !off );
+    Dom.show( Dom.get( "lobby-global-form" ) , !off );
+    if ( !off ) {
       this.fill( Dom.get( "lobby-global-list" ) );
-      if ( App.screen === Lobby && Chat.shown( "global" ) ) this.seen = this.latest();
+      this.placeholder( Dom.get( "lobby-global-input" ) );
     }
+  },
+
+  // The lines of the conversation showing.
+  lines() {
+    if ( !this.active ) return this.view.chat;
+    const dm = this.dm( this.active );
+    return dm ? dm.lines : [];
   },
 
   // Fill one list with the recent lines. Redrawn only when something in it
   // changed, so it does not jump while you scroll back through it.
   fill( list ) {
-    const chat = this.view.chat;
-    const shown = this.latest() + "|" + Chat.digest( chat );
+    const chat = this.lines();
+    const shown = this.active + "|" + Chat.digest( chat );
     if ( list.getAttribute( "data-shown" ) === shown || Chat.busy( list ) ) return;
     list.setAttribute( "data-shown" , shown );
     Dom.clear( list );
-    if ( chat.length === 0 ) list.appendChild( Dom.el( "li" , { class: "chat-empty" , text: I18n.get( "global.empty" ) } ) );
+    if ( chat.length === 0 ) {
+      const dm = this.active ? this.dm( this.active ) : null;
+      const empty = dm ? I18n.format( "dm.empty" , { name: dm.display_name } ) : I18n.get( "global.empty" );
+      list.appendChild( Dom.el( "li" , { class: "chat-empty" , text: empty } ) );
+    }
     chat.forEach( function ( line ) { list.appendChild( Global.lineEl( line ) ); } );
     list.scrollTop = list.scrollHeight;
   },
 
   lineEl( line ) {
     const mine = Boolean( this.me && line.user_id === this.me.id );
-    const item = Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [
-      Dom.el( "span" , { class: "chat-name" , text: line.name } ),
-      Chat.textEl( line ),
-    ] } );
+    const other = this.active;
+    // In "Everyone", someone else's name opens the player menu.
+    const name = !mine && !other && line.user_id ? Player.nameButton( { id: line.user_id , display_name: line.name , icon: line.icon , color: line.color } , line.name ) : Dom.el( "span" , { class: "chat-name" , text: line.name } );
+    const item = Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [ name , Chat.textEl( line ) ] } );
     // Your own lines can be edited or deleted, the same way as at a table;
-    // the owner may edit or delete anyone's.
-    if ( mine || ( this.me && this.me.owner ) ) {
+    // the owner may edit or delete anyone's in "Everyone".
+    if ( other && mine ) {
+      item.appendChild( Chat.ownActions( item , line , {
+        save: async function ( seq , text ) { Global.update( await Api.editDM( other , seq , text ) ); },
+        remove: async function ( seq ) { Global.update( await Api.deleteDM( other , seq ) ); },
+        redraw: function () { Global.redraw(); },
+      } ) );
+    } else if ( !other && ( mine || ( this.me && this.me.owner ) ) ) {
       item.appendChild( Chat.ownActions( item , line , {
         save: async function ( seq , text ) { Global.update( await Api.editGlobalChat( seq , text ) ); },
         remove: async function ( seq ) { Global.update( await Api.deleteGlobalChat( seq ) ); },
@@ -150,5 +375,45 @@ const Global = {
   redraw() {
     Dom.all( "#lobby-global-list, #global-dock-list, #global-list" ).forEach( function ( list ) { list.removeAttribute( "data-shown" ); } );
     this.render();
+  },
+
+  // The invitations to play: one notice each, until it is answered here,
+  // on the lobby card, or by opening the table.
+  renderInvites() {
+    const box = Dom.get( "invite-notices" );
+    const invites = ( this.view && this.view.invites ) || [];
+    const key = invites.map( function ( invite ) { return invite.table_id + ":" + invite.seat + ":" + invite.as; } ).join( "|" );
+    if ( box.getAttribute( "data-shown" ) === key ) return;
+    box.setAttribute( "data-shown" , key );
+    Dom.clear( box );
+    invites.forEach( function ( invite ) {
+      const params = { name: invite.from_name , table: invite.table_name };
+      const text = I18n.format( invite.as === "partner" ? "play_invite.as_partner" : invite.as === "opponent" ? "play_invite.as_opponent" : "play_invite.plain" , params );
+      const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
+      const from = ( Global.view.online || [] ).find( function ( person ) { return person.id === invite.from_id; } );
+      Art.avatar( avatar , from || { display_name: invite.from_name } );
+      const card = Dom.el( "div" , { class: "invite-notice" , attrs: { role: "alert" } , children: [
+        avatar,
+        Dom.el( "p" , { class: "invite-notice-text" , text: text } ),
+        Dom.el( "div" , { class: "invite-notice-actions" , children: [
+          Dom.el( "button" , { class: "small secondary" , text: I18n.get( "play_invite.decline" ) , attrs: { type: "button" } , on: { click: function () { Global.decline( invite , card ); } } } ),
+          Dom.el( "button" , { class: "small" , text: I18n.get( "play_invite.join" ) , attrs: { type: "button" } , on: { click: function () {
+            card.remove();
+            App.go( "#/t/" + invite.table_id );
+          } } } ),
+        ] } ),
+      ] } );
+      box.appendChild( card );
+    } );
+  },
+
+  async decline( invite , card ) {
+    card.remove();
+    try {
+      await Api.leave( invite.table_id );
+      Toast.show( I18n.get( "lobby.declined" ) );
+    } catch ( error ) {
+      Toast.error( error );
+    }
   },
 };

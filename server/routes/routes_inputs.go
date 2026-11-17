@@ -44,6 +44,11 @@ type pathUserID struct {
 	UserID string `json:"user_id" path:"user_id"`
 }
 
+type pathUserIDSeq struct {
+	UserID string `json:"user_id" path:"user_id"`
+	Seq string `json:"seq" path:"seq"`
+}
+
 type redeemLoginLinkIn struct {
 	loginRequest
 }

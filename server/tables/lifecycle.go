@@ -68,6 +68,7 @@ func ( hub *Hub ) Delete( id string , user *models.User , admin bool ) ( err err
 	}
 	hub.archiveAbandoned( table )
 	subscribers := table.subscriberList()
+	invited := table.invitees()
 	table.mu.Unlock()
 
 	hub.remove( id )
@@ -75,5 +76,6 @@ func ( hub *Hub ) Delete( id string , user *models.User , admin bool ) ( err err
 		subscriber.ring()
 	}
 	hub.notifyLobby()
+	hub.ringUsers( invited... )
 	return
 }

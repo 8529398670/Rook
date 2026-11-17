@@ -65,6 +65,10 @@ const (
 	ErrNotYourMessage Error = "not_your_message"
 	ErrNoSuchMessage  Error = "no_such_message"
 	ErrBadTrickPause  Error = "bad_trick_pause"
+	ErrNoSuchUser     Error = "no_such_user"
+	ErrMessageSelf    Error = "cannot_message_self"
+	ErrInviteSelf     Error = "cannot_invite_self"
+	ErrNoSeatFor      Error = "no_seat_for_invite"
 
 	// errStale is internal: a delayed bot move found the table had moved on.
 	errStale Error = "stale"
@@ -102,6 +106,11 @@ type Seat struct {
 	// Pending marks a seat held for someone who was invited and has not
 	// opened the table yet.
 	Pending bool `json:"pending,omitempty"`
+	// InvitedBy and InvitedByName are who held the seat for them, when it
+	// was held by someone already playing: it is what the invitee's
+	// "X invited you" notice says (see invite.go).
+	InvitedBy     uint64 `json:"invited_by,omitempty"`
+	InvitedByName string `json:"invited_by_name,omitempty"`
 	// The person's chosen avatar, copied here like Name so drawing a table
 	// never needs a database read per seat.
 	Icon  string `json:"icon,omitempty"`

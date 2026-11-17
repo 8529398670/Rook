@@ -14,6 +14,7 @@ This file is generated: do not edit it. Change the docs next to the handlers and
 - [Admin](#admin)
 - [Owner](#owner)
 - [Monitoring](#monitoring)
+- [Direct messages](#direct-messages)
 - [Games](#games)
 - [Global chat](#global-chat)
 - [Join](#join)
@@ -1462,6 +1463,182 @@ Is the process up
 | Field | Type | Required | Limits | Description |
 |---|---|---|---|---|
 | `ok` | boolean | yes |  |  |
+
+## Direct messages
+
+| Method | Path | Summary | Who may call |
+|---|---|---|---|
+| POST | [`/api/dm/{user_id}`](#post-apidmuser_id) | Send direct message | browser session or API key, anyone signed in |
+| POST | [`/api/dm/{user_id}/close`](#post-apidmuser_idclose) | Close direct message | browser session or API key, anyone signed in |
+| POST | [`/api/dm/{user_id}/open`](#post-apidmuser_idopen) | Open direct message | browser session or API key, anyone signed in |
+| POST | [`/api/dm/{user_id}/read`](#post-apidmuser_idread) | Mark direct messages read | browser session or API key, anyone signed in |
+| POST | [`/api/dm/{user_id}/{seq}/delete`](#post-apidmuser_idseqdelete) | Delete direct message | browser session or API key, anyone signed in |
+| POST | [`/api/dm/{user_id}/{seq}/edit`](#post-apidmuser_idseqedit) | Edit direct message | browser session or API key, anyone signed in |
+| POST | [`/api/invite`](#post-apiinvite) | Invite player | browser session or API key, anyone signed in |
+
+### POST /api/dm/{user_id}
+
+Send direct message
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `text` | string | no |  |  |
+
+**Reply 200**: Success
+
+### POST /api/dm/{user_id}/close
+
+Close direct message
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Reply 200**: Success
+
+### POST /api/dm/{user_id}/open
+
+Open direct message
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Reply 200**: Success
+
+### POST /api/dm/{user_id}/read
+
+Mark direct messages read
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `seq` | integer | no |  |  |
+
+**Reply 200**: Success
+
+### POST /api/dm/{user_id}/{seq}/delete
+
+Delete direct message
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+| `seq` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+
+**Reply 200**: Success
+
+### POST /api/dm/{user_id}/{seq}/edit
+
+Edit direct message
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+| `seq` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `text` | string | no |  |  |
+
+**Reply 200**: Success
+
+### POST /api/invite
+
+Invite player
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, anyone signed in |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `as` | string | no |  |  |
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `name` | string | no |  |  |
+| `table_id` | string | no |  |  |
+| `user_id` | integer | no |  |  |
+
+**Reply 200**: Success
 
 ## Games
 

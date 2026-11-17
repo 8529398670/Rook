@@ -141,6 +141,16 @@ const Api = {
   editGlobalChat( seq , text ) { return this.post( "/api/global/chat/" + seq + "/edit" , { text: text } ); },
   deleteGlobalChat( seq )      { return this.post( "/api/global/chat/" + seq + "/delete" ); },
 
+  // Direct messages and invitations to play. Each answers with the global
+  // snapshot, as the global stream sends it.
+  sendDM( userId , text )      { return this.post( "/api/dm/" + userId , { text: text } ); },
+  openDM( userId )             { return this.post( "/api/dm/" + userId + "/open" ); },
+  closeDM( userId )            { return this.post( "/api/dm/" + userId + "/close" ); },
+  readDM( userId , seq )       { return this.post( "/api/dm/" + userId + "/read" , { seq: seq } ); },
+  editDM( userId , seq , text ) { return this.post( "/api/dm/" + userId + "/" + seq + "/edit" , { text: text } ); },
+  deleteDM( userId , seq )     { return this.post( "/api/dm/" + userId + "/" + seq + "/delete" ); },
+  invitePlayer( userId , as , tableId , name ) { return this.post( "/api/invite" , { user_id: userId , as: as , table_id: tableId || "" , name: name || "" } ); },
+
   // The game history: finished and abandoned games, newest first.
   listGames( offset )          { return this.request( "/api/games?offset=" + ( offset || 0 ) ); },
   getGame( id )                { return this.request( "/api/games/" + encodeURIComponent( id ) ); },

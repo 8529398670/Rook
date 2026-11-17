@@ -206,6 +206,7 @@
       <section id="lobby-global" class="lobby-section lobby-global">
         <h2 data-i18n="global.heading"></h2>
         <div class="lobby-global-box">
+          <div id="lobby-dm-tabs" class="dm-tabs" role="tablist" hidden></div>
           <ol id="lobby-global-list" class="chat-list" aria-live="polite"></ol>
           <p id="lobby-global-off" class="muted" data-i18n="global.off" hidden></p>
           <form id="lobby-global-form" class="chat-form" autocomplete="off">
@@ -494,6 +495,7 @@
     <!-- The global chat's dock: the other side of your cards. -->
     <aside id="global-dock" class="chat-dock" data-i18n-attr="aria-label:global.heading">
       <h3 class="chat-dock-title" data-i18n="global.heading"></h3>
+      <div id="dock-dm-tabs" class="dm-tabs" role="tablist" hidden></div>
       <ol id="global-dock-list" class="chat-list chat-dock-list" aria-live="polite"></ol>
       <form id="global-dock-form" class="chat-form chat-dock-form" autocomplete="off">
         <input id="global-dock-input" maxlength="280" data-i18n-attr="placeholder:global.placeholder,aria-label:global.placeholder" />
@@ -1274,6 +1276,7 @@
       <div class="segmented" role="tablist">
         <button type="button" role="tab" data-chat-tab="chat" data-i18n="chat.tab_chat"></button>
         <button type="button" role="tab" data-chat-tab="global" data-i18n="global.tab"></button>
+        <span id="sheet-dm-tabs" class="dm-tab-group"></span>
         <button type="button" role="tab" data-chat-tab="log" data-i18n="chat.tab_log"></button>
       </div>
       <ol id="chat-list" class="chat-list"></ol>
@@ -1292,6 +1295,25 @@
         <input id="global-input" maxlength="280" data-i18n-attr="placeholder:global.placeholder,aria-label:global.placeholder" />
         <button type="submit" data-i18n="chat.send"></button>
       </form>
+    </div>
+
+    <!-- The player menu (player.js): a name tapped in "Online now" or in
+         the chat. -->
+    <div id="sheet-player" class="sheet" hidden>
+      <div class="sheet-grip" aria-hidden="true"></div>
+      <div class="seat-sheet-who">
+        <span id="player-sheet-avatar" class="mini-avatar" aria-hidden="true"></span>
+        <div>
+          <h2 id="player-sheet-name"></h2>
+          <p id="player-sheet-status" class="muted player-sheet-status"></p>
+        </div>
+      </div>
+      <div class="player-sheet-actions">
+        <button id="player-sheet-message" type="button" data-i18n="player.message"></button>
+        <button id="player-sheet-partner" type="button" class="secondary" data-i18n="player.invite_partner"></button>
+        <button id="player-sheet-opponent" type="button" class="secondary" data-i18n="player.invite_opponent"></button>
+      </div>
+      <p id="player-sheet-where" class="muted"></p>
     </div>
 
     <div id="sheet-last-trick" class="sheet" hidden>
@@ -1431,6 +1453,8 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <!-- Invitations to play (global.js): they stay until answered. -->
+  <div id="invite-notices" class="invite-notices" aria-live="polite"></div>
 
   <!--
     Plain scripts in dependency order. No bundler, no modules that need a
@@ -1463,6 +1487,7 @@
   <script src="/js/summary.js"></script>
   <script src="/js/chat.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/player.js"></script>
   <script src="/js/hint.js"></script>
   <script src="/js/history.js"></script>
   <script src="/js/record.js"></script>
