@@ -470,7 +470,7 @@ const Table = {
       } );
     }
 
-    document.title = view.name + " · " + I18n.get( "app.title" );
+    Title.set( view.name + " · " + I18n.get( "app.title" ) );
     this.renderBar( view );
     Seats.render( view , {
       sit: function ( seat ) { Table.act( Api.sit( Table.id , seat ) ); },
@@ -890,9 +890,10 @@ const Table = {
       Dom.show( document.querySelector( "[data-menu='history']" ) , view.can_rewind );
       Dom.show( Dom.get( "menu-observers-row" ) , view.is_admin );
       Dom.get( "menu-observers" ).checked = view.observers_see_all;
-      // This table's pause after a trick: admins only.
-      Dom.show( Dom.get( "menu-trick-pause-row" ) , view.is_admin );
-      if ( view.is_admin ) {
+      // This table's pause after a trick: anyone seated, or an admin.
+      const canPause = view.is_admin || view.you >= 0;
+      Dom.show( Dom.get( "menu-trick-pause-row" ) , canPause );
+      if ( canPause ) {
         const pause = Dom.get( "menu-trick-pause" );
         Links.fillPauses( pause , view.trick_pause_default );
         pause.value = String( view.trick_pause_table || 0 );

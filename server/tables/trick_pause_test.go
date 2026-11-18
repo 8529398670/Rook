@@ -30,16 +30,23 @@ func TestTrickPauseDefaultsAndPerTable( t *testing.T ) {
 	}
 
 	// A table's own choice wins, and 0 hands it back to the default.
-	if err := hub.SetTrickPause( id , 4000 ); err != nil { t.Fatal( err ) }
+	if err := hub.SetTrickPause( id , ana , 4000 ); err != nil { t.Fatal( err ) }
 	if view := pause(); view.TrickPause != 4000 || view.TrickPauseTable != 4000 {
 		t.Fatalf( "table pause not used: %d" , view.TrickPause )
 	}
-	if err := hub.SetTrickPause( id , 0 ); err != nil { t.Fatal( err ) }
+	if err := hub.SetTrickPause( id , ana , 0 ); err != nil { t.Fatal( err ) }
 	if view := pause(); view.TrickPause != 2500 {
 		t.Fatalf( "reset to default gave %d" , view.TrickPause )
 	}
 
-	if err := hub.SetTrickPause( id , 123 ); !errors.Is( err , ErrBadTrickPause ) {
+	// Someone not seated at the table may not change it; an admin (nil) may.
+	bo := testUser( t , store , "Bo" )
+	if err := hub.SetTrickPause( id , bo , 2000 ); !errors.Is( err , ErrNotSeated ) {
+		t.Fatalf( "unseated user changed the pause: %v" , err )
+	}
+	if err := hub.SetTrickPause( id , nil , 2000 ); err != nil { t.Fatal( err ) }
+
+	if err := hub.SetTrickPause( id , ana , 123 ); !errors.Is( err , ErrBadTrickPause ) {
 		t.Fatalf( "odd pause accepted: %v" , err )
 	}
 }

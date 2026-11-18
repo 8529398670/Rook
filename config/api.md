@@ -2137,7 +2137,7 @@ Revoke signup link
 | POST | [`/api/tables/{table_id}/takeover`](#post-apitablestable_idtakeover) | Request takeover | browser session or API key, anyone signed in |
 | POST | [`/api/tables/{table_id}/takeover/answer`](#post-apitablestable_idtakeoveranswer) | Answer takeover | browser session or API key, anyone signed in |
 | POST | [`/api/tables/{table_id}/takeover/cancel`](#post-apitablestable_idtakeovercancel) | Cancel takeover | browser session or API key, anyone signed in |
-| POST | [`/api/tables/{table_id}/trick-pause`](#post-apitablestable_idtrick-pause) | Set table trick pause | browser session or API key, admins |
+| POST | [`/api/tables/{table_id}/trick-pause`](#post-apitablestable_idtrick-pause) | Set table trick pause | browser session or API key, anyone signed in |
 | POST | [`/api/tables/{table_id}/undo`](#post-apitablestable_idundo) | Undo | browser session or API key, anyone signed in |
 
 ### GET /api/tables
@@ -3012,7 +3012,7 @@ Set table trick pause
 
 |  |  |
 |---|---|
-| Who may call | browser session or API key, admins |
+| Who may call | browser session or API key, anyone signed in |
 | Errors | 400, 401, 403, 429, 503 |
 
 **Parameters**

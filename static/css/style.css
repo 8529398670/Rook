@@ -674,6 +674,85 @@ td .row-actions { display: flex; gap: 0.4rem; }
   from { opacity: 0; transform: translate(-50%, -12px); }
 }
 
+/* A direct message that just arrived (ui.js DMToast): a small card below
+   the top bar, across the top on a phone and in the right-hand corner on
+   anything wider, so it never sits over the cards. Only the card takes
+   taps; the space around it lets them through. */
+.dm-toast {
+  position: fixed;
+  top: calc(64px + var(--safe-top));
+  left: 16px;
+  right: 16px;
+  z-index: 78;
+  display: flex;
+  justify-content: flex-end;
+  pointer-events: none;
+}
+.dm-toast[hidden] { display: none; }
+.dm-toast-card {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  color: var(--fg);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-left: 4px solid var(--accent);
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+  pointer-events: auto;
+  animation: dm-toast-in 0.22s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.dm-toast-open {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 0.55rem 0.4rem 0.55rem 0.7rem;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  border-radius: 12px 0 0 12px;
+  cursor: pointer;
+}
+.dm-toast-open .avatar { flex: none; }
+.dm-toast-body { display: flex; flex-direction: column; min-width: 0; }
+.dm-toast-name { font-size: 0.85rem; font-weight: 700; }
+.dm-toast-text {
+  overflow: hidden;
+  font-size: 0.85rem;
+  color: var(--fg-muted);
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.dm-toast-close {
+  flex: none;
+  align-self: stretch;
+  padding: 0 0.75rem;
+  font-size: 1.1rem;
+  line-height: 1;
+  color: var(--fg-muted);
+  background: none;
+  border: 0;
+  border-radius: 0 12px 12px 0;
+  cursor: pointer;
+}
+.dm-toast-open:hover .dm-toast-name,
+.dm-toast-close:hover { color: var(--accent); }
+
+@media (min-width: 700px) {
+  .dm-toast-card { width: 20rem; }
+}
+
+@keyframes dm-toast-in {
+  from { opacity: 0; transform: translateY(-8px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dm-toast-card { animation: fade-in 0.2s ease-out; }
+}
+
 /* ----------------------------------------------------- splash screen */
 
 .screen-splash {

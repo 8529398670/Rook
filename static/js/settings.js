@@ -80,7 +80,7 @@ const Settings = {
       if ( here ) title = I18n.get( section.getAttribute( "data-settings-title" ) );
     } );
     Dom.text( Dom.get( "settings-title" ) , title );
-    document.title = title + " · " + I18n.get( "app.title" );
+    Title.set( title + " · " + I18n.get( "app.title" ) );
     return part;
   },
 

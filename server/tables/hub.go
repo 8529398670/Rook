@@ -314,13 +314,17 @@ func ( hub *Hub ) SetObserversSeeAll( id string , see_all bool ) ( err error ) {
 }
 
 // SetTrickPause sets how long this table's finished tricks stay before they
-// are swept away, or with 0 goes back to the app-wide default.
-func ( hub *Hub ) SetTrickPause( id string , ms int ) ( err error ) {
+// are swept away, or with 0 goes back to the app-wide default. Anyone seated
+// at the table may change it; a nil user is an admin, who need not be seated.
+func ( hub *Hub ) SetTrickPause( id string , user *models.User , ms int ) ( err error ) {
 	if models.ValidTrickPause( ms ) == false {
 		err = ErrBadTrickPause
 		return
 	}
 	err = hub.mutate( id , func( table *Table ) ( fn_err error ) {
+		if user != nil {
+			if _ , fn_err = table.seated( user ); fn_err != nil { return }
+		}
 		table.TrickPauseMS = ms
 		return
 	} )

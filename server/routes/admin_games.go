@@ -14,7 +14,7 @@ import (
 
 // Admin powers over games: step back and forth through a table's moves, put
 // it on hold, decide who may see every hand, and the app-wide game settings.
-// All of these are registered under RequireAdmin. Sign-up links, which
+// All of these but the trick pause (open to anyone seated) are registered under RequireAdmin. Sign-up links, which
 // anyone allowed to invite may make, are in signup_links.go.
 
 type resetRequest struct {
@@ -115,15 +115,18 @@ func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx , in *setTableObserve
 	return
 }
 
-// SetTableTrickPause is an admin choosing this table's pause after a
-// finished trick; 0 goes back to the app-wide default.
+// SetTableTrickPause is a seated player (or an admin) choosing this table's
+// pause after a finished trick; 0 goes back to the app-wide default.
 //
-// @route("POST /api/tables/{table_id}/trick-pause", summary="Set table trick pause", tag="Tables", role=ADMIN,
+// @route("POST /api/tables/{table_id}/trick-pause", summary="Set table trick pause", tag="Tables",
 // )
 func ( handlers *Handlers ) SetTableTrickPause( c fiber.Ctx , in *setTableTrickPauseIn ) ( err error ) {
 	body := in.trickPauseRequest
 	id := c.Params( "table_id" )
-	err = handlers.tableResult( c , id , handlers.Hub.SetTrickPause( id , body.MS ) )
+	actor := security.ActorFrom( c )
+	var user *models.User
+	if actor != nil && actor.IsAdmin() == false { user = actor.User }
+	err = handlers.tableResult( c , id , handlers.Hub.SetTrickPause( id , user , body.MS ) )
 	return
 }
 

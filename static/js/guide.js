@@ -41,7 +41,7 @@ const Guide = {
     Dom.all( "[data-guide-tab]" ).forEach( function ( button ) {
       button.setAttribute( "aria-selected" , String( button.getAttribute( "data-guide-tab" ) === Guide.tab ) );
     } );
-    document.title = I18n.get( "guide." + this.tab + "_tab" ) + " · " + I18n.get( "app.title" );
+    Title.set( I18n.get( "guide." + this.tab + "_tab" ) + " · " + I18n.get( "app.title" ) );
     this.render();
     window.scrollTo( 0 , 0 );
   },

@@ -213,7 +213,7 @@ const App = {
 
     if ( this.screen && this.screen !== next ) this.screen.leave();
     Sheet.close( true );
-    document.title = I18n.get( "app.title" ); // a table puts its own name here
+    Title.set( I18n.get( "app.title" ) ); // a table puts its own name here
     this.screen = next;
     if ( this.me ) Nav.mark( this.navHash( hash ) );
     this.show( next.screenId );

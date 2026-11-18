@@ -125,7 +125,7 @@ const ThemeEditor = {
 
   enter() {
     this.showTab( this.tab );
-    document.title = I18n.get( "theme.heading" ) + " · " + I18n.get( "app.title" );
+    Title.set( I18n.get( "theme.heading" ) + " · " + I18n.get( "app.title" ) );
   },
 
   leave() {

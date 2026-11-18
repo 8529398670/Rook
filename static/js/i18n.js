@@ -70,7 +70,7 @@ const I18n = {
         return;
       }
       if ( element.tagName === "TITLE" ) {
-        document.title = value;
+        if ( typeof Title !== "undefined" ) Title.set( value ); else document.title = value;
         return;
       }
       element.textContent = value;

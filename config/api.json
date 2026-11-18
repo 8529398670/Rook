@@ -8636,8 +8636,7 @@
         "summary": "Set table trick pause",
         "tags": [
           "Tables"
-        ],
-        "x-required-role": "admin"
+        ]
       }
     },
     "/api/tables/{table_id}/undo": {

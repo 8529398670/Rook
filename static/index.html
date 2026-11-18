@@ -7,6 +7,9 @@
   <meta name="theme-color" content="#f4eee3" />
   <title data-i18n="app.title">&nbsp;</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <link rel="icon" href="/icon-192.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.webmanifest" />
   <!-- Before the stylesheets on purpose: applies a saved dark choice before
        first paint, so the page never flashes the wrong theme. -->
   <script src="/js/theme.js"></script>
@@ -1483,6 +1486,8 @@
   </div>
 
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <!-- A direct message that just arrived (ui.js DMToast): quiet, in the corner. -->
+  <div id="dm-toast" class="dm-toast" role="status" aria-live="polite" hidden></div>
   <!-- Invitations to play (global.js): they stay until answered. -->
   <div id="invite-notices" class="invite-notices" aria-live="polite"></div>
 

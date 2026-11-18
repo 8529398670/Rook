@@ -82,6 +82,101 @@ const Toast = {
   },
 };
 
+// The page's title, owned in one place so a table's name (redrawn on every
+// update) never wipes the "(2) ✉" that counts direct messages that arrived
+// while this browser tab was in the background. Coming back clears it.
+const Title = {
+  base: document.title,
+  count: 0,
+
+  set( base ) {
+    this.base = base;
+    this.write();
+  },
+
+  bump() {
+    this.count += 1;
+    this.write();
+  },
+
+  write() {
+    document.title = this.count ? "(" + this.count + ") ✉ " + this.base : this.base;
+  },
+
+  clear() {
+    if ( !this.count ) return;
+    this.count = 0;
+    this.write();
+  },
+};
+
+// A direct message, shown quietly in the corner: who and what, for a few
+// seconds, without taking focus or covering the cards. Tapping it opens the
+// conversation; × puts it away. One at a time: the newest replaces it. One
+// that arrives while this browser tab is in the background waits until you
+// come back, so it is not gone before anyone could see it.
+const DMToast = {
+  timer: null,
+  held: null,
+
+  init() {
+    document.addEventListener( "visibilitychange" , function () {
+      if ( document.hidden ) return;
+      Title.clear();
+      if ( DMToast.held ) {
+        const held = DMToast.held;
+        DMToast.held = null;
+        DMToast.show( held.person , held.text );
+      }
+    } );
+  },
+
+  // person: { id , display_name , icon , color }.
+  show( person , text ) {
+    if ( document.hidden ) {
+      this.held = { person: person , text: text };
+      return;
+    }
+    const box = Dom.get( "dm-toast" );
+    Dom.clear( box );
+    const avatar = Dom.el( "span" , { class: "avatar avatar-small" , attrs: { "aria-hidden": "true" } } );
+    Art.avatar( avatar , person );
+    const open = Dom.el( "button" , {
+      class: "dm-toast-open",
+      attrs: { type: "button" , "aria-label": I18n.format( "dm.toast_open" , { name: person.display_name } ) },
+      children: [
+        avatar,
+        Dom.el( "span" , { class: "dm-toast-body" , children: [
+          Dom.el( "span" , { class: "dm-toast-name" , text: person.display_name } ),
+          Dom.el( "span" , { class: "dm-toast-text" , text: text } ),
+        ] } ),
+      ],
+      on: { click: function () {
+        DMToast.hide();
+        Global.message( person );
+      } },
+    } );
+    const close = Dom.el( "button" , {
+      class: "dm-toast-close",
+      text: "×",
+      attrs: { type: "button" , "aria-label": I18n.get( "dm.toast_dismiss" ) , title: I18n.get( "dm.toast_dismiss" ) },
+      on: { click: function () { DMToast.hide(); } },
+    } );
+    box.appendChild( Dom.el( "div" , { class: "dm-toast-card" , children: [ open , close ] } ) );
+    box.hidden = false;
+    window.clearTimeout( this.timer );
+    this.timer = window.setTimeout( function () { DMToast.hide(); } , 6000 );
+  },
+
+  hide() {
+    window.clearTimeout( this.timer );
+    this.held = null;
+    const box = Dom.get( "dm-toast" );
+    box.hidden = true;
+    Dom.clear( box );
+  },
+};
+
 // Motion is decoration here, never information, so anyone who has asked their
 // system for less of it gets the end state straight away.
 const Motion = {

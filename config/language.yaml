@@ -1106,7 +1106,8 @@ dm:
   empty: "Nothing said yet. Say hi to {name}."
   close: "Close the conversation with {name}"
   unread: "{name} — new messages"
-  toast: "{name}: {text}"
+  toast_open: "Open the conversation with {name}"
+  toast_dismiss: "Dismiss"
 
 # The player menu: tap a name in "Online now" or in the chat.
 player:
@@ -1519,8 +1520,8 @@ pin:
 
 trick_pause:
   heading: "Pause after each trick"
-  global_help: "How long the last card stays on the table before the trick is cleared. Admins can change it for a single table from its menu."
-  table_help: "How long the last card stays before the trick is cleared, at this table."
+  global_help: "How long the last card stays on the table before the trick is cleared. Anyone at a table can change it for that table from its menu."
+  table_help: "How long the last card stays before the trick is cleared, at this table. Anyone seated can change it."
   seconds: "{seconds} s"
   default: "Default ({time})"
 

@@ -25,6 +25,7 @@ const Global = {
 
   start( me ) {
     this.me = me;
+    DMToast.init();
     [ [ "lobby-global-form" , "lobby-global-input" ] , [ "global-dock-form" , "global-dock-input" ] , [ "global-form" , "global-input" ] ].forEach( function ( pair ) {
       Dom.get( pair[ 0 ] ).addEventListener( "submit" , function ( event ) {
         event.preventDefault();
@@ -88,7 +89,7 @@ const Global = {
       // Signing in should not light up everything said before you arrived.
       this.seen = this.latest();
     }
-    this.toastNew();
+    this.notifyNew();
     this.primed = true;
     this.renderInvites();
     if ( this.enabled !== view.enabled ) {
@@ -108,10 +109,14 @@ const Global = {
     this.render();
   },
 
-  // A direct message that arrives while its conversation is not on screen
-  // pops up, once.
-  toastNew() {
+  // A direct message that arrives, once each. With no global chat in front
+  // of you, it opens beside your cards (where there is room). Unless its
+  // conversation was already showing, a quiet toast says who and what, and
+  // the browser tab's title counts it while you are on another tab.
+  // Everything is judged as things stood when it arrived.
+  notifyNew() {
     const me = this.me;
+    const arrived = [];
     this.dms().forEach( function ( dm ) {
       let last = null;
       dm.lines.forEach( function ( line ) { if ( line.user_id !== me.id ) last = line; } );
@@ -119,9 +124,32 @@ const Global = {
       const before = Global.toasted[ dm.user_id ] || 0;
       Global.toasted[ dm.user_id ] = Math.max( before , last.seq );
       if ( !Global.primed || last.seq <= before || last.seq <= dm.read ) return;
-      if ( Global.active === dm.user_id && Global.onScreen() ) return;
-      Toast.show( I18n.format( "dm.toast" , { name: dm.display_name , text: last.text } ) );
+      arrived.push( { dm: dm , line: last } );
     } );
+    if ( !arrived.length ) return;
+    const chatUp = this.onScreen();
+    const away = document.hidden;
+    arrived.forEach( function ( item ) {
+      const dm = item.dm;
+      if ( chatUp && Global.active === dm.user_id ) return;
+      DMToast.show( { id: dm.user_id , display_name: dm.display_name , icon: dm.icon , color: dm.color } , item.line.text );
+      if ( away ) Title.bump();
+    } );
+    if ( !chatUp ) this.reveal( arrived[ arrived.length - 1 ].dm.user_id );
+  },
+
+  // Put conversation id in front of the player without taking focus or
+  // covering the cards: at a table on a wide screen, open the dock (on the
+  // right, unless the table's chat is there). A narrow screen's chat is a
+  // sheet over the cards, so it stays shut; the toast and the menu's dot
+  // say enough. Elsewhere nothing moves.
+  reveal( id ) {
+    if ( App.screen !== Table || !Table.view ) return;
+    if ( !Chat.dockWide || !Chat.dockWide.matches ) return;
+    this.active = id;
+    if ( Chat.dockedSide( "global" ) === "off" ) {
+      Chat.setDockSide( "global" , Chat.dockedSide( "table" ) === "right" ? "left" : "right" );
+    }
   },
 
   // Whether the conversation showing is in front of the player right now.

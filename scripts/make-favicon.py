@@ -1,7 +1,14 @@
 #!/usr/bin/env python3
 # Rebuild static/favicon.svg from the traced card art in static/js/art-paths.js,
 # so the browser tab shows the same card back the table does (cards.js
-# backSymbol): white stock, the teal ring ornament, the crow and the ROOK logo.
+# backSymbol): white stock, the teal ring ornament and the ROOK logo, with the
+# site's own crow (the one in the lobby header, art.js bird()) in the middle.
+#
+# It also writes the home-screen icons: static/apple-touch-icon.png (iPhone and
+# iPad, which ignore SVG icons) and static/icon-192.png / icon-512.png (the
+# web manifest, for Android). Those are the same upright card on the table's
+# colour, small enough inside the square that a rounded or round mask never
+# cuts it. They need rsvg-convert (brew install librsvg).
 #
 # The favicon is a static file -- browsers fetch it before any script runs --
 # so it cannot draw itself with cards.js; this script does the same drawing
@@ -9,7 +16,10 @@
 #
 # Usage: ./scripts/make-favicon.py [output]
 import re
+import shutil
+import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 ROOT = Path( __file__ ).resolve().parent.parent
@@ -17,6 +27,8 @@ SOURCE = ROOT / "static" / "js" / "art-paths.js"
 
 # Kept in step with cards.js and art.js.
 TEAL , ORNAMENT , EDGE = "#40aab8" , "#56bac6" , "#2b2b2e"
+# The light table colour (style.css --table), behind the home-screen icons.
+TABLE = "#ead3aa"
 SCAN_SCALE = 350 / 210
 
 
@@ -43,6 +55,65 @@ def scan( picture , tones , left , top ):
     return f'<g transform="translate({x:.3f} {top * SCAN_SCALE:.3f}) scale({SCAN_SCALE / 8:.5f})">{traced( picture , tones )}</g>'
 
 
+# Loose specks the tracing left off the bird, in the crow's 706x898 space: a
+# dot under the branch and a fleck past the tail. Too small to see in the
+# header, they read as stray marks on the icon.
+CROW_SPECKS = ( ( 425 , 835 , 450 , 865 ) , ( 670 , 735 , 690 , 755 ) )
+# Scan dirt above the letters of the card-back logo (896x448 space): small ink
+# bits the trace kept between the crow and the word ROOK.
+LOGO_SPECKS = ( ( 410 , 0 , 500 , 40 ) , )
+
+
+def subpath_box( d , picture ):
+    # The traced paths are an absolute M then relative c/l, in the flipped
+    # space traced() undoes; return the box in picture pixels.
+    x = y = 0.0
+    xs , ys = [] , []
+    command , numbers = None , []
+    for token in re.findall( r"[A-Za-z]|-?\d+\.?\d*" , d ):
+        if token.isalpha():
+            command , numbers = token , []
+            continue
+        numbers.append( float( token ) )
+        if command == "M" and len( numbers ) == 2:
+            x , y = numbers
+            command , numbers = "l" , []
+        elif command == "l" and len( numbers ) == 2:
+            x , y = x + numbers[ 0 ] , y + numbers[ 1 ]
+            numbers = []
+        elif command == "c" and len( numbers ) == 6:
+            x , y = x + numbers[ 4 ] , y + numbers[ 5 ]
+            numbers = []
+        else:
+            continue
+        xs.append( x )
+        ys.append( y )
+    scale , height = picture[ "scale" ] , picture[ "height" ]
+    return min( xs ) * scale , height - max( ys ) * scale , max( xs ) * scale , height - min( ys ) * scale
+
+
+# picture with every sub-shape that lies wholly inside one of specks taken out.
+def without_specks( picture , specks ):
+    def inside( box ):
+        return any( box[ 0 ] >= a and box[ 1 ] >= b and box[ 2 ] <= c and box[ 3 ] <= d for a , b , c , d in specks )
+    cleaned = dict( picture , layers={} )
+    for name , d in picture[ "layers" ].items():
+        parts = re.findall( r"M[^M]*" , d )
+        cleaned[ "layers" ][ name ] = "".join( part for part in parts if inside( subpath_box( part , picture ) ) is False )
+    return cleaned
+
+
+# The lobby header's crow, exactly as art.js bird() draws it (same layers and
+# tones, less the loose specks), sized to sit clear above the logo in the
+# middle of the card.
+def crow( picture ):
+    height = 116
+    scale = height / picture[ "height" ]
+    x = ( 250 - picture[ "width" ] * scale ) / 2
+    tones = { "cream": "#f3ecd3" , "light": "#a9aa9c" , "mid": "#5b5c52" , "dark": "#15150f" }
+    return f'<g transform="translate({x:.3f} 40) scale({scale:.5f})">{traced( without_specks( picture , CROW_SPECKS ) , tones )}</g>'
+
+
 def back( pictures ):
     rings = "".join(
         f'<circle cx="{x}" cy="{y}" r="48" fill="none" stroke="{ORNAMENT}" stroke-width="4"/>'
@@ -53,24 +124,56 @@ def back( pictures ):
         f'<rect width="96" height="96" fill="{TEAL}"/>{rings}</pattern></defs>'
         f'<rect x="1.5" y="1.5" width="247" height="347" rx="16" fill="#ffffff" stroke="{EDGE}" stroke-width="3"/>'
         f'<rect x="17" y="17" width="216" height="316" rx="12" fill="url(#ring)"/>'
-        + scan( pictures[ "backcrow" ] , { "ink": "#101c1f" } , 22 , 30 )
-        + scan( pictures[ "backlogo" ] , { "ink": "#111111" , "gold": "#f5b70f" , "white": "#ffffff" } , 14 , 102 )
+        + crow( pictures[ "crow" ] )
+        + scan( without_specks( pictures[ "backlogo" ] , LOGO_SPECKS ) , { "ink": "#111111" , "gold": "#f5b70f" , "white": "#ffffff" } , 14 , 102 )
+    )
+
+
+HEADER = '  <!-- Generated by scripts/make-favicon.py from the card art in js/art-paths.js. -->\n'
+
+
+def tab_icon( card ):
+    # The 250x350 card stands straight up, centred in a square with a little
+    # room round it, so the whole card shows and nothing is clipped.
+    return (
+        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360">\n' + HEADER +
+        f'  <g transform="translate(55 5)">{card}</g>\n'
+        '</svg>\n'
+    )
+
+
+def home_icon( card ):
+    # On the table's colour, the card 66% of the square's height: its corners
+    # stay inside the circle Android's round masks keep (80% across), and well
+    # clear of iOS's rounded corners.
+    size , height = 512 , 512 * 0.66
+    scale = height / 350
+    x , y = ( size - 250 * scale ) / 2 , ( size - height ) / 2
+    return (
+        f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {size} {size}">\n' + HEADER +
+        f'  <rect width="{size}" height="{size}" fill="{TABLE}"/>\n'
+        f'  <g transform="translate({x:.3f} {y:.3f}) scale({scale:.5f})">{card}</g>\n'
+        '</svg>\n'
     )
 
 
 def main():
     output = Path( sys.argv[ 1 ] ) if len( sys.argv ) > 1 else ROOT / "static" / "favicon.svg"
     card = back( load_pictures() )
-    # The 250x350 card stands upright in a square, a little tilted like one
-    # dealt onto the table, so it fills the tab without being squashed.
-    svg = (
-        '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 360 360">\n'
-        '  <!-- Generated by scripts/make-favicon.py from the card art in js/art-paths.js. -->\n'
-        f'  <g transform="rotate(-8 180 180) translate(55 5)">{card}</g>\n'
-        '</svg>\n'
-    )
+    svg = tab_icon( card )
     output.write_text( svg )
     print( f"wrote {output} ({len( svg ) // 1024} KB)" )
+
+    converter = shutil.which( "rsvg-convert" )
+    if converter is None:
+        sys.exit( "rsvg-convert not found (brew install librsvg): the home-screen PNGs were not rebuilt" )
+    with tempfile.TemporaryDirectory() as scratch:
+        source = Path( scratch ) / "home.svg"
+        source.write_text( home_icon( card ) )
+        for name , pixels in ( ( "apple-touch-icon.png" , 180 ) , ( "icon-192.png" , 192 ) , ( "icon-512.png" , 512 ) ):
+            target = output.parent / name
+            subprocess.run( [ converter , "-w" , str( pixels ) , "-h" , str( pixels ) , "-o" , str( target ) , str( source ) ] , check=True )
+            print( f"wrote {target}" )
 
 
 main()

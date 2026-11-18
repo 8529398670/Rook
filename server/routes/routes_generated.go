@@ -785,9 +785,8 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	apidoc.MountStream( app , "POST" , "/api/tables/{table_id}/trick-pause" , apidoc.Op{
 		Summary: "Set table trick pause",
 		Tag: "Tables",
-		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetTableTrickPause , handlers.Guard.RequireAdmin )
+	} , handlers.SetTableTrickPause , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "POST" , "/api/tables/{table_id}/undo" , apidoc.Op{
 		Summary: "Undo",
 		Tag: "Tables",

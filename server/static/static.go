@@ -42,6 +42,7 @@ const binaryCacheSeconds = 60 * 60 * 24 * 7 // 7 days
 // there is no reason to make them.
 func init() {
 	mime.AddExtensionType( ".woff2" , "font/woff2" )
+	mime.AddExtensionType( ".webmanifest" , "application/manifest+json" )
 }
 
 type Server struct {
