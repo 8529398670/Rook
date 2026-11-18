@@ -426,7 +426,7 @@ const Hand = {
     this.layout();
     if ( !fromRect ) return;
     const to = node.getBoundingClientRect();
-    Motion.animate( node , [
+    Motion.animateCard( node , [
       { translate: ( fromRect.left - to.left ) + "px " + ( fromRect.top - to.top ) + "px" },
       { translate: "0 0" },
     ] , { duration: 300 , easing: "cubic-bezier(.2,.8,.25,1)" } );

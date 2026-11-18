@@ -182,6 +182,11 @@ const Table = {
       toggle.addEventListener( "change" , function () { Table.setWinGlow( toggle.checked ); } );
     } );
     document.body.classList.toggle( "show-win" , this.showWinGlow() );
+    Dom.all( "[data-card-motion-toggle]" ).forEach( function ( toggle ) {
+      toggle.checked = Motion.cards();
+      toggle.addEventListener( "change" , function () { Motion.setCards( toggle.checked ); } );
+    } );
+    document.body.classList.toggle( "card-motion" , Motion.cards() );
   },
 
   // Auto play: the server plays the bot's choice of card for you on each of

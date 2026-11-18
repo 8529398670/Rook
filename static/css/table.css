@@ -1093,6 +1093,12 @@
   from { opacity: 0; translate: 0 -60px; scale: 0.6; }
 }
 
+/* Reduce Motion cuts every animation to 1ms (style.css); the deal is a card
+   animation, so it keeps its length while "Animate cards" is on (ui.js). */
+@media (prefers-reduced-motion: reduce) {
+  body.card-motion .hand .playing-card.is-dealt { animation-duration: 0.36s !important; }
+}
+
 /* ------------------------------------------------------------ sheets */
 
 .summary-art { display: flex; justify-content: center; }

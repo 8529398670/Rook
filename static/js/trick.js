@@ -97,7 +97,7 @@ const Trick = {
       const dx = from.left + from.width / 2 - ( to.left + to.width / 2 );
       const dy = from.top + from.height / 2 - ( to.top + to.height / 2 );
       // Usually it is already exactly there; if it hovered, it drops in.
-      pending.landed = Math.abs( dx ) + Math.abs( dy ) < 2 ? Promise.resolve() : Motion.animate( node , [
+      pending.landed = Math.abs( dx ) + Math.abs( dy ) < 2 ? Promise.resolve() : Motion.animateCard( node , [
         { translate: dx + "px " + dy + "px" , scale: "1.04" },
         { translate: "0 0" , scale: "1" },
       ] , { duration: 220 , easing: "cubic-bezier(.3,.8,.3,1)" } );
@@ -210,7 +210,7 @@ const Trick = {
     const dx = start.left + start.width / 2 - ( end.left + end.width / 2 );
     const dy = start.top + start.height / 2 - ( end.top + end.height / 2 );
     const scale = Math.max( 0.35 , Math.min( 1.4 , start.width / ( end.width || 1 ) ) );
-    return Motion.animate( node , [
+    return Motion.animateCard( node , [
       { translate: dx + "px " + dy + "px" , scale: String( scale ) , opacity: 0.6 },
       { translate: "0 0" , scale: "1" , opacity: 1 },
     ] , { duration: 320 , easing: "cubic-bezier(.2,.8,.25,1)" } );
@@ -223,14 +223,14 @@ const Trick = {
     } );
     // Long enough to see who took it before the cards move: the table's
     // pause, which an admin can change (1.1 s unless they did).
-    await Motion.wait( view.trick_pause_ms || 1100 );
+    await Motion.waitCard( view.trick_pause_ms || 1100 );
     const target = Seats.rect( view , winner );
     if ( target ) {
       await Promise.all( entries.map( function ( entry ) {
         const from = entry.node.getBoundingClientRect();
         const dx = target.left + target.width / 2 - ( from.left + from.width / 2 );
         const dy = target.top + target.height / 2 - ( from.top + from.height / 2 );
-        return Motion.animate( entry.node , [
+        return Motion.animateCard( entry.node , [
           { translate: "0 0" , scale: "1" , opacity: 1 },
           { translate: dx + "px " + dy + "px" , scale: "0.3" , opacity: 0 },
         ] , { duration: 380 , easing: "cubic-bezier(.5,0,.75,0)" , fill: "forwards" } );

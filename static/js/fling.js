@@ -92,7 +92,7 @@ const Fling = {
     body.vy = velocity.y * cap;
     // A sideways throw spins the card a little; the spring takes it out.
     body.vr += Math.max( -500 , Math.min( 500 , velocity.x * cap * 0.12 ) );
-    if ( Motion.reduced() ) {
+    if ( !Motion.cards() ) {
       Object.assign( body , { x: body.target.x , y: body.target.y , r: body.target.r , s: body.target.s } );
       this.draw( body );
       this.stop( body );

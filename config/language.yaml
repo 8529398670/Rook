@@ -1172,6 +1172,10 @@ win_glow:
   heading: "Outline the card that won the trick"
   description: "Ring the card that took each trick, on the table and in Last trick, in your theme's color (Display). Remembered on this device."
 
+card_motion:
+  heading: "Animate cards"
+  description: "Cards fly in from each player and sweep to whoever took the trick, even when your device is set to reduce motion. Off: cards just appear and disappear. Remembered on this device."
+
 table_theme:
   heading: "Theme"
   description: "Switch the theme while you play and see it at once. Edit themes under Display."

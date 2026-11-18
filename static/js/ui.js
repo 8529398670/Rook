@@ -101,4 +101,47 @@ const Motion = {
     const duration = this.reduced() ? Math.min( milliseconds , 250 ) : milliseconds;
     return new Promise( function ( resolve ) { window.setTimeout( resolve , duration ); } );
   },
+
+  // The cards are the exception. A card flying in from its seat and the
+  // trick sweeping to whoever took it tell you who played and who won, so
+  // they run even when the device asks for less motion (iPhones and iPads
+  // often do: Settings > Accessibility > Motion > Reduce Motion), unless
+  // "Animate cards" is switched off in Settings or the table menu.
+  // Remembered on this device; on until switched off.
+  cardsKey: "rook.card_motion",
+  cardsOn: null,
+
+  cards() {
+    if ( this.cardsOn === null ) {
+      try {
+        this.cardsOn = window.localStorage.getItem( this.cardsKey ) !== "off";
+      } catch ( error ) {
+        this.cardsOn = true;
+      }
+    }
+    return this.cardsOn;
+  },
+
+  setCards( on ) {
+    this.cardsOn = on;
+    try {
+      window.localStorage.setItem( this.cardsKey , on ? "on" : "off" );
+    } catch ( error ) {
+      // Storage refused: the choice still applies for this page view.
+    }
+    document.body.classList.toggle( "card-motion" , on );
+    Dom.all( "[data-card-motion-toggle]" ).forEach( function ( toggle ) { toggle.checked = on; } );
+  },
+
+  // animate() and wait() for the cards: they follow cards(), not reduced().
+  animateCard( element , keyframes , options ) {
+    if ( !element || !this.cards() || typeof element.animate !== "function" ) return Promise.resolve();
+    const animation = element.animate( keyframes , options );
+    return animation.finished.catch( function () {} );
+  },
+
+  waitCard( milliseconds ) {
+    const duration = this.cards() ? milliseconds : Math.min( milliseconds , 250 );
+    return new Promise( function ( resolve ) { window.setTimeout( resolve , duration ); } );
+  },
 };
