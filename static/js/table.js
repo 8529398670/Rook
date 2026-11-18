@@ -658,6 +658,12 @@ const Table = {
     ] : [ view.status , view.observing , view.perspective ] ).concat( [ view.my_request ] );
     if ( signature === this.traySignature ) return;
     this.traySignature = signature;
+    // The slot is full height while the hand is bid for and the kitty
+    // buried (and for watchers, whose controls live there); for the rest of
+    // the hand it shrinks to what it holds and the felt takes the room.
+    const roomy = Boolean( view.observing ) ||
+      ( Boolean( game ) && view.status !== "waiting" && ( game.phase === "bidding" || game.phase === "kitty" ) );
+    Dom.get( "screen-table" ).classList.toggle( "tray-compact" , !roomy );
     Dom.clear( tray );
     if ( view.observing ) {
       Observe.renderTray( tray , view );

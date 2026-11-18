@@ -6,10 +6,12 @@
     [ tray: bid stepper / kitty -- a fixed slot, empty between turns ]
     [ hand ]
 
-  The rows only change size when the window does. Nothing the game does --
-  your turn coming round, the kitty, a reconnect, the deal itself -- may
-  move the line between the table and the bottom area: anything that comes
-  and goes either fits the fixed tray slot or floats over the felt.
+  The line between the table and the bottom area moves twice a hand: down
+  when the bidding starts (the tray opens its fixed slot for the bid
+  stepper and the kitty) and up when play starts (the tray shrinks to what
+  it holds). Nothing else the game does -- your turn coming round, a
+  reconnect, the deal itself -- may move it: anything that comes and goes
+  either fits the tray or floats over the felt.
 
   Everything that moves gets its numbers from JS as custom properties
   (--x, --y, --r on hand cards; --tilt on trick cards). The stylesheet decides
@@ -53,6 +55,12 @@
 @media (min-width: 40rem) {
   .screen-table { --tray-h: 64px; }
 }
+
+/* Once the bidding and the kitty are done, the tray gives its room back to
+   the felt: it is only as tall as what is in it, often nothing (table.js
+   sets the class). */
+.screen-table.tray-compact { grid-template-rows: auto minmax(0, 1fr) auto auto; }
+.screen-table.tray-compact .tray:not(:empty) { padding-top: 4px; padding-bottom: 4px; }
 
 /* ---------------------------------------------------------------- bar */
 
@@ -798,9 +806,9 @@
 
 /* --------------------------------------------------------------- tray */
 
-/* A fixed slot between the table and your hand. Whatever is in it --
-   bidding, the kitty, the hand's results, a hint, or nothing -- it is the
-   same height, so your turn coming round never moves the table. Every
+/* A slot between the table and your hand. During the bidding and the
+   kitty it is a fixed height whatever is in it, so your turn coming round
+   never moves the table; during play it shrinks (.tray-compact). Every
    panel is built to fit (one row on a wide screen, two on a phone), and the
    hint's message floats above the slot instead of adding a line. The hint
    button sits inside the panel it belongs to, so the panel stays centered. */
