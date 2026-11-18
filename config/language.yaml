@@ -1520,8 +1520,9 @@ pin:
 
 trick_pause:
   heading: "Pause after each trick"
-  global_help: "How long the last card stays on the table before the trick is cleared. Anyone at a table can change it for that table from its menu."
-  table_help: "How long the last card stays before the trick is cleared, at this table. Anyone seated can change it."
+  global_help: "How long the last card stays on the table before the trick is cleared, for every table that keeps the default. A table's owner can pick another for their table."
+  table_help: "How long the last card stays before the trick is cleared, for everyone at this table. The table's owner sets it."
+  create_help: "How long the last card stays before the trick is cleared, for everyone at this table. You can change it later from the table's menu."
   seconds: "{seconds} s"
   default: "Default ({time})"
 

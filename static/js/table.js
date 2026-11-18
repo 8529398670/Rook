@@ -896,8 +896,9 @@ const Table = {
       Dom.show( document.querySelector( "[data-menu='history']" ) , view.can_rewind );
       Dom.show( Dom.get( "menu-observers-row" ) , view.is_admin );
       Dom.get( "menu-observers" ).checked = view.observers_see_all;
-      // This table's pause after a trick: anyone seated, or an admin.
-      const canPause = view.is_admin || view.you >= 0;
+      // This table's pause after a trick: the owner's setting -- its
+      // creator or host, or an admin.
+      const canPause = Boolean( view.can_manage || view.is_host || view.is_admin );
       Dom.show( Dom.get( "menu-trick-pause-row" ) , canPause );
       if ( canPause ) {
         const pause = Dom.get( "menu-trick-pause" );

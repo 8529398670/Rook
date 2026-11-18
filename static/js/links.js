@@ -65,7 +65,7 @@ const Links = {
       Dom.get( "setting-table-chat" ).checked = !settings.table_chat_off;
       Dom.get( "setting-global-chat" ).checked = !settings.global_chat_off;
       // 0 (never set) is the built-in pause, which is on the list.
-      Dom.get( "setting-trick-pause" ).value = String( settings.trick_pause_ms || 1100 );
+      Dom.get( "setting-trick-pause" ).value = String( settings.trick_pause_ms || 2000 );
       Dom.get( "setting-rook-anytime" ).checked = settings.rook_anytime;
       Dom.get( "setting-rook-first-trick" ).checked = !settings.rook_first_trick_off;
       Dom.get( "setting-rook-rank" ).value = settings.rook_rank || "high";

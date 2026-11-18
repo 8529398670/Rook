@@ -245,6 +245,9 @@ const Lobby = {
     Dom.get( "play-to-custom-input" ).value = "";
     Dom.get( "new-table-name" ).value = I18n.format( "create.default_name" , { name: this.me.display_name } );
     this.renderOptions();
+    const pause = Dom.get( "new-table-trick-pause" );
+    Links.fillPauses( pause , this.me.trick_pause_default || 2000 );
+    pause.value = "0";
     Sheet.open( "sheet-new-table" );
   },
 
@@ -272,7 +275,7 @@ const Lobby = {
     // whole number in range (its min, max and step).
     if ( this.customPlayTo ) this.options.play_to = Number( Dom.get( "play-to-custom-input" ).value );
     try {
-      const view = await Api.createTable( name , this.options );
+      const view = await Api.createTable( name , this.options , Number( Dom.get( "new-table-trick-pause" ).value ) );
       Sheet.close( true );
       App.go( "#/t/" + view.id );
     } catch ( error ) {

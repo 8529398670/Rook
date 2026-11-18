@@ -150,8 +150,9 @@ func ( settings AppSettings ) Rank() ( rank game.RookRank ) {
 	return
 }
 
-// DefaultTrickPauseMS is the pause a finished trick has always had.
-const DefaultTrickPauseMS = 1100
+// DefaultTrickPauseMS is the pause a finished trick has when nobody chose
+// another: two seconds.
+const DefaultTrickPauseMS = 2000
 
 // TrickPauses are the pauses on offer, in milliseconds: a short list rather
 // than any number, so a typo cannot freeze every table for a minute.

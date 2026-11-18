@@ -69,6 +69,9 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// The Appearance screen's themes (see themes.go): your own list, else
 		// the app's defaults, else null for the built-in ones.
 		"theme_id":         user.ThemeID,
+		// The app-wide pause after a trick, for the New table form's
+		// "Default (x s)" choice.
+		"trick_pause_default": handlers.Hub.Settings().TrickPause(),
 	}
 	themes , themes_custom , themes_builtins , themes_err := handlers.myThemes( user )
 	if themes_err != nil {

@@ -4,6 +4,7 @@ import (
 	errors "errors"
 	testing "testing"
 
+	game "rook/server/game"
 	models "rook/server/models"
 )
 
@@ -39,11 +40,19 @@ func TestTrickPauseDefaultsAndPerTable( t *testing.T ) {
 		t.Fatalf( "reset to default gave %d" , view.TrickPause )
 	}
 
-	// Someone not seated at the table may not change it; an admin (nil) may.
+	// It is the owner's setting: someone else may not change it, even seated
+	// at the table; an admin (nil) may.
 	bo := testUser( t , store , "Bo" )
-	if err := hub.SetTrickPause( id , bo , 2000 ); !errors.Is( err , ErrNotSeated ) {
-		t.Fatalf( "unseated user changed the pause: %v" , err )
+	if err := hub.SetTrickPause( id , bo , 2000 ); !errors.Is( err , ErrNotHost ) {
+		t.Fatalf( "a stranger changed the pause: %v" , err )
 	}
+	open , err := hub.Create( ana , "Open table" , game.DefaultOptions() )
+	if err != nil { t.Fatal( err ) }
+	if err = hub.Sit( open , bo , 1 ); err != nil { t.Fatal( err ) }
+	if err = hub.SetTrickPause( open , bo , 2000 ); !errors.Is( err , ErrNotHost ) {
+		t.Fatalf( "a seated non-owner changed the pause: %v" , err )
+	}
+	if err = hub.SetTrickPause( open , ana , 3000 ); err != nil { t.Fatal( err ) }
 	if err := hub.SetTrickPause( id , nil , 2000 ); err != nil { t.Fatal( err ) }
 
 	if err := hub.SetTrickPause( id , ana , 123 ); !errors.Is( err , ErrBadTrickPause ) {

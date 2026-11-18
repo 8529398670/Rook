@@ -2171,6 +2171,7 @@ Create table
 | `options.rook_anytime` | boolean | no |  |  |
 | `options.rook_first_trick` | boolean | no |  |  |
 | `options.rook_rank` | string | no |  |  |
+| `trick_pause_ms` | integer | no |  |  |
 
 **Reply 200**: Success
 

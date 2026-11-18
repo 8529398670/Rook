@@ -6210,6 +6210,9 @@
                       }
                     },
                     "type": "object"
+                  },
+                  "trick_pause_ms": {
+                    "type": "integer"
                   }
                 },
                 "type": "object"

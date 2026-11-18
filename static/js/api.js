@@ -221,7 +221,7 @@ const Api = {
     return "/api/watch/" + encodeURIComponent( code ) + ( events ? "/events" : "" ) + this.tableQuery;
   },
   listTables()                 { return this.request( "/api/tables" ); },
-  createTable( name , options ) { return this.post( "/api/tables" , { name: name , options: options } ); },
+  createTable( name , options , trickPauseMs ) { return this.post( "/api/tables" , { name: name , options: options , trick_pause_ms: trickPauseMs || 0 } ); },
   getTable( id )               { return this.request( this.tablePath( id ) ); },
   getWatch( code )             { return this.request( this.watchPath( code ) ); },
   hint( id )                   { return this.request( this.tablePath( id , "hint" ) ); },

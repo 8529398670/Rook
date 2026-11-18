@@ -21,6 +21,9 @@ import (
 type createTableRequest struct {
 	Name      string             `json:"name,omitempty"`
 	Options   createTableOptions `json:"options,omitempty"`
+	// TrickPauseMS is the new table's pause after a finished trick, one of
+	// models.TrickPauses; 0 or left out follows the app-wide default.
+	TrickPauseMS int              `json:"trick_pause_ms,omitempty"`
 	CSRFToken string             `json:"csrf_token,omitempty"`
 }
 
@@ -172,10 +175,21 @@ func ( handlers *Handlers ) CreateTable( c fiber.Ctx , in *createTableIn ) ( err
 		err = decode_err
 		return
 	}
-	id , create_err := handlers.Hub.Create( security.UserFrom( c ) , body.Name , body.Options.game() )
+	if models.ValidTrickPause( body.TrickPauseMS ) == false {
+		err = handlers.tableError( c , tables.ErrBadTrickPause )
+		return
+	}
+	user := security.UserFrom( c )
+	id , create_err := handlers.Hub.Create( user , body.Name , body.Options.game() )
 	if create_err != nil {
 		err = handlers.tableError( c , create_err )
 		return
+	}
+	if body.TrickPauseMS != 0 {
+		if pause_err := handlers.Hub.SetTrickPause( id , user , body.TrickPauseMS ); pause_err != nil {
+			err = handlers.tableError( c , pause_err )
+			return
+		}
 	}
 	c.Status( fiber.StatusCreated )
 	err = handlers.tableResult( c , id , nil )

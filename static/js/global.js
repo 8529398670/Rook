@@ -380,12 +380,25 @@ const Global = {
     list.scrollTop = list.scrollHeight;
   },
 
+  // The sender's name with when they said it: a time today, a date and time
+  // before that, the full date and time on hover.
+  headEl( name , line ) {
+    const date = line.at ? new Date( line.at ) : null;
+    if ( !date || isNaN( date.getTime() ) || date.getFullYear() < 2000 ) return name;
+    const stamp = Dom.el( "time" , {
+      class: "chat-time",
+      text: Player.when( date ),
+      attrs: { datetime: date.toISOString() , title: date.toLocaleString( undefined , { dateStyle: "full" , timeStyle: "short" } ) },
+    } );
+    return Dom.el( "div" , { class: "chat-head" , children: [ name , stamp ] } );
+  },
+
   lineEl( line ) {
     const mine = Boolean( this.me && line.user_id === this.me.id );
     const other = this.active;
     // In "Everyone", someone else's name opens the player menu.
     const name = !mine && !other && line.user_id ? Player.nameButton( { id: line.user_id , display_name: line.name , icon: line.icon , color: line.color } , line.name ) : Dom.el( "span" , { class: "chat-name" , text: line.name } );
-    const item = Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [ name , Chat.textEl( line ) ] } );
+    const item = Dom.el( "li" , { class: "chat-line" + ( mine ? " is-mine" : "" ) , children: [ this.headEl( name , line ) , Chat.textEl( line ) ] } );
     // Your own lines can be edited or deleted, the same way as at a table;
     // the owner may edit or delete anyone's in "Everyone".
     if ( other && mine ) {

@@ -115,8 +115,9 @@ func ( handlers *Handlers ) SetTableObservers( c fiber.Ctx , in *setTableObserve
 	return
 }
 
-// SetTableTrickPause is a seated player (or an admin) choosing this table's
-// pause after a finished trick; 0 goes back to the app-wide default.
+// SetTableTrickPause is the table's creator or host (or an admin) choosing
+// this table's pause after a finished trick; 0 goes back to the app-wide
+// default.
 //
 // @route("POST /api/tables/{table_id}/trick-pause", summary="Set table trick pause", tag="Tables",
 // )

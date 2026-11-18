@@ -1184,6 +1184,8 @@
 }
 
 .chat-name { display: block; font-size: 0.72rem; font-weight: 750; color: var(--fg-muted); }
+.chat-head { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.chat-time { font-size: 0.68rem; color: var(--fg-muted); white-space: nowrap; }
 
 /* Edit and delete on your own lines: quiet until the line is hovered or
    focused, and always there on a touch screen, which has no hover. */

@@ -223,7 +223,7 @@ const Trick = {
     } );
     // Long enough to see who took it before the cards move: the table's
     // pause, which an admin can change (1.1 s unless they did).
-    await Motion.waitCard( view.trick_pause_ms || 1100 );
+    await Motion.waitCard( view.trick_pause_ms || 2000 );
     const target = Seats.rect( view , winner );
     if ( target ) {
       await Promise.all( entries.map( function ( entry ) {
