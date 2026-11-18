@@ -1,11 +1,11 @@
 # Written by the skill that scaffolded this app; `webserver-upgrade` reads and
 # updates it. Commit it: it is how an update knows where this app started.
 skill: go-webserver
-commit: 70b6415925f7d74e8c73a85b0e348a310af644f0
+commit: 145e4d486c171417ccce30f74f91389b2f7cb991
 project_name: "Rook"
 slug: rook
 module_path: rook
 port: 9384
 features: [api_keys, openapi]
 pruned: [passwords, two_factor, invite_links, files, webhooks, metrics, backups, mcp, jobs, maintenance, settings, shortcuts]
-skipped: [about, bootstrap-grid, bulk-routes, files]
+skipped: [about, bootstrap-grid, bulk-routes, files, theme-builtin-changes, theme-top-bar]

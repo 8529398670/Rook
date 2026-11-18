@@ -11,7 +11,7 @@ import (
 type Revoked struct {
 	Sessions   int `json:"sessions"`
 	LoginLinks int `json:"login_links"`
-	APIKeys    int `json:"api_keys"`
+	APIKeys    int `json:"api_keys" jsonschema_extras:"x-feature=api_keys"`
 }
 
 // RevokeAllCredentials is the "this account may be compromised" operation:

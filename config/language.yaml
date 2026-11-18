@@ -1594,6 +1594,11 @@ games:
 
 # The readable API reference (static/docs.html, static/js/docs.js): /docs/api,
 # linked from the API keys card when app.repo is not set.
+# A newer build of the app is running (static/js/fresh.js): shown when
+# nobody has moved to another screen for a minute since it was heard.
+fresh:
+  new_version: "A new version is available. It loads when you go to another screen."
+
 docs:
   api_title: "API reference"
   back: "Back to Settings"

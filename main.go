@@ -33,6 +33,7 @@ import (
 	db "rook/server/db"
 	healthcheck "rook/server/healthcheck"
 	language "rook/server/language"
+	livereload "rook/server/livereload"
 	logs "rook/server/logs"
 	manage "rook/server/manage"
 	middleware "rook/server/middleware"
@@ -155,6 +156,13 @@ func run() ( err error ) {
 
 	guard := security.New( store , cfg )
 	handlers := routes.New( store , cfg , guard , lang , static_server , hub )
+	handlers.Version = version
+	// Tell open pages about a change to the frontend (server.live_reload).
+	// See server/livereload.
+	if cfg.LiveReloads( version , bundle.StaticDir ) {
+		handlers.LiveReload = livereload.New( bundle.StaticDir )
+		defer handlers.LiveReload.Close()
+	}
 	handlers.Logs = logger
 	handlers.LogStream = log_stream
 	handlers.OpenAPI = embeddedOpenAPI
@@ -223,6 +231,8 @@ func run() ( err error ) {
 		// Streams never finish by themselves, so the drain would wait out its
 		// whole timeout for any Activity log screen left open.
 		log_stream.Close()
+		// A page waiting on a save is answered now rather than in 25 seconds.
+		if handlers.LiveReload != nil { handlers.LiveReload.Close() }
 		hub.Close()
 		app.ShutdownWithTimeout( 10 * time.Second )
 	}()

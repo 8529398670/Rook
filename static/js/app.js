@@ -69,9 +69,15 @@ const App = {
       Nav.init( me );
       Player.init();
       Global.start( me );
+      // A newer build or a saved frontend file (fresh.js, live.js).
+      Fresh.init( me );
+      Live.init( me );
     }
     ThemeMenu.init();
-    window.addEventListener( "hashchange" , this.route.bind( this ) );
+    // With a newer build waiting, the switch is a page load instead (fresh.js).
+    window.addEventListener( "hashchange" , () => {
+      if ( !Fresh.swap() ) this.route();
+    } );
     this.route();
   },
 

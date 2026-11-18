@@ -21,6 +21,7 @@ import (
 	botnames "rook/server/botnames"
 	config "rook/server/config"
 	db "rook/server/db"
+	livereload "rook/server/livereload"
 	language "rook/server/language"
 	logs "rook/server/logs"
 	models "rook/server/models"
@@ -45,6 +46,12 @@ type Handlers struct {
 	// FileBotNames is cfg.BotNamesFile's names, most popular first, or empty
 	// when there is no such file. See randomBotNames.
 	FileBotNames []string
+	// Version is the running build, set by main.go. Every API reply says it
+	// (X-App-Version) so an open page can notice an upgrade.
+	Version string
+	// LiveReload is set by main.go when server.live_reload says open pages
+	// hear about frontend changes. Nil, the route does not exist.
+	LiveReload *livereload.Watcher
 	// Logs is the activity log (see server/logs), and LogStream tells an open
 	// Activity log screen that more has been written. main.go sets both.
 	Logs      *logs.Logger
@@ -122,6 +129,14 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	app.Use( handlers.Guard.LoadUser )
 	apidoc.CheckCSRF = handlers.Guard.CheckCSRF
 
+	// Every API reply says which build answered it, so a page left open
+	// across a deploy finds out on its next call (static/js/fresh.js).
+	app.Use( "/api" , func( c fiber.Ctx ) ( err error ) {
+		c.Set( "X-App-Version" , handlers.Version )
+		err = c.Next()
+		return
+	} )
+
 	// The page a login link opens. Opening one only shows a page; the link
 	// is spent by the POST that page sends when the person confirms. See
 	// auth.go.
@@ -131,6 +146,13 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	app.Get( "/docs/*" , handlers.ShowDocsPage )
 
 	handlers.mountDeclared( app )
+
+	// Open pages wait here to hear about a change to the frontend
+	// (server.live_reload; server/livereload, static/js/live.js). Not part of
+	// the API.
+	if handlers.LiveReload != nil {
+		app.Get( "/api/live" , handlers.LiveReload.Handler )
+	}
 
 	// Any other /api/ path is a JSON 404, not a static page.
 	app.Get( "/api/*" , func( c fiber.Ctx ) ( err error ) {

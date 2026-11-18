@@ -273,7 +273,8 @@
           },
           "ip_name": {
             "description": "What the owner calls this address on the Logs screen. The owner's own list only.",
-            "type": "string"
+            "type": "string",
+            "x-feature": "logs"
           },
           "label": {
             "description": "The name you gave this device.",
@@ -526,7 +527,7 @@
     }
   },
   "info": {
-    "description": "Every route this server answers, apart from the pages at /login/* and /join/*. Generated from the code by scripts/api_docs.sh: an app's own routes get their docs the same way, and a test fails until they do.",
+    "description": "Every route this server answers, apart from the pages at /login/*, /join/* and /docs/*. Generated from the code by scripts/api_docs.sh: an app's own routes get their docs the same way, and a test fails until they do.",
     "title": "Rook API",
     "version": "1.0.0"
   },

@@ -1,6 +1,6 @@
 # Rook API
 
-Every route this server answers, apart from the pages at /login/* and /join/*. Generated from the code by scripts/api_docs.sh: an app's own routes get their docs the same way, and a test fails until they do.
+Every route this server answers, apart from the pages at /login/*, /join/* and /docs/*. Generated from the code by scripts/api_docs.sh: an app's own routes get their docs the same way, and a test fails until they do.
 
 This file is generated: do not edit it. Change the docs next to the handlers and run `scripts/api_docs.sh`.
 

@@ -45,6 +45,10 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// tables for people (openapi.go, api_docs_md.go).
 		"openapi_url":      handlers.openAPIURL(),
 		"api_doc_url":      handlers.apiDocURL(),
+		// The running build ("dev" when none was stamped). fresh.js compares
+		// it with X-App-Version to notice a deploy; live.js reloads at once
+		// on a dev build.
+		"version":          handlers.Version,
 		"can_invite":       user.MayInvite(),
 		"can_hint":         user.CanHint,
 		"icon":             user.Icon,

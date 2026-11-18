@@ -26,6 +26,9 @@ const Keys = {
     if ( me.openapi_url ) {
       Dom.get( "key-spec-link" ).setAttribute( "href" , me.openapi_url );
       Dom.show( Dom.get( "key-spec-line" ) , true );
+      // The same reference written for people, config/api.md: where the
+      // repository's site renders it when app.repo is set, else this
+      // server's own /docs/api page.
       if ( me.api_doc_url ) {
         Dom.get( "key-doc-link" ).setAttribute( "href" , me.api_doc_url );
         Dom.show( Dom.get( "key-doc-part" ) , true );

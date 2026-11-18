@@ -16,6 +16,10 @@ const Api = {
       body: settings.body ? JSON.stringify( settings.body ) : undefined,
     } );
 
+    // Which build answered: a page left open across a deploy hears about it
+    // here (fresh.js). Not every page loads fresh.js.
+    if ( typeof Fresh !== "undefined" ) Fresh.heard( response.headers.get( "X-App-Version" ) );
+
     let payload = {};
     try {
       payload = await response.json();
