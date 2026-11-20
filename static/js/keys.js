@@ -94,7 +94,37 @@ const Keys = {
   statusText( key ) {
     if ( key.revoked ) return I18n.get( "api_keys.status_revoked" );
     if ( key.expired ) return I18n.get( "api_keys.status_expired" );
+    // A key that may make sign-in links is as good as a browser session, so
+    // it says so in both tables.
+    if ( key.may_sign_in ) return I18n.get( "api_keys.status_active" ) + ", " + I18n.get( "api_keys.status_sign_in" );
     return I18n.get( "api_keys.status_active" );
+  },
+
+  // The Sign-in links switch on one of your own keys: on, the key may make
+  // your account a one-time login link (15 minutes at most). Only on your own
+  // table -- nobody else may flip it, not even the owner. Turning it on asks
+  // first; turning it off does not, and voids any unused link the key made.
+  signInButton( key ) {
+    if ( !key.live && !key.may_sign_in ) return null;
+    const text = I18n.get( key.may_sign_in ? "api_keys.sign_in_on_button" : "api_keys.sign_in_off_button" );
+    if ( text === "" ) return null;
+    return Dom.el( "button" , {
+      class: key.may_sign_in ? "small" : "secondary small",
+      text: text,
+      attrs: { "aria-pressed": key.may_sign_in ? "true" : "false" },
+      on: { click: async function () {
+        const on = !key.may_sign_in;
+        if ( on ) {
+          const question = I18n.get( "api_keys.sign_in_confirm" );
+          if ( question !== "" && !window.confirm( question ) ) return;
+        }
+        try {
+          await Api.setKeySignIn( key.id , on );
+          await Keys.refresh();
+          if ( Keys.me.owner ) await Keys.refreshAll();
+        } catch ( error ) { App.showError( error.message ); }
+      } },
+    } );
   },
 
   // revokeButton is shared by both tables: the only difference is which
@@ -150,8 +180,9 @@ const Keys = {
         Dom.el( "td" , { text: Keys.formatWhen( key.expires_at ) } ),
         Dom.el( "td" , { children: [
           Dom.el( "div" , { class: "row-actions" , children: [
+            Keys.signInButton( key ),
             Keys.revokeButton( key , function ( id ) { return Api.revokeKey( id ); } ),
-          ] } ),
+          ].filter( Boolean ) } ),
         ] } ),
       ] } ) );
     } );

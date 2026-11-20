@@ -322,10 +322,8 @@ func ( guard *Guard ) RequireAdmin( c fiber.Ctx ) ( err error ) {
 }
 
 // RequireSession refuses a request that authenticated with an API key, even a
-// correctly scoped one. It guards every route that creates a credential:
-// minting and revoking API keys, creating an account (from the admin panel
-// or a seat invite), reissuing a login link, a player's own device link, and
-// sign-up links (see routes.go).
+// correctly scoped one. It guards minting and revoking API keys, a seat
+// invite, sign-up links and deleting your own account (see routes.go).
 //
 // The reasoning is containment rather than privilege. A key is a bearer
 // credential that lives in a config file or a CI secret; if a leaked key could

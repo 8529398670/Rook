@@ -162,10 +162,21 @@ type revokeMyAPIKeyIn struct {
 
 type createUserIn struct {
 	createUserRequest
+	loginLinkRequest
 }
 
 type reissueLoginIn struct {
 	pathUserID
+	loginLinkRequest
+}
+
+type createMyLoginLinkIn struct {
+	loginLinkRequest
+}
+
+type setMyAPIKeySignInIn struct {
+	pathKeyID
+	MaySignIn bool `json:"may_sign_in"`
 }
 
 type setUserDisabledIn struct {

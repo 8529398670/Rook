@@ -1031,6 +1031,7 @@
     },
     "/api/account/login-link": {
       "post": {
+        "description": "A one-time link that signs your own account in on a browser or another device. An API key may ask only if your account let it, from a browser session (POST /api/keys/{key_id}/sign-in); its link works for at most 15 minutes. Answers with login_path.",
         "operationId": "post_api_account_login_link",
         "requestBody": {
           "content": {
@@ -1041,6 +1042,18 @@
                   "csrf_token": {
                     "description": "From GET /api/me. Browser sessions only.",
                     "type": "string"
+                  },
+                  "expires_in_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "max_uses": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
                   }
                 },
                 "type": "object"
@@ -1072,6 +1085,9 @@
         "security": [
           {
             "sessionCookie": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "summary": "Create my login link",
@@ -2445,10 +2461,37 @@
     },
     "/api/admin/users": {
       "get": {
+        "description": "Accounts, a page at a time, including disabled ones. q narrows by name; limit is 1-500 (default 500). next is the offset of the following page, or null on the last one.",
         "operationId": "get_api_admin_users",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "in": "query",
+            "name": "offset",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
           },
           "401": {
             "$ref": "#/components/responses/E401"
@@ -2478,6 +2521,7 @@
         "x-required-role": "admin"
       },
       "post": {
+        "description": "Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.",
         "operationId": "post_api_admin_users",
         "requestBody": {
           "content": {
@@ -2492,6 +2536,18 @@
                   "display_name": {
                     "type": "string"
                   },
+                  "expires_in_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "max_uses": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
                   "role": {
                     "type": "string"
                   }
@@ -2503,7 +2559,7 @@
           "required": true
         },
         "responses": {
-          "200": {
+          "201": {
             "description": "Success"
           },
           "400": {
@@ -2525,6 +2581,9 @@
         "security": [
           {
             "sessionCookie": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "summary": "Create user",
@@ -3012,6 +3071,7 @@
     },
     "/api/admin/users/{user_id}/reissue-login": {
       "post": {
+        "description": "A fresh one-time login link for an account, for someone who lost their device or their link. Answers with user_id and login_path.",
         "operationId": "post_api_admin_users_user_id_reissue_login",
         "parameters": [
           {
@@ -3032,6 +3092,18 @@
                   "csrf_token": {
                     "description": "From GET /api/me. Browser sessions only.",
                     "type": "string"
+                  },
+                  "expires_in_minutes": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "max_uses": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
                   }
                 },
                 "type": "object"
@@ -3063,6 +3135,9 @@
         "security": [
           {
             "sessionCookie": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "summary": "Reissue login",
@@ -4815,6 +4890,78 @@
           }
         ],
         "summary": "Revoke my API key",
+        "tags": [
+          "API keys"
+        ]
+      },
+      "x-feature": "api_keys"
+    },
+    "/api/keys/{key_id}/sign-in": {
+      "post": {
+        "description": "may_sign_in true lets this key of yours ask POST /api/account/login-link for a one-time link that works for at most 15 minutes; false stops it and voids any unused link it made.",
+        "operationId": "post_api_keys_key_id_sign_in",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  },
+                  "may_sign_in": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "may_sign_in"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Let my API key make sign-in links",
         "tags": [
           "API keys"
         ]

@@ -44,12 +44,21 @@ type APIKey struct {
 	ExpiresAt  *time.Time `json:"expires_at,omitempty"`
 	LastUsedAt *time.Time `json:"last_used_at,omitempty"`
 	RevokedAt  *time.Time `json:"revoked_at,omitempty"`
+	// MaySignIn lets this key ask for a login link for its own account
+	// (POST /api/account/login-link). Off by default: the link becomes an
+	// ordinary browser session, so a key that may make one is as good as a
+	// session to whoever holds it. Only the key's own account turns it on,
+	// and only from a browser session (SetAPIKeySignIn). The links it makes
+	// work once and for at most KeyLoginLinkTTL.
+	MaySignIn bool `json:"may_sign_in,omitempty"`
 }
 
 var (
 	ErrAPIKeyLimit    = errors.New( "this account already holds the maximum number of live API keys" )
 	ErrAPIKeyRole     = errors.New( "an API key cannot be given a role its owner does not have" )
 	ErrAPIKeyDisabled = errors.New( "cannot issue an API key for a disabled account" )
+	ErrAPIKeyDead     = errors.New( "only a live API key can be allowed to make sign-in links" )
+	ErrAPIKeyNotYours = errors.New( "only the account a key acts as may let it make sign-in links" )
 )
 
 const (
@@ -342,25 +351,76 @@ func CountLiveAPIKeysForUser( store *db.Store , user_id uint64 ) ( count int , e
 //
 // The row is marked rather than deleted so that a listing can still show the
 // key existed and when it died. The purge loop removes it later.
+//
+// In the same transaction it voids the login links the key made that could
+// still be used, and signs out every session one of them signed in
+// (VoidLinksMintedByKeyTx), so a leaked key cannot leave a way in behind it.
 func RevokeAPIKey( store *db.Store , key_id string ) ( err error ) {
-	err = store.UpdateValue( db.BucketAPIKeys , []byte( key_id ) ,
-		func() any { return &APIKey{} } ,
-		func( item any ) ( mutate_err error ) {
-			key := item.( *APIKey )
-			if key.RevokedAt == nil {
-				now := time.Now().UTC()
-				key.RevokedAt = &now
-			}
-			return
-		} )
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		key := &APIKey{}
+		if tx_err = tx.Get( db.BucketAPIKeys , []byte( key_id ) , key ); tx_err != nil { return }
+		if key.RevokedAt == nil {
+			now := time.Now().UTC()
+			key.RevokedAt = &now
+			if tx_err = tx.Put( db.BucketAPIKeys , []byte( key_id ) , key ); tx_err != nil { return }
+		}
+		_ , tx_err = VoidLinksMintedByKeyTx( tx , key_id )
+		return
+	} )
 	return
 }
 
 // DeleteAPIKey removes a key's row outright. A live key stops working at
 // once, as with a revocation, since LoadAPIKey no longer finds it; unlike a
-// revocation, no listing shows it ever existed.
+// revocation, no listing shows it ever existed. Like revoking, it voids what
+// the key's login links opened (VoidLinksMintedByKeyTx).
 func DeleteAPIKey( store *db.Store , key_id string ) ( err error ) {
-	err = store.Delete( db.BucketAPIKeys , []byte( key_id ) )
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		if tx_err = tx.Delete( db.BucketAPIKeys , []byte( key_id ) ); tx_err != nil { return }
+		_ , tx_err = VoidLinksMintedByKeyTx( tx , key_id )
+		return
+	} )
+	return
+}
+
+// KeyLoginLinkTTL is the longest a login link made by an API key for its own
+// account works for. Such a link always works once, whatever was asked.
+const KeyLoginLinkTTL = 15 * time.Minute
+
+// SetAPIKeySignIn turns MaySignIn on or off. Only the account the key acts as
+// may change it, not an admin, not even the owner: it decides whether that
+// key is as good as a browser session to that account, which is the
+// account's own call (ErrAPIKeyNotYours). A dead key cannot be turned on
+// (ErrAPIKeyDead); turning it off always works, and voids any link the key
+// made that is still unused. Browsers those links already signed in stay
+// signed in: turning the switch off is "no more links", and revoking the key
+// is "sign them out too".
+func SetAPIKeySignIn( store *db.Store , key_id string , user_id uint64 , on bool ) ( key *APIKey , err error ) {
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		stored := &APIKey{}
+		if tx_err = tx.Get( db.BucketAPIKeys , []byte( key_id ) , stored ); tx_err != nil { return }
+		if stored.UserID != user_id {
+			tx_err = ErrAPIKeyNotYours
+			return
+		}
+		if on && stored.Live() == false {
+			tx_err = ErrAPIKeyDead
+			return
+		}
+		stored.MaySignIn = on
+		if tx_err = tx.Put( db.BucketAPIKeys , []byte( key_id ) , stored ); tx_err != nil { return }
+		if on == false {
+			_ , tx_err = tx.DeleteWhere( db.BucketLoginTokens ,
+				func() any { return &LoginToken{} } ,
+				func( _ []byte , item any ) bool {
+					token := item.( *LoginToken )
+					return token.MintedByKey == key_id && token.UsedAt == nil
+				} )
+			if tx_err != nil { return }
+		}
+		key = stored
+		return
+	} )
 	return
 }
 

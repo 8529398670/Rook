@@ -25,6 +25,10 @@ type LoginToken struct {
 	CreatedAt  time.Time  `json:"created_at"`
 	ExpiresAt  time.Time  `json:"expires_at"`
 	UsedAt     *time.Time `json:"used_at,omitempty"`
+	// MintedByKey is the API key that asked for this link, empty when a
+	// browser session did. Revoking or deleting that key voids the link while
+	// it is unused, and signs out the session it made (VoidLinksMintedByKeyTx).
+	MintedByKey string `json:"minted_by_key,omitempty"`
 }
 
 func ( token *LoginToken ) Usable() ( result bool ) {
@@ -42,6 +46,14 @@ func ( token *LoginToken ) Usable() ( result bool ) {
 // That includes a player's own "sign in another device" link: making a second
 // one retires the first.
 func IssueLoginToken( store *db.Store , user_id uint64 , ttl time.Duration ) ( credential string , err error ) {
+	credential , err = IssueLoginTokenByKey( store , user_id , ttl , "" )
+	return
+}
+
+// IssueLoginTokenByKey is IssueLoginToken for a request that came with an API
+// key: the link records minted_by_key, so revoking that key voids it. An
+// empty minted_by_key is a browser session's link.
+func IssueLoginTokenByKey( store *db.Store , user_id uint64 , ttl time.Duration , minted_by_key string ) ( credential string , err error ) {
 	token_id := encryption.GenerateURLToken( 12 )
 	secret := encryption.GenerateURLToken( 24 )
 	// bcrypt outside the transaction, so the single writer is not held for it.
@@ -54,6 +66,7 @@ func IssueLoginToken( store *db.Store , user_id uint64 , ttl time.Duration ) ( c
 		SecretHash: secret_hash,
 		CreatedAt:  now,
 		ExpiresAt:  now.Add( ttl ),
+		MintedByKey: minted_by_key,
 	}
 	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
 		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , &User{} ); tx_err != nil { return }
@@ -115,6 +128,7 @@ func RedeemLoginToken( store *db.Store , credential string , session_ttl time.Du
 		if tx_err = tx.Put( db.BucketLoginTokens , []byte( token_id ) , current ); tx_err != nil { return }
 
 		session_id , new_credential , session := newSession( current.UserID , session_ttl )
+		session.MintedByKey = current.MintedByKey
 		if tx_err = tx.Put( db.BucketSessions , []byte( session_id ) , session ); tx_err != nil { return }
 
 		session_credential , user_id = new_credential , current.UserID
@@ -136,6 +150,29 @@ func deletePendingLoginTokens( tx *db.Tx , user_id uint64 ) ( removed int , err 
 			token := item.( *LoginToken )
 			return token.UserID == user_id && token.UsedAt == nil
 		} )
+	return
+}
+
+// VoidLinksMintedByKeyTx is what keeps revoking a key meaningful now that a
+// key may make a login link: inside the caller's transaction, it deletes
+// every link key_id made that could still be used, and every session one of
+// its links signed in. Spent links stay, so a second click still fails as
+// "already used". voided counts both.
+func VoidLinksMintedByKeyTx( tx *db.Tx , key_id string ) ( voided int , err error ) {
+	if key_id == "" { return }
+	links , err := tx.DeleteWhere( db.BucketLoginTokens ,
+		func() any { return &LoginToken{} } ,
+		func( _ []byte , item any ) bool {
+			token := item.( *LoginToken )
+			return token.MintedByKey == key_id && token.UsedAt == nil
+		} )
+	if err != nil { return }
+	sessions , err := tx.DeleteWhere( db.BucketSessions ,
+		func() any { return &Session{} } ,
+		func( _ []byte , item any ) bool {
+			return item.( *Session ).MintedByKey == key_id
+		} )
+	voided = links + sessions
 	return
 }
 

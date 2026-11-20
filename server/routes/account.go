@@ -141,21 +141,43 @@ func ( handlers *Handlers ) Logout( c fiber.Ctx , in *apidoc.None ) ( err error 
 
 // CreateMyLoginLink is ReissueLogin for yourself: a one-time link that signs
 // another device in as you, so a player can move to their phone without
-// asking an admin. Registered with RequireSession -- an API key must not be
-// able to turn itself into a browser session.
+// asking an admin. Making one retires any link the account had not used.
 //
-// @route("POST /api/account/login-link", summary="Create my login link", tag="Account", access=SESSION_ONLY,
+// A browser session may always ask. An API key may only when its account
+// turned that on for it, from a session (POST /api/keys/{key_id}/sign-in):
+// the link becomes an ordinary browser session, which opens everything kept
+// from keys (the API keys card, minting keys) to whoever holds the key. A
+// key's link works once and for at most 15 minutes, whatever it asked for; it
+// records the key, and revoking or deleting the key voids it while it is
+// unused and signs out the browser it signed in.
+//
+// @route("POST /api/account/login-link", summary="Create my login link", tag="Account",
+//     description="A one-time link that signs your own account in on a browser or another device. "
+//         "An API key may ask only if your account let it, from a browser session "
+//         "(POST /api/keys/{key_id}/sign-in); its link works for at most 15 minutes. "
+//         "Answers with login_path.",
 // )
-func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx , in *apidoc.None ) ( err error ) {
-	credential , token_err := models.IssueLoginToken( handlers.Store , security.UserFrom( c ).ID , handlers.Config.LoginTokenTTL )
+func ( handlers *Handlers ) CreateMyLoginLink( c fiber.Ctx , in *createMyLoginLinkIn ) ( err error ) {
+	actor := security.ActorFrom( c )
+	ceiling := handlers.Config.LoginTokenTTL
+	if actor.ViaAPIKey() {
+		if actor.APIKey.MaySignIn == false {
+			err = forbidden( c , "this key may not make sign-in links: turn that on for it on the API keys card" )
+			return
+		}
+		ceiling = keyLinkCeiling( ceiling )
+		// A key's link works once, whatever it asked for.
+		in.MaxUses = nil
+	}
+	ttl , ok , err := loginLinkTTL( c , in.loginLinkRequest , ceiling )
+	if ok == false { return }
+	credential , token_err := models.IssueLoginTokenByKey( handlers.Store , actor.User.ID , ttl , actor.KeyID() )
 	if token_err != nil {
 		err = serverError( c )
 		return
 	}
-	err = c.JSON( fiber.Map{
-		"login_path":         "/login/" + credential,
-		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
-	} )
+	handlers.audit( c , logs.KindAuth , "own login link created" , fiber.Map{ "expires_in_seconds": int( ttl.Seconds() ) } )
+	err = c.JSON( loginLinkReply( credential , ttl ) )
 	return
 }
 

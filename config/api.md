@@ -58,7 +58,7 @@ An error reply is a JSON object whose `error` says what went wrong.
 | POST | [`/api/account/bot-level`](#post-apiaccountbot-level) | Set bot level | browser session or API key, anyone signed in |
 | POST | [`/api/account/delete`](#post-apiaccountdelete) | Delete my account | browser session only, anyone signed in |
 | POST | [`/api/account/hint-level`](#post-apiaccounthint-level) | Set hint level | browser session or API key, anyone signed in |
-| POST | [`/api/account/login-link`](#post-apiaccountlogin-link) | Create my login link | browser session only, anyone signed in |
+| POST | [`/api/account/login-link`](#post-apiaccountlogin-link) | Create my login link | browser session or API key, anyone signed in |
 | POST | [`/api/account/partner-bot-outbids`](#post-apiaccountpartner-bot-outbids) | Set partner bot outbids | browser session or API key, anyone signed in |
 | POST | [`/api/account/pin`](#post-apiaccountpin) | Set pin | browser session or API key, anyone signed in |
 | POST | [`/api/account/rename`](#post-apiaccountrename) | Rename account | browser session or API key, anyone signed in |
@@ -244,9 +244,11 @@ Set hint level
 
 Create my login link
 
+A one-time link that signs your own account in on a browser or another device. An API key may ask only if your account let it, from a browser session (POST /api/keys/{key_id}/sign-in); its link works for at most 15 minutes. Answers with login_path.
+
 |  |  |
 |---|---|
-| Who may call | browser session only, anyone signed in |
+| Who may call | browser session or API key, anyone signed in |
 | Errors | 400, 401, 403, 429, 503 |
 
 **Request body**
@@ -254,6 +256,8 @@ Create my login link
 | Field | Type | Required | Limits | Description |
 |---|---|---|---|---|
 | `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `expires_in_minutes` | integer or null | no |  |  |
+| `max_uses` | integer or null | no |  |  |
 
 **Reply 200**: Success
 
@@ -612,6 +616,7 @@ Redeem login link
 | GET | [`/api/keys`](#get-apikeys) | List my API keys | browser session only, anyone signed in |
 | POST | [`/api/keys`](#post-apikeys) | Create my API key | browser session only, anyone signed in |
 | POST | [`/api/keys/{key_id}/revoke`](#post-apikeyskey_idrevoke) | Revoke my API key | browser session only, anyone signed in |
+| POST | [`/api/keys/{key_id}/sign-in`](#post-apikeyskey_idsign-in) | Let my API key make sign-in links | browser session only, anyone signed in |
 
 ### GET /api/keys
 
@@ -667,6 +672,32 @@ Revoke my API key
 
 **Reply 200**: Success
 
+### POST /api/keys/{key_id}/sign-in
+
+Let my API key make sign-in links
+
+may_sign_in true lets this key of yours ask POST /api/account/login-link for a one-time link that works for at most 15 minutes; false stops it and voids any unused link it made.
+
+|  |  |
+|---|---|
+| Who may call | browser session only, anyone signed in |
+| Errors | 400, 401, 403, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `key_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `may_sign_in` | boolean | yes |  |  |
+
+**Reply 200**: Success
+
 ## Admin
 
 | Method | Path | Summary | Who may call |
@@ -680,7 +711,7 @@ Revoke my API key
 | GET | [`/api/admin/theme-defaults`](#get-apiadmintheme-defaults) | Default themes | browser session or API key, admins |
 | POST | [`/api/admin/theme-defaults`](#post-apiadmintheme-defaults) | Replace the default themes | browser session or API key, admins |
 | GET | [`/api/admin/users`](#get-apiadminusers) | List users | browser session or API key, admins |
-| POST | [`/api/admin/users`](#post-apiadminusers) | Create user | browser session only, admins |
+| POST | [`/api/admin/users`](#post-apiadminusers) | Create user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/avatar`](#post-apiadminusersuser_idavatar) | Admin set avatar | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/can-hint`](#post-apiadminusersuser_idcan-hint) | Set user can hint | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/can-invite`](#post-apiadminusersuser_idcan-invite) | Set user can invite | browser session or API key, admins |
@@ -688,7 +719,7 @@ Revoke my API key
 | POST | [`/api/admin/users/{user_id}/can-undo`](#post-apiadminusersuser_idcan-undo) | Set user can undo | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/delete`](#post-apiadminusersuser_iddelete) | Delete user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/disabled`](#post-apiadminusersuser_iddisabled) | Set user disabled | browser session or API key, admins |
-| POST | [`/api/admin/users/{user_id}/reissue-login`](#post-apiadminusersuser_idreissue-login) | Reissue login | browser session only, admins |
+| POST | [`/api/admin/users/{user_id}/reissue-login`](#post-apiadminusersuser_idreissue-login) | Reissue login | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/rename`](#post-apiadminusersuser_idrename) | Admin rename user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/revoke-access`](#post-apiadminusersuser_idrevoke-access) | Revoke access | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/role`](#post-apiadminusersuser_idrole) | Admin set role | browser session or API key, admins |
@@ -874,10 +905,20 @@ Replace the theme list everyone without their own list sees, 1 to 40 themes in t
 
 List users
 
+Accounts, a page at a time, including disabled ones. q narrows by name; limit is 1-500 (default 500). next is the offset of the following page, or null on the last one.
+
 |  |  |
 |---|---|
 | Who may call | browser session or API key, admins |
-| Errors | 401, 403, 429, 503 |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `q` | query | string | no |  |  |
+| `limit` | query | integer | no |  |  |
+| `offset` | query | integer | no |  |  |
 
 **Reply 200**: Success
 
@@ -885,9 +926,11 @@ List users
 
 Create user
 
+Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.
+
 |  |  |
 |---|---|
-| Who may call | browser session only, admins |
+| Who may call | browser session or API key, admins |
 | Errors | 400, 401, 403, 429, 503 |
 
 **Request body**
@@ -896,9 +939,11 @@ Create user
 |---|---|---|---|---|
 | `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
 | `display_name` | string | no |  |  |
+| `expires_in_minutes` | integer or null | no |  |  |
+| `max_uses` | integer or null | no |  |  |
 | `role` | string | no |  |  |
 
-**Reply 200**: Success
+**Reply 201**: Success
 
 ### POST /api/admin/users/{user_id}/avatar
 
@@ -1072,9 +1117,11 @@ Set user disabled
 
 Reissue login
 
+A fresh one-time login link for an account, for someone who lost their device or their link. Answers with user_id and login_path.
+
 |  |  |
 |---|---|
-| Who may call | browser session only, admins |
+| Who may call | browser session or API key, admins |
 | Errors | 400, 401, 403, 429, 503 |
 
 **Parameters**
@@ -1088,6 +1135,8 @@ Reissue login
 | Field | Type | Required | Limits | Description |
 |---|---|---|---|---|
 | `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `expires_in_minutes` | integer or null | no |  |  |
+| `max_uses` | integer or null | no |  |  |
 
 **Reply 200**: Success
 

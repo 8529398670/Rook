@@ -6,6 +6,8 @@ import (
 	fiber "github.com/gofiber/fiber/v3"
 
 	apidoc "rook/server/apidoc"
+	db "rook/server/db"
+	logs "rook/server/logs"
 
 	models "rook/server/models"
 	security "rook/server/security"
@@ -61,6 +63,10 @@ func apiKeyRow( key *models.APIKey , display_name string ) ( row fiber.Map ) {
 		"revoked":    key.Revoked(),
 		"expired":    key.Expired(),
 		"live":       key.Live(),
+		// may_sign_in: this key may make its own account a login link
+		// (POST /api/account/login-link). Its account switches it, from a
+		// browser session.
+		"may_sign_in": key.MaySignIn,
 	}
 	if key.ExpiresAt != nil {
 		row[ "expires_at" ] = key.ExpiresAt
@@ -175,6 +181,39 @@ func ( handlers *Handlers ) RevokeMyAPIKey( c fiber.Ctx , in *revokeMyAPIKeyIn )
 		return
 	}
 	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// SetMyAPIKeySignIn is the Sign-in links switch on one of your own keys: on,
+// the key may make your account a one-time login link that works for at most
+// 15 minutes (POST /api/account/login-link). Only the key's own account may
+// flip it, from a browser session -- not an admin, not the owner, and never
+// the key itself. Turning it off voids any link the key made that is still
+// unused; browsers those links signed in stay signed in until the key is
+// revoked.
+//
+// @route("POST /api/keys/{key_id}/sign-in", summary="Let my API key make sign-in links", tag="API keys", feature="api_keys", access=SESSION_ONLY,
+//     description="may_sign_in true lets this key of yours ask POST /api/account/login-link for a "
+//         "one-time link that works for at most 15 minutes; false stops it and voids any unused link it made.",
+// )
+func ( handlers *Handlers ) SetMyAPIKeySignIn( c fiber.Ctx , in *setMyAPIKeySignInIn ) ( err error ) {
+	user := security.UserFrom( c )
+	key , set_err := models.SetAPIKeySignIn( handlers.Store , in.KeyID , user.ID , in.MaySignIn )
+	switch {
+	case set_err == nil:
+	case errors.Is( set_err , db.ErrNotFound ) , errors.Is( set_err , models.ErrAPIKeyNotYours ):
+		// Someone else's key reads as missing, as in RevokeMyAPIKey.
+		err = notFound( c , "no such api key" )
+		return
+	case errors.Is( set_err , models.ErrAPIKeyDead ):
+		err = badRequest( c , "this key is revoked or expired" )
+		return
+	default:
+		err = serverError( c )
+		return
+	}
+	handlers.audit( c , logs.KindAuth , "api key sign-in links switched" , fiber.Map{ "key_id": key.ID , "may_sign_in": key.MaySignIn } )
+	err = c.JSON( apiKeyRow( key , "" ) )
 	return
 }
 

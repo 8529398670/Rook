@@ -1298,6 +1298,13 @@ api_keys:
   status_active: "active"
   status_revoked: "revoked"
   status_expired: "expired"
+  # Added to the status of a key that may make sign-in links.
+  status_sign_in: "can sign in"
+  # The Sign-in links switch on your own keys. Empty either to hide it.
+  sign_in_off_button: "Sign-in links: off"
+  sign_in_on_button: "Sign-in links: on"
+  # Asked before turning it on; empty this string to stop asking.
+  sign_in_confirm: "Let this key make sign-in links for your account? Whoever holds the key could then open a browser signed in as you, with everything you can do there. Each link works once, for 15 minutes. You can turn this off again at any time."
   never: "never"
   revoke_button: "Revoke"
   # Empty this string to stop asking for confirmation before revoking.

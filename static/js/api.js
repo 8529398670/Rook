@@ -128,7 +128,7 @@ const Api = {
   revokeSession( id )          { return this.post( "/api/account/sessions/" + encodeURIComponent( id ) + "/revoke" ); },
   revokeOtherSessions()        { return this.post( "/api/account/sessions/revoke-others" ); },
   listTeam()                   { return this.request( "/api/team" ); },
-  listUsers()                  { return this.request( "/api/admin/users" ); },
+  async listUsers()            { return ( await this.request( "/api/admin/users" ) ).users; },
   createUser( name , role )    { return this.post( "/api/admin/users" , { display_name: name , role: role } ); },
   reissueLogin( userId )       { return this.post( "/api/admin/users/" + userId + "/reissue-login" ); },
   setDisabled( userId , flag ) { return this.post( "/api/admin/users/" + userId + "/disabled" , { disabled: flag } ); },
@@ -172,6 +172,7 @@ const Api = {
     return this.post( "/api/keys" , { name: name , role: role , expires_in_days: expiresInDays } );
   },
   revokeKey( keyId )           { return this.post( "/api/keys/" + encodeURIComponent( keyId ) + "/revoke" ); },
+  setKeySignIn( keyId , on )   { return this.post( "/api/keys/" + encodeURIComponent( keyId ) + "/sign-in" , { may_sign_in: on } ); },
   listAllKeys()                { return this.request( "/api/admin/keys" ); },
   revokeAnyKey( keyId )        { return this.post( "/api/admin/keys/" + encodeURIComponent( keyId ) + "/revoke" ); },
   deleteAnyKey( keyId )        { return this.post( "/api/admin/keys/" + encodeURIComponent( keyId ) + "/delete" ); },

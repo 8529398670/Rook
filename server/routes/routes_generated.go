@@ -63,10 +63,10 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.SetHintLevel , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "POST" , "/api/account/login-link" , apidoc.Op{
 		Summary: "Create my login link",
+		Description: "A one-time link that signs your own account in on a browser or another device. An API key may ask only if your account let it, from a browser session (POST /api/keys/{key_id}/sign-in); its link works for at most 15 minutes. Answers with login_path.",
 		Tag: "Account",
-		Access: apidoc.SessionOnly,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.CreateMyLoginLink , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
+	} , handlers.CreateMyLoginLink , handlers.Guard.RequireLogin )
 	apidoc.MountStream( app , "POST" , "/api/account/partner-bot-outbids" , apidoc.Op{
 		Summary: "Set partner bot outbids",
 		Tag: "Account",
@@ -193,17 +193,19 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.setThemeDefaults , handlers.Guard.RequireAdmin )
 	apidoc.MountStream( app , "GET" , "/api/admin/users" , apidoc.Op{
 		Summary: "List users",
+		Description: "Accounts, a page at a time, including disabled ones. q narrows by name; limit is 1-500 (default 500). next is the offset of the following page, or null on the last one.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
-		Errors: []int{ 401 , 403 },
+		Errors: []int{ 400 , 401 , 403 },
 	} , handlers.ListUsers , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users" , apidoc.Op{
 		Summary: "Create user",
+		Description: "Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.",
 		Tag: "Admin",
-		Access: apidoc.SessionOnly,
 		Role: apidoc.Admin,
+		Status: 201,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.CreateUser , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
+	} , handlers.CreateUser , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/avatar" , apidoc.Op{
 		Summary: "Admin set avatar",
 		Tag: "Admin",
@@ -248,11 +250,11 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.SetUserDisabled , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/reissue-login" , apidoc.Op{
 		Summary: "Reissue login",
+		Description: "A fresh one-time login link for an account, for someone who lost their device or their link. Answers with user_id and login_path.",
 		Tag: "Admin",
-		Access: apidoc.SessionOnly,
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.ReissueLogin , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
+	} , handlers.ReissueLogin , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/rename" , apidoc.Op{
 		Summary: "Admin rename user",
 		Tag: "Admin",
@@ -424,6 +426,14 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
 	} , handlers.RevokeMyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
+	apidoc.MountStream( app , "POST" , "/api/keys/{key_id}/sign-in" , apidoc.Op{
+		Summary: "Let my API key make sign-in links",
+		Description: "may_sign_in true lets this key of yours ask POST /api/account/login-link for a one-time link that works for at most 15 minutes; false stops it and voids any unused link it made.",
+		Tag: "API keys",
+		Access: apidoc.SessionOnly,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.SetMyAPIKeySignIn , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
 	apidoc.MountStream( app , "GET" , "/api/language" , apidoc.Op{
 		Summary: "The UI's text",
 		Tag: "Account",

@@ -2,10 +2,10 @@ package routes
 
 import (
 	strconv "strconv"
+	strings "strings"
 
 	fiber "github.com/gofiber/fiber/v3"
 
-	apidoc "rook/server/apidoc"
 
 	models "rook/server/models"
 	security "rook/server/security"
@@ -31,9 +31,30 @@ type setDisabledRequest struct {
 	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
+type listUsersIn struct {
+	Q      string `json:"q,omitempty" query:"q"`
+	Limit  int    `json:"limit,omitempty" query:"limit"`
+	Offset int    `json:"offset,omitempty" query:"offset"`
+}
+
+// listUsersMax is the most rows one page of GET /api/admin/users holds.
+const listUsersMax = 500
+
+// ListUsers is every account, a page at a time: users, next (the offset of
+// the following page, null on the last) and total, the shape the project
+// portal reads. q keeps the accounts whose name has it in, ignoring case.
+//
 // @route("GET /api/admin/users", summary="List users", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+//     description="Accounts, a page at a time, including disabled ones. q narrows by name; limit is "
+//         "1-500 (default 500). next is the offset of the following page, or null on the last one.",
 // )
-func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *apidoc.None ) ( err error ) {
+func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err error ) {
+	limit := in.Limit
+	if limit == 0 { limit = listUsersMax }
+	if limit < 1 || limit > listUsersMax || in.Offset < 0 {
+		err = badRequest( c , "limit must be 1-500 and offset 0 or more" )
+		return
+	}
 	users , list_err := models.ListUsers( handlers.Store )
 	if list_err != nil {
 		err = serverError( c )
@@ -44,8 +65,10 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *apidoc.None ) ( err err
 		err = serverError( c )
 		return
 	}
+	query := strings.ToLower( strings.TrimSpace( in.Q ) )
 	rows := []fiber.Map{}
 	for _ , user := range users {
+		if query != "" && strings.Contains( strings.ToLower( user.DisplayName ) , query ) == false { continue }
 		rows = append( rows , fiber.Map{
 			"id":           user.ID,
 			"display_name": user.DisplayName,
@@ -58,9 +81,15 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *apidoc.None ) ( err err
 			"icon":         user.Icon,
 			"color":        user.Color,
 			"superadmin":   user.ID == super_id,
+			"owner":        user.ID == super_id,
 		} )
 	}
-	err = c.JSON( rows )
+	total := len( rows )
+	var next *int
+	from := min( in.Offset , total )
+	to := min( from + limit , total )
+	if to < total { next = &to }
+	err = c.JSON( fiber.Map{ "users": rows[ from:to ] , "next": next , "total": total } )
 	return
 }
 
@@ -70,7 +99,13 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *apidoc.None ) ( err err
 // a reverse proxy often does not, and a login link with the wrong host is
 // worse than useless.
 //
-// @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, access=SESSION_ONLY, use=[handlers.RequireOwner],
+// An admin key may call it too (the project portal does, to let someone
+// join). The link records the key, so revoking the key voids it while it is
+// unused (models.VoidLinksMintedByKeyTx).
+//
+// @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner], status=201,
+//     description="Make a new account and its first one-time login link, to hand to the person. role is "
+//         "admin or user. Answers with user_id and login_path.",
 // )
 func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err error ) {
 	body := in.createUserRequest
@@ -82,23 +117,23 @@ func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err e
 		err = badRequest( c , "role must be admin or user" )
 		return
 	}
+	ttl , ok , err := loginLinkTTL( c , in.loginLinkRequest , handlers.Config.LoginTokenTTL )
+	if ok == false { return }
 
 	user , create_err := models.CreateUser( handlers.Store , body.DisplayName , body.Role )
 	if create_err != nil {
 		err = serverError( c )
 		return
 	}
-	credential , token_err := models.IssueLoginToken( handlers.Store , user.ID , handlers.Config.LoginTokenTTL )
+	credential , token_err := models.IssueLoginTokenByKey( handlers.Store , user.ID , ttl , security.ActorFrom( c ).KeyID() )
 	if token_err != nil {
 		err = serverError( c )
 		return
 	}
 
-	err = c.Status( fiber.StatusCreated ).JSON( fiber.Map{
-		"user_id":            user.ID,
-		"login_path":         "/login/" + credential,
-		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
-	} )
+	reply := loginLinkReply( credential , ttl )
+	reply[ "user_id" ] = user.ID
+	err = c.Status( fiber.StatusCreated ).JSON( reply )
 	return
 }
 
@@ -111,7 +146,12 @@ func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err e
 // the worry is that someone else holds the account's credentials, use
 // RevokeAccess first, then reissue.
 //
-// @route("POST /api/admin/users/{user_id}/reissue-login", summary="Reissue login", tag="Admin", role=ADMIN, access=SESSION_ONLY, use=[handlers.RequireOwner],
+// An admin key may call it too (the project portal does, to open Rook for
+// someone); the link records the key, as in CreateUser.
+//
+// @route("POST /api/admin/users/{user_id}/reissue-login", summary="Reissue login", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+//     description="A fresh one-time login link for an account, for someone who lost their device or their "
+//         "link. Answers with user_id and login_path.",
 // )
 func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx , in *reissueLoginIn ) ( err error ) {
 
@@ -124,16 +164,24 @@ func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx , in *reissueLoginIn ) ( e
 		err = notFound( c , "no such user" )
 		return
 	}
+	// A key reissuing its own account's link would get round the Sign-in
+	// links switch: that is POST /api/account/login-link's to decide.
+	actor := security.ActorFrom( c )
+	if actor.ViaAPIKey() && actor.User.ID == user_id {
+		err = forbidden( c , "an API key cannot reissue its own account's link: use POST /api/account/login-link" )
+		return
+	}
+	ttl , ok , err := loginLinkTTL( c , in.loginLinkRequest , handlers.Config.LoginTokenTTL )
+	if ok == false { return }
 
-	credential , token_err := models.IssueLoginToken( handlers.Store , user_id , handlers.Config.LoginTokenTTL )
+	credential , token_err := models.IssueLoginTokenByKey( handlers.Store , user_id , ttl , actor.KeyID() )
 	if token_err != nil {
 		err = serverError( c )
 		return
 	}
-	err = c.JSON( fiber.Map{
-		"login_path":         "/login/" + credential,
-		"expires_in_seconds": int( handlers.Config.LoginTokenTTL.Seconds() ),
-	} )
+	reply := loginLinkReply( credential , ttl )
+	reply[ "user_id" ] = user_id
+	err = c.JSON( reply )
 	return
 }
 

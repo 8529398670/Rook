@@ -112,8 +112,12 @@ func ( handlers *Handlers ) LoadBotNames( embedded []byte ) {
 //     the owner (the superadmin, models/superadmin.go), by session or key.
 //     role=OWNER is the owner from a browser session only (the activity log).
 //   - access=SESSION_ONLY turns an API key away: minting and managing API
-//     keys, and every route that creates a credential, so a leaked key can
-//     never turn itself into a session or a fresh key.
+//     keys (a leaked key must never leave a fresh key behind), deleting your
+//     own account, and the seat and sign-up links. The owner's admin key may
+//     create accounts and reissue their login links, and a key whose account
+//     switched Sign-in links on may make its own account a one-time link; each
+//     such link records the key, and revoking the key voids it
+//     (models.VoidLinksMintedByKeyTx).
 //   - access=PUBLIC needs no sign-in: logging in, the UI's text, health, and
 //     the watch, join and sign-up links, whose credential is the link.
 //   - A feature that can be switched off while the server runs has a switch
