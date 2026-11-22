@@ -1246,6 +1246,9 @@ admin:
   can_reshuffle_label: "Let {name} reshuffle a hand before they bid"
   status_active: "active"
   status_disabled: "disabled"
+  status_expired: "expired"
+  # {date} is when the account stops working.
+  expires_note: "Account expires {date}"
   reissue_button: "New link"
   disable_button: "Disable"
   enable_button: "Enable"

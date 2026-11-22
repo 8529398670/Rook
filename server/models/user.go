@@ -13,8 +13,12 @@ import (
 )
 
 const (
-	RoleAdmin = "admin"
-	RoleUser  = "user"
+	RoleAdmin  = "admin"
+	RoleUser   = "user"
+	// RoleViewer may read everything a user may, and change nothing: the
+	// server answers 403 view_only to anything but a read (see
+	// security.ViewOnly). Ranked viewer < user < admin.
+	RoleViewer = "viewer"
 )
 
 // User has no password field, and adding one would undo the entire design
@@ -26,6 +30,11 @@ type User struct {
 	Role        string     `json:"role"`
 	CreatedAt   time.Time  `json:"created_at"`
 	DisabledAt  *time.Time `json:"disabled_at,omitempty"`
+	// ExpiresAt is when the account stops working, nil for never. Once it
+	// passes the account counts as disabled everywhere (Disabled). Set by an
+	// admin (SetUserExpiry), never on the owner. Rook has no housekeeping
+	// job, so nothing flips DisabledAt later: Disabled is what refuses it.
+	ExpiresAt *time.Time `json:"expires_at,omitempty"`
 	// CanInvite lets a non-admin mint login links for new players from a
 	// table's empty seat. Off by default: deciding who gets in is an admin's
 	// call, and this is an admin handing a specific person part of it.
@@ -83,7 +92,13 @@ func ( user *User ) MayInvite() ( result bool ) {
 }
 
 func ( user *User ) Disabled() ( result bool ) {
-	result = user.DisabledAt != nil
+	result = user.DisabledAt != nil || user.Expired()
+	return
+}
+
+// Expired is true once ExpiresAt has passed.
+func ( user *User ) Expired() ( result bool ) {
+	result = user.ExpiresAt != nil && time.Now().UTC().After( *user.ExpiresAt )
 	return
 }
 
@@ -92,8 +107,31 @@ func ( user *User ) IsAdmin() ( result bool ) {
 	return
 }
 
+// RoleRank orders the roles, viewer < user < admin. An unknown role ranks
+// lowest, below a viewer, so a bad row never grants anything.
+func RoleRank( role string ) ( rank int ) {
+	switch role {
+	case RoleViewer:
+		rank = 1
+	case RoleUser:
+		rank = 2
+	case RoleAdmin:
+		rank = 3
+	}
+	return
+}
+
+// LowerRole is the lower of two roles: what a key may do, given its own role
+// and its account's.
+func LowerRole( a string , b string ) ( result string ) {
+	result = a
+	if RoleRank( b ) < RoleRank( a ) { result = b }
+	if RoleRank( result ) == 0 { result = RoleViewer }
+	return
+}
+
 func ValidRole( role string ) ( result bool ) {
-	result = role == RoleAdmin || role == RoleUser
+	result = role == RoleAdmin || role == RoleUser || role == RoleViewer
 	return
 }
 
@@ -239,6 +277,9 @@ func DeleteUser( store *db.Store , user_id uint64 ) ( err error ) {
 	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
 		if _ , tx_err = destroySessionsForUser( tx , user_id ); tx_err != nil { return }
 		if tx_err = deleteLoginTokensForUser( tx , user_id ); tx_err != nil { return }
+		// Before the key rows go: voidWhatKeysMadeTx finds the keys by
+		// account, and what they made in other accounts ends with them (S22).
+		if tx_err = voidWhatKeysMadeTx( tx , user_id ); tx_err != nil { return }
 		if tx_err = deleteAPIKeysForUser( tx , user_id ); tx_err != nil { return }
 		tx_err = tx.Delete( db.BucketUsers , encryption.Uint64ToBytes( user_id ) )
 		return

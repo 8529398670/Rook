@@ -2052,6 +2052,7 @@
     },
     "/api/admin/keys/{key_id}/revoke": {
       "post": {
+        "description": "Stops the key at once, and every key it made, down the chain. Needs a browser session or a key with may_mint_keys (any other key gets 403 key_minting_off), which may not revoke the owner's keys.",
         "operationId": "post_api_admin_keys_key_id_revoke",
         "parameters": [
           {
@@ -2106,6 +2107,9 @@
         "security": [
           {
             "sessionCookie": []
+          },
+          {
+            "apiKey": []
           }
         ],
         "summary": "Revoke any API key",
@@ -2521,7 +2525,7 @@
         "x-required-role": "admin"
       },
       "post": {
-        "description": "Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.",
+        "description": "Make a new account and its first one-time login link, to hand to the person. role is admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops working; omit it for never. Answers with user_id and login_path.",
         "operationId": "post_api_admin_users",
         "requestBody": {
           "content": {
@@ -2529,6 +2533,13 @@
               "schema": {
                 "additionalProperties": false,
                 "properties": {
+                  "account_expires_at": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
                   "csrf_token": {
                     "description": "From GET /api/me. Browser sessions only.",
                     "type": "string"
@@ -3068,6 +3079,211 @@
         ],
         "x-required-role": "admin"
       }
+    },
+    "/api/admin/users/{user_id}/expiry": {
+      "post": {
+        "description": "expires_at is when the account stops working (RFC 3339), or null for never. Once it passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in the future. The owner's account never expires.",
+        "operationId": "post_api_admin_users_user_id_expiry",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  },
+                  "expires_at": {
+                    "format": "date-time",
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "expires_at"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Set when an account expires",
+        "tags": [
+          "Admin"
+        ],
+        "x-required-role": "admin"
+      }
+    },
+    "/api/admin/users/{user_id}/keys": {
+      "get": {
+        "description": "{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off).",
+        "operationId": "get_api_admin_users_user_id_keys",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "List a user's API keys",
+        "tags": [
+          "Admin"
+        ],
+        "x-required-role": "admin"
+      },
+      "post": {
+        "description": "name 1-80, role admin, user or viewer (capped at the account's role), expires_in_days 1-365 (required). Answers with the key row and its credential, shown once. A key calling needs may_mint_keys (403 key_minting_off). Never for the owner's account.",
+        "operationId": "post_api_admin_users_user_id_keys",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  },
+                  "expires_in_days": {
+                    "type": "integer"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          },
+          {
+            "apiKey": []
+          }
+        ],
+        "summary": "Make a key for a user",
+        "tags": [
+          "Admin"
+        ],
+        "x-required-role": "admin"
+      },
+      "x-feature": "api_keys"
     },
     "/api/admin/users/{user_id}/reissue-login": {
       "post": {
@@ -4825,6 +5041,78 @@
           }
         ],
         "summary": "Create my API key",
+        "tags": [
+          "API keys"
+        ]
+      },
+      "x-feature": "api_keys"
+    },
+    "/api/keys/{key_id}/mint-keys": {
+      "post": {
+        "description": "may_mint_keys true lets this admin key of the owner's make keys for other accounts (POST /api/admin/users/{user_id}/keys); false stops it. Owner only, on the owner's own admin keys.",
+        "operationId": "post_api_keys_key_id_mint_keys",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "key_id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "properties": {
+                  "csrf_token": {
+                    "description": "From GET /api/me. Browser sessions only.",
+                    "type": "string"
+                  },
+                  "may_mint_keys": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "may_mint_keys"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Success"
+          },
+          "400": {
+            "$ref": "#/components/responses/E400"
+          },
+          "401": {
+            "$ref": "#/components/responses/E401"
+          },
+          "403": {
+            "$ref": "#/components/responses/E403"
+          },
+          "404": {
+            "$ref": "#/components/responses/E404"
+          },
+          "429": {
+            "$ref": "#/components/responses/E429"
+          },
+          "503": {
+            "$ref": "#/components/responses/E503"
+          }
+        },
+        "security": [
+          {
+            "sessionCookie": []
+          }
+        ],
+        "summary": "Let my API key make keys",
         "tags": [
           "API keys"
         ]

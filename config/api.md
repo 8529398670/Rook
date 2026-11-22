@@ -615,6 +615,7 @@ Redeem login link
 |---|---|---|---|
 | GET | [`/api/keys`](#get-apikeys) | List my API keys | browser session only, anyone signed in |
 | POST | [`/api/keys`](#post-apikeys) | Create my API key | browser session only, anyone signed in |
+| POST | [`/api/keys/{key_id}/mint-keys`](#post-apikeyskey_idmint-keys) | Let my API key make keys | browser session only, anyone signed in |
 | POST | [`/api/keys/{key_id}/revoke`](#post-apikeyskey_idrevoke) | Revoke my API key | browser session only, anyone signed in |
 | POST | [`/api/keys/{key_id}/sign-in`](#post-apikeyskey_idsign-in) | Let my API key make sign-in links | browser session only, anyone signed in |
 
@@ -646,6 +647,32 @@ Create my API key
 | `expires_in_days` | integer or null | no |  |  |
 | `name` | string | no |  |  |
 | `role` | string | no |  |  |
+
+**Reply 200**: Success
+
+### POST /api/keys/{key_id}/mint-keys
+
+Let my API key make keys
+
+may_mint_keys true lets this admin key of the owner's make keys for other accounts (POST /api/admin/users/{user_id}/keys); false stops it. Owner only, on the owner's own admin keys.
+
+|  |  |
+|---|---|
+| Who may call | browser session only, anyone signed in |
+| Errors | 400, 401, 403, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `key_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `may_mint_keys` | boolean | yes |  |  |
 
 **Reply 200**: Success
 
@@ -705,7 +732,7 @@ may_sign_in true lets this key of yours ask POST /api/account/login-link for a o
 | POST | [`/api/admin/backgrounds`](#post-apiadminbackgrounds) | Upload a shared table picture | browser session or API key, admins |
 | GET | [`/api/admin/keys`](#get-apiadminkeys) | List all API keys | browser session only, admins |
 | POST | [`/api/admin/keys/{key_id}/delete`](#post-apiadminkeyskey_iddelete) | Delete any API key | browser session only, admins |
-| POST | [`/api/admin/keys/{key_id}/revoke`](#post-apiadminkeyskey_idrevoke) | Revoke any API key | browser session only, admins |
+| POST | [`/api/admin/keys/{key_id}/revoke`](#post-apiadminkeyskey_idrevoke) | Revoke any API key | browser session or API key, admins |
 | GET | [`/api/admin/settings`](#get-apiadminsettings) | Get settings | browser session or API key, admins |
 | POST | [`/api/admin/settings`](#post-apiadminsettings) | Save settings | browser session or API key, admins |
 | GET | [`/api/admin/theme-defaults`](#get-apiadmintheme-defaults) | Default themes | browser session or API key, admins |
@@ -719,6 +746,9 @@ may_sign_in true lets this key of yours ask POST /api/account/login-link for a o
 | POST | [`/api/admin/users/{user_id}/can-undo`](#post-apiadminusersuser_idcan-undo) | Set user can undo | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/delete`](#post-apiadminusersuser_iddelete) | Delete user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/disabled`](#post-apiadminusersuser_iddisabled) | Set user disabled | browser session or API key, admins |
+| POST | [`/api/admin/users/{user_id}/expiry`](#post-apiadminusersuser_idexpiry) | Set when an account expires | browser session or API key, admins |
+| GET | [`/api/admin/users/{user_id}/keys`](#get-apiadminusersuser_idkeys) | List a user's API keys | browser session or API key, admins |
+| POST | [`/api/admin/users/{user_id}/keys`](#post-apiadminusersuser_idkeys) | Make a key for a user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/reissue-login`](#post-apiadminusersuser_idreissue-login) | Reissue login | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/rename`](#post-apiadminusersuser_idrename) | Admin rename user | browser session or API key, admins |
 | POST | [`/api/admin/users/{user_id}/revoke-access`](#post-apiadminusersuser_idrevoke-access) | Revoke access | browser session or API key, admins |
@@ -789,9 +819,11 @@ Delete any API key
 
 Revoke any API key
 
+Stops the key at once, and every key it made, down the chain. Needs a browser session or a key with may_mint_keys (any other key gets 403 key_minting_off), which may not revoke the owner's keys.
+
 |  |  |
 |---|---|
-| Who may call | browser session only, admins |
+| Who may call | browser session or API key, admins |
 | Errors | 400, 401, 403, 404, 429, 503 |
 
 **Parameters**
@@ -926,7 +958,7 @@ Accounts, a page at a time, including disabled ones. q narrows by name; limit is
 
 Create user
 
-Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.
+Make a new account and its first one-time login link, to hand to the person. role is admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops working; omit it for never. Answers with user_id and login_path.
 
 |  |  |
 |---|---|
@@ -937,6 +969,7 @@ Make a new account and its first one-time login link, to hand to the person. rol
 
 | Field | Type | Required | Limits | Description |
 |---|---|---|---|---|
+| `account_expires_at` | string (date-time) or null | no |  |  |
 | `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
 | `display_name` | string | no |  |  |
 | `expires_in_minutes` | integer or null | no |  |  |
@@ -1112,6 +1145,79 @@ Set user disabled
 | `disabled` | boolean | no |  |  |
 
 **Reply 200**: Success
+
+### POST /api/admin/users/{user_id}/expiry
+
+Set when an account expires
+
+expires_at is when the account stops working (RFC 3339), or null for never. Once it passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in the future. The owner's account never expires.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, admins |
+| Errors | 400, 401, 403, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `expires_at` | string (date-time) or null | yes |  |  |
+
+**Reply 200**: Success
+
+### GET /api/admin/users/{user_id}/keys
+
+List a user's API keys
+
+{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off).
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, admins |
+| Errors | 400, 401, 403, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Reply 200**: Success
+
+### POST /api/admin/users/{user_id}/keys
+
+Make a key for a user
+
+name 1-80, role admin, user or viewer (capped at the account's role), expires_in_days 1-365 (required). Answers with the key row and its credential, shown once. A key calling needs may_mint_keys (403 key_minting_off). Never for the owner's account.
+
+|  |  |
+|---|---|
+| Who may call | browser session or API key, admins |
+| Errors | 400, 401, 403, 404, 429, 503 |
+
+**Parameters**
+
+| Name | In | Type | Required | Limits | Description |
+|---|---|---|---|---|---|
+| `user_id` | path | string | yes |  |  |
+
+**Request body**
+
+| Field | Type | Required | Limits | Description |
+|---|---|---|---|---|
+| `csrf_token` | string | no |  | From GET /api/me. Browser sessions only. |
+| `expires_in_days` | integer | no |  |  |
+| `name` | string | no |  |  |
+| `role` | string | no |  |  |
+
+**Reply 201**: Success
 
 ### POST /api/admin/users/{user_id}/reissue-login
 

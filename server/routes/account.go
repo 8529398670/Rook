@@ -49,6 +49,10 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// it with X-App-Version to notice a deploy; live.js reloads at once
 		// on a dev build.
 		"version":          handlers.Version,
+		// Portal contract v2: which version of ProjectPortal's contract this
+		// app speaks, and which of its optional parts are on (capabilities).
+		"contract":         portalContract,
+		"capabilities":     handlers.capabilities(),
 		"can_invite":       user.MayInvite(),
 		"can_hint":         user.CanHint,
 		"icon":             user.Icon,
@@ -76,6 +80,10 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// The app-wide pause after a trick, for the New table form's
 		// "Default (x s)" choice.
 		"trick_pause_default": handlers.Hub.Settings().TrickPause(),
+	}
+	if actor.APIKey != nil {
+		// API keys only: whether this key may make keys for other accounts.
+		payload[ "may_mint_keys" ] = actor.APIKey.MayMintKeys
 	}
 	themes , themes_custom , themes_builtins , themes_err := handlers.myThemes( user )
 	if themes_err != nil {
@@ -213,5 +221,24 @@ func ( handlers *Handlers ) DeleteMyAccount( c fiber.Ctx , in *apidoc.None ) ( e
 	handlers.Hub.ForgetUser( user.ID )
 	handlers.Guard.ClearSessionCookie( c )
 	err = c.JSON( fiber.Map{ "ok": true } )
+	return
+}
+
+// portalContract is the version of ProjectPortal's contract this app
+// speaks: what it may call from outside, field for field (its CROSS_PROJECT.md,
+// "Portal contract v2"). The webserver-upgrade skill's status reads it.
+const portalContract = 2
+
+// capabilities are the optional parts of that contract this app has on right
+// now. The portal turns each one on only when it is listed here. Rook has no
+// invite links (its sign-up links are its own), so invite_links is never
+// listed.
+func ( handlers *Handlers ) capabilities() ( result []string ) {
+	result = []string{}
+	keys := handlers.Config.APIKeysEnabled
+	result = append( result , "viewer_role" )
+	result = append( result , "account_expiry" )
+	if keys { result = append( result , "key_minting" ) }
+	if keys { result = append( result , "key_sign_in" ) }
 	return
 }

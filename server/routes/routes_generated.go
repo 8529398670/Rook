@@ -157,12 +157,12 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.DeleteAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/keys/{key_id}/revoke" , apidoc.Op{
 		Summary: "Revoke any API key",
+		Description: "Stops the key at once, and every key it made, down the chain. Needs a browser session or a key with may_mint_keys (any other key gets 403 key_minting_off), which may not revoke the owner's keys.",
 		Tag: "Admin",
-		Access: apidoc.SessionOnly,
 		Role: apidoc.Admin,
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
-	} , handlers.RevokeAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
+	} , handlers.RevokeAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "GET" , "/api/admin/settings" , apidoc.Op{
 		Summary: "Get settings",
 		Tag: "Admin",
@@ -200,7 +200,7 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.ListUsers , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users" , apidoc.Op{
 		Summary: "Create user",
-		Description: "Make a new account and its first one-time login link, to hand to the person. role is admin or user. Answers with user_id and login_path.",
+		Description: "Make a new account and its first one-time login link, to hand to the person. role is admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops working; omit it for never. Answers with user_id and login_path.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Status: 201,
@@ -248,6 +248,30 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
 	} , handlers.SetUserDisabled , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/expiry" , apidoc.Op{
+		Summary: "Set when an account expires",
+		Description: "expires_at is when the account stops working (RFC 3339), or null for never. Once it passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in the future. The owner's account never expires.",
+		Tag: "Admin",
+		Role: apidoc.Admin,
+		Errors: []int{ 400 , 401 , 403 },
+	} , handlers.SetUserExpiry , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	apidoc.MountStream( app , "GET" , "/api/admin/users/{user_id}/keys" , apidoc.Op{
+		Summary: "List a user's API keys",
+		Description: "{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off).",
+		Tag: "Admin",
+		Role: apidoc.Admin,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.ListUserAPIKeys , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/keys" , apidoc.Op{
+		Summary: "Make a key for a user",
+		Description: "name 1-80, role admin, user or viewer (capped at the account's role), expires_in_days 1-365 (required). Answers with the key row and its credential, shown once. A key calling needs may_mint_keys (403 key_minting_off). Never for the owner's account.",
+		Tag: "Admin",
+		Role: apidoc.Admin,
+		Feature: "api_keys",
+		Status: 201,
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.MintKeyForUser , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/reissue-login" , apidoc.Op{
 		Summary: "Reissue login",
 		Description: "A fresh one-time login link for an account, for someone who lost their device or their link. Answers with user_id and login_path.",
@@ -419,6 +443,14 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
 	} , handlers.CreateMyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
+	apidoc.MountStream( app , "POST" , "/api/keys/{key_id}/mint-keys" , apidoc.Op{
+		Summary: "Let my API key make keys",
+		Description: "may_mint_keys true lets this admin key of the owner's make keys for other accounts (POST /api/admin/users/{user_id}/keys); false stops it. Owner only, on the owner's own admin keys.",
+		Tag: "API keys",
+		Access: apidoc.SessionOnly,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.SetMyAPIKeyMinting , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
 	apidoc.MountStream( app , "POST" , "/api/keys/{key_id}/revoke" , apidoc.Op{
 		Summary: "Revoke my API key",
 		Tag: "API keys",

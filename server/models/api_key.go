@@ -14,7 +14,7 @@ import (
 // CI pipeline, or another service can call the same API a signed-in person
 // calls, without inventing a second permission model for them.
 //
-// A key carries a role from the same set users do -- admin or user -- so
+// A key carries a role from the same set users do -- admin, user or viewer -- so
 // whatever an admin may do in the UI an admin-scoped key may do over HTTP,
 // and a user-scoped key is limited to exactly what a non-admin account is.
 // There is no separate scope language to keep in step with the role checks.
@@ -51,6 +51,17 @@ type APIKey struct {
 	// and only from a browser session (SetAPIKeySignIn). The links it makes
 	// work once and for at most KeyLoginLinkTTL.
 	MaySignIn bool `json:"may_sign_in,omitempty"`
+	// MayMintKeys lets this key make keys for other accounts
+	// (POST /api/admin/users/{user_id}/keys), the way an outside admin hub
+	// such as ProjectPortal hands its people keys. Only the owner turns it
+	// on, from a browser session, on one of the owner's own admin-role keys
+	// (SetAPIKeyMinting). A minted key never gets it.
+	MayMintKeys bool `json:"may_mint_keys,omitempty"`
+	// MintedByKey is the key that made this one (MintAPIKey), empty for a key
+	// a person or a shell made. Revoking or deleting that key revokes this
+	// one too, and every key this one made, down the chain
+	// (VoidLinksMintedByKeyTx).
+	MintedByKey string `json:"minted_by_key,omitempty"`
 }
 
 var (
@@ -59,6 +70,9 @@ var (
 	ErrAPIKeyDisabled = errors.New( "cannot issue an API key for a disabled account" )
 	ErrAPIKeyDead     = errors.New( "only a live API key can be allowed to make sign-in links" )
 	ErrAPIKeyNotYours = errors.New( "only the account a key acts as may let it make sign-in links" )
+	ErrAPIKeyMinted   = errors.New( "a minted key can never make sign-in links" )
+	ErrAPIKeyMintsNot = errors.New( "a minted key can never mint keys" )
+	ErrAPIKeyNotAdmin = errors.New( "only an admin key can mint keys" )
 )
 
 const (
@@ -144,17 +158,14 @@ func ValidAPIKeyName( name string ) ( result bool ) {
 
 // NarrowRole is the permission ceiling, applied on every request that
 // authenticates with a key: the effective role is the *lower* of the account's
-// role and the key's.
+// role and the key's, ranked viewer < user < admin (LowerRole).
 //
 // Storing the key's role and then re-deriving the effective one, rather than
 // trusting what was stored, is what makes demotion work. If an admin mints an
 // admin key and later becomes an ordinary user, the row still says admin --
 // and every request it authenticates is treated as a user.
 func NarrowRole( account_role string , key_role string ) ( result string ) {
-	result = RoleUser
-	if account_role == RoleAdmin && key_role == RoleAdmin {
-		result = RoleAdmin
-	}
+	result = LowerRole( account_role , key_role )
 	return
 }
 
@@ -166,6 +177,31 @@ func NarrowRole( account_role string , key_role string ) ( result string ) {
 // by a credential that dies silently at 3am. It has to be asked for
 // explicitly; the default comes from configuration.
 func IssueAPIKey( store *db.Store , user_id uint64 , name string , role string , ttl time.Duration ) ( credential string , key *APIKey , err error ) {
+	credential , key , err = issueAPIKey( store , user_id , name , role , ttl , 0 , "" , false )
+	return
+}
+
+// MintAPIKey is a key making a key for an account (portal contract v2,
+// capability key_minting). minted_by_key is the calling key, which must have
+// MayMintKeys (the route checks it), or empty for an admin's browser session
+// on the same route; actor_id is its account. Rook has no other way for an
+// admin to make someone a key, so the ladder is the one deleting an account
+// follows (mayActOnTx):
+//   - the owner's account never gets one this way (ErrOwnerProtected);
+//   - only the owner makes one for another admin (ErrOwnerRequired);
+//   - the role is capped at the account's own role, not refused;
+//   - the new key records minted_by_key, so revoking or deleting that key
+//     revokes this one, and whatever it made in turn (VoidLinksMintedByKeyTx);
+//   - it never gets MayMintKeys or MaySignIn, now or later.
+func MintAPIKey( store *db.Store , actor_id uint64 , minted_by_key string , user_id uint64 , name string , role string , ttl time.Duration ) ( credential string , key *APIKey , err error ) {
+	credential , key , err = issueAPIKey( store , user_id , name , role , ttl , actor_id , minted_by_key , true )
+	return
+}
+
+// issueAPIKey is both of the above. mint makes it MintAPIKey: the owner is
+// refused outright, actor_id goes through mayActOnTx, and the role is capped
+// at the account's rather than refused.
+func issueAPIKey( store *db.Store , user_id uint64 , name string , role string , ttl time.Duration , actor_id uint64 , minted_by_key string , mint bool ) ( credential string , key *APIKey , err error ) {
 	// The owner is loaded inside the transaction below rather than taking the
 	// caller's word for the role. Every route into this function -- the HTTP
 	// API, the control socket, the CLI -- then gets the same ceiling without
@@ -184,6 +220,7 @@ func IssueAPIKey( store *db.Store , user_id uint64 , name string , role string ,
 		Role:       role,
 		SecretHash: encryption.Sha256Hex( secret ),
 		CreatedAt:  now,
+		MintedByKey: minted_by_key,
 	}
 	if ttl > 0 {
 		expires := now.Add( ttl )
@@ -201,7 +238,12 @@ func IssueAPIKey( store *db.Store , user_id uint64 , name string , role string ,
 			tx_err = ErrAPIKeyDisabled
 			return
 		}
-		if role == RoleAdmin && owner.IsAdmin() == false {
+		if mint {
+			if tx_err = refuseSuperAdminTx( tx , user_id ); tx_err != nil { return }
+			if tx_err = maySuperActOnTx( tx , actor_id , owner ); tx_err != nil { return }
+			key.Role = LowerRole( key.Role , owner.Role )
+		}
+		if RoleRank( key.Role ) > RoleRank( owner.Role ) {
 			tx_err = ErrAPIKeyRole
 			return
 		}
@@ -403,6 +445,10 @@ func SetAPIKeySignIn( store *db.Store , key_id string , user_id uint64 , on bool
 			tx_err = ErrAPIKeyNotYours
 			return
 		}
+		if on && stored.MintedByKey != "" {
+			tx_err = ErrAPIKeyMinted
+			return
+		}
 		if on && stored.Live() == false {
 			tx_err = ErrAPIKeyDead
 			return
@@ -451,5 +497,94 @@ func deleteAPIKeysForUser( tx *db.Tx , user_id uint64 ) ( err error ) {
 		func( key []byte , item any ) bool {
 			return item.( *APIKey ).UserID == user_id
 		} )
+	return
+}
+
+// voidWhatKeysMadeTx is VoidLinksMintedByKeyTx for every API key an account
+// holds, live or not, inside the caller's transaction. Disabling an account,
+// or taking its admin role away, calls it: a login link its key made, and a
+// browser that link signed in, carry the right the account had then, so
+// they end with that right instead of outliving it.
+func voidWhatKeysMadeTx( tx *db.Tx , user_id uint64 ) ( err error ) {
+	key_ids := []string{}
+	err = tx.ForEach( db.BucketAPIKeys ,
+		func() any { return &APIKey{} } ,
+		func( key []byte , item any ) bool {
+			if item.( *APIKey ).UserID == user_id { key_ids = append( key_ids , string( key ) ) }
+			return true
+		} )
+	if err != nil { return }
+	for _ , key_id := range key_ids {
+		if _ , err = VoidLinksMintedByKeyTx( tx , key_id ); err != nil { return }
+	}
+	return
+}
+
+// SetAPIKeyMinting turns MayMintKeys on or off. Only the owner, on one of the
+// owner's own keys (ErrAPIKeyNotYours for anyone else's, ErrOwnerRequired for
+// anyone but the owner), and only on an admin-role key a person made
+// (ErrAPIKeyNotAdmin, ErrAPIKeyMintsNot). Turning it on needs a live key
+// (ErrAPIKeyDead); off always works and leaves the keys it made alone --
+// revoking it is what ends those. db.ErrNotFound when there is no such key.
+func SetAPIKeyMinting( store *db.Store , key_id string , actor_id uint64 , on bool ) ( key *APIKey , err error ) {
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		stored := &APIKey{}
+		if tx_err = tx.Get( db.BucketAPIKeys , []byte( key_id ) , stored ); tx_err != nil { return }
+		if stored.UserID != actor_id {
+			tx_err = ErrAPIKeyNotYours
+			return
+		}
+		owner_id , tx_err := superAdminIDTx( tx )
+		if tx_err != nil { return }
+		if owner_id == 0 || actor_id != owner_id {
+			tx_err = ErrOwnerRequired
+			return
+		}
+		if on && stored.MintedByKey != "" {
+			tx_err = ErrAPIKeyMintsNot
+			return
+		}
+		if on && stored.Role != RoleAdmin {
+			tx_err = ErrAPIKeyNotAdmin
+			return
+		}
+		if on && stored.Live() == false {
+			tx_err = ErrAPIKeyDead
+			return
+		}
+		stored.MayMintKeys = on
+		if tx_err = tx.Put( db.BucketAPIKeys , []byte( key_id ) , stored ); tx_err != nil { return }
+		key = stored
+		return
+	} )
+	return
+}
+
+// revokeKeysMintedByTx revokes every key key_id made, and through
+// VoidLinksMintedByKeyTx whatever those made in turn, down the whole chain.
+// A key is always made after the key that made it, so the chain has no loop.
+func revokeKeysMintedByTx( tx *db.Tx , key_id string ) ( revoked int , err error ) {
+	children := []*APIKey{}
+	err = tx.ForEach( db.BucketAPIKeys ,
+		func() any { return &APIKey{} } ,
+		func( _ []byte , item any ) bool {
+			if stored := item.( *APIKey ); stored.MintedByKey == key_id && stored.ID != key_id {
+				children = append( children , stored )
+			}
+			return true
+		} )
+	if err != nil { return }
+	now := time.Now().UTC()
+	for _ , child := range children {
+		if child.RevokedAt == nil {
+			child.RevokedAt = &now
+			child.MaySignIn , child.MayMintKeys = false , false
+			if err = tx.Put( db.BucketAPIKeys , []byte( child.ID ) , child ); err != nil { return }
+			revoked += 1
+		}
+		var below int
+		if below , err = VoidLinksMintedByKeyTx( tx , child.ID ); err != nil { return }
+		revoked += below
+	}
 	return
 }

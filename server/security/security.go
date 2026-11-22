@@ -298,6 +298,62 @@ func ( guard *Guard ) resolveAPIKey( c fiber.Ctx ) ( actor *Actor ) {
 // helpers called at the top of each handler, so a new protected route is
 // protected by where it is registered -- forgetting the check is not something
 // you can do silently.
+// ViewerMayCall is what a viewer may send besides reads (portal contract v2,
+// role viewer): signing out, ending its own sessions, and cancelling its own
+// login link. Everything else that is not GET, HEAD or OPTIONS answers 403
+// view_only (ViewOnly). In Rook a viewer is a spectator: it may watch any
+// table it could see and read the chat, but not sit, bid or play.
+// path may be a real path or a route's template; both match.
+func ViewerMayCall( method string , path string ) ( ok bool ) {
+	switch {
+	case method == fiber.MethodGet || method == fiber.MethodHead || method == fiber.MethodOptions:
+		ok = true
+	case method != fiber.MethodPost:
+	case path == "/api/logout" || path == "/api/account/login-link/cancel":
+		ok = true
+	case path == "/api/account/sessions/revoke-others":
+		ok = true
+	case strings.HasPrefix( path , "/api/account/sessions/" ) && strings.HasSuffix( path , "/revoke" ):
+		ok = true
+	}
+	return
+}
+
+// signingIn is true for Rook's public sign-in routes: redeeming a login
+// link, signing up from a table's seat, and the sign-up link pages. A
+// viewer's browser posting to one is not acting as the viewer, it is becoming
+// someone (possibly someone else), so the view-only rule does not apply.
+// POST /api/join/{code} alone is not one: that is taking a seat. The public
+// watch chat is let through too, since anyone may post there signed out.
+func signingIn( path string ) ( result bool ) {
+	switch {
+	case path == "/api/login" || strings.HasPrefix( path , "/api/login/" ):
+		result = true
+	case strings.HasPrefix( path , "/api/signup/" ):
+		result = true
+	case strings.HasPrefix( path , "/api/join/" ) && strings.HasSuffix( path , "/signup" ):
+		result = true
+	case strings.HasPrefix( path , "/api/watch/" ) && strings.HasSuffix( path , "/chat" ):
+		result = true
+	}
+	return
+}
+
+// ViewOnly is the viewer role's one guard, in front of every route: a
+// viewer's session or key may read, and may send only what ViewerMayCall
+// lets through. Anything else answers 403 {"error":"view_only"}, whatever
+// the route, so a route added later is covered without remembering to.
+func ( guard *Guard ) ViewOnly( c fiber.Ctx ) ( err error ) {
+	actor := ActorFrom( c )
+	path := c.Path()
+	if actor == nil || actor.Role != models.RoleViewer || signingIn( path ) || ViewerMayCall( c.Method() , path ) {
+		err = c.Next()
+		return
+	}
+	err = c.Status( fiber.StatusForbidden ).JSON( fiber.Map{ "error": "view_only" } )
+	return
+}
+
 func ( guard *Guard ) RequireLogin( c fiber.Ctx ) ( err error ) {
 	if ActorFrom( c ) == nil {
 		err = c.Status( fiber.StatusUnauthorized ).JSON( fiber.Map{ "error": "not authenticated" } )
@@ -334,20 +390,28 @@ func ( guard *Guard ) RequireAdmin( c fiber.Ctx ) ( err error ) {
 // person signing in, and revoking a key actually revokes it.
 //
 // Accounts and ways in are not on that list. An admin key may create and
-// delete accounts, change roles and hand out login links and invite links.
-// A key makes its own account a login link only once that account switched
-// it on for the key, from a session (models.APIKey.MaySignIn), and then one
-// that works once, for at most 15 minutes. What keeps
-// revoking a leaked key meaningful is that every link records the key that
-// made it, and revoking or deleting the key voids those still usable and ends
-// every session one of its login links signed in (models.VoidLinksMintedByKeyTx).
-// Disabling or demoting the key's account does the same for all its keys.
-// What it does not undo is anything such a session did meanwhile, or the
-// accounts made through an invite link it handed out: those show in the
-// activity log and the user list.
+// delete accounts, change roles and expiry, and hand out login links and
+// invite links. A key makes its own account a login link only once that
+// account switched it on for the key, from a session (models.APIKey.MaySignIn),
+// and then one that works once, for at most 15 minutes.
 //
-// Keys themselves stay browser-only: a key that could mint a key would leave
-// a successor behind with nothing to tie it to the one revoked.
+// A key may make keys only one way, with lineage. The owner switches
+// MayMintKeys on, from a session, on one of the owner's own admin-role keys;
+// that key may then make keys for other accounts
+// (POST /api/admin/users/{user_id}/keys), never the owner's, each capped at
+// its account's role and recording the key that made it
+// (models.APIKey.MintedByKey). A minted key never gets MayMintKeys or
+// MaySignIn, so it cannot mint or turn into a session in turn. Every other
+// door to minting stays browser-only.
+//
+// What keeps revoking a leaked key meaningful is that everything it made
+// records it. Revoking or deleting the key voids its login links still
+// usable, ends every session one of them signed in, switches off its invite
+// links, and revokes every key it minted, down the whole chain
+// (models.VoidLinksMintedByKeyTx). Disabling or demoting the key's account
+// does the same for all its keys. What it does not undo is anything those
+// did meanwhile, or the accounts made through an invite link it handed out:
+// those show in the activity log and the user list.
 func ( guard *Guard ) RequireSession( c fiber.Ctx ) ( err error ) {
 	actor := ActorFrom( c )
 	if actor == nil {

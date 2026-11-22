@@ -52,6 +52,9 @@ func RevokeAllCredentials( store *db.Store , user_id uint64 ) ( revoked Revoked 
 			if tx_err = tx.Put( db.BucketAPIKeys , []byte( key.ID ) , key ); tx_err != nil { return }
 		}
 		revoked.APIKeys = len( live )
+		// What those keys made in other accounts -- links not yet used, and
+		// the browsers those signed in -- ends with them (S22).
+		tx_err = voidWhatKeysMadeTx( tx , user_id )
 		return
 	} )
 	if err != nil { revoked = Revoked{} }

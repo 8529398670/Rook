@@ -132,6 +132,9 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 	// Resolve the session once, before anything else looks at the request.
 	app.Use( handlers.Guard.LoadUser )
 	apidoc.CheckCSRF = handlers.Guard.CheckCSRF
+	// A viewer reads and changes nothing: one rule for every route, so a
+	// route added later cannot forget it (security.ViewOnly).
+	app.Use( handlers.Guard.ViewOnly )
 
 	// Every API reply says which build answered it, so a page left open
 	// across a deploy finds out on its next call (static/js/fresh.js).

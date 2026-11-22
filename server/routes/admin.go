@@ -1,8 +1,10 @@
 package routes
 
 import (
+	errors "errors"
 	strconv "strconv"
 	strings "strings"
+	time "time"
 
 	fiber "github.com/gofiber/fiber/v3"
 
@@ -14,7 +16,11 @@ import (
 type createUserRequest struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Role        string `json:"role,omitempty"`
-	CSRFToken   string `json:"csrf_token,omitempty"`
+	// AccountExpiresAt is when the new account stops working (portal
+	// contract v2, account_expiry), omitted for never. expires_in_minutes,
+	// in loginLinkRequest, stays the login link's own expiry.
+	AccountExpiresAt *time.Time `json:"account_expires_at,omitempty"`
+	CSRFToken        string     `json:"csrf_token,omitempty"`
 }
 
 type csrfOnlyRequest struct {
@@ -74,6 +80,8 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err err
 			"display_name": user.DisplayName,
 			"role":         user.Role,
 			"disabled":     user.Disabled(),
+			"expires_at":   user.ExpiresAt,
+			"expired":      user.Expired(),
 			"can_invite":   user.CanInvite,
 			"can_hint":     user.CanHint,
 			"can_undo":     user.CanUndo,
@@ -105,7 +113,8 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err err
 //
 // @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner], status=201,
 //     description="Make a new account and its first one-time login link, to hand to the person. role is "
-//         "admin or user. Answers with user_id and login_path.",
+//         "admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops "
+//         "working; omit it for never. Answers with user_id and login_path.",
 // )
 func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err error ) {
 	body := in.createUserRequest
@@ -114,13 +123,17 @@ func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err e
 		return
 	}
 	if models.ValidRole( body.Role ) == false {
-		err = badRequest( c , "role must be admin or user" )
+		err = badRequest( c , "role must be admin, user or viewer" )
 		return
 	}
 	ttl , ok , err := loginLinkTTL( c , in.loginLinkRequest , handlers.Config.LoginTokenTTL )
 	if ok == false { return }
 
-	user , create_err := models.CreateUser( handlers.Store , body.DisplayName , body.Role )
+	user , create_err := models.CreateUserExpiring( handlers.Store , body.DisplayName , body.Role , body.AccountExpiresAt )
+	if errors.Is( create_err , models.ErrExpiryPast ) {
+		err = badRequest( c , create_err.Error() )
+		return
+	}
 	if create_err != nil {
 		err = serverError( c )
 		return
@@ -278,6 +291,53 @@ func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx , in *setUserCanInvite
 	return
 }
 
+type setExpiryRequest struct {
+	ExpiresAt *time.Time `json:"expires_at"`
+	CSRFToken string     `json:"csrf_token,omitempty"`
+}
+
+type setUserExpiryIn struct {
+	pathUserID
+	setExpiryRequest
+}
+
+// SetUserExpiry sets when an account stops working (portal contract v2,
+// account_expiry). Who may do it lives in models.SetUserExpiry: never the
+// owner's account. Rook has no housekeeping job, so an expired account is
+// refused at every request (User.Disabled) rather than switched off later,
+// and moving the expiry later lets it back in.
+//
+// @route("POST /api/admin/users/{user_id}/expiry", summary="Set when an account expires", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+//     description="expires_at is when the account stops working (RFC 3339), or null for never. Once it "
+//         "passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in "
+//         "the future. The owner's account never expires.",
+// )
+func ( handlers *Handlers ) SetUserExpiry( c fiber.Ctx , in *setUserExpiryIn ) ( err error ) {
+	var body setExpiryRequest
+	user , ok , target_err := handlers.adminTarget( c , &body , func() string { return body.CSRFToken } )
+	if ok == false {
+		err = target_err
+		return
+	}
+	updated , set_err := models.SetUserExpiry( handlers.Store , user.ID , security.UserFrom( c ).ID , body.ExpiresAt )
+	switch {
+	case errors.Is( set_err , models.ErrExpiryPast ):
+		err = badRequest( c , set_err.Error() )
+		return
+	case errors.Is( set_err , models.ErrOwnerProtected ):
+		err = forbidden( c , "the owner's account cannot expire" )
+		return
+	case errors.Is( set_err , models.ErrOwnerRequired ):
+		err = forbidden( c , set_err.Error() )
+		return
+	case set_err != nil:
+		err = serverError( c , set_err )
+		return
+	}
+	err = c.JSON( fiber.Map{ "ok": true , "expires_at": updated.ExpiresAt } )
+	return
+}
+
 type setRoleRequest struct {
 	Role      string `json:"role,omitempty"`
 	CSRFToken string `json:"csrf_token,omitempty"`
@@ -299,7 +359,7 @@ func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx , in *adminSetRoleIn ) ( e
 		return
 	}
 	if models.ValidRole( body.Role ) == false {
-		err = badRequest( c , "role must be admin or user" )
+		err = badRequest( c , "role must be admin, user or viewer" )
 		return
 	}
 	if body.Role != models.RoleAdmin && models.IsSuperAdmin( handlers.Store , user.ID ) {

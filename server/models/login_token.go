@@ -173,6 +173,9 @@ func VoidLinksMintedByKeyTx( tx *db.Tx , key_id string ) ( voided int , err erro
 			return item.( *Session ).MintedByKey == key_id
 		} )
 	voided = links + sessions
+	// And the keys it made, with what each of those made, down the chain.
+	minted , err := revokeKeysMintedByTx( tx , key_id )
+	voided += minted
 	return
 }
 

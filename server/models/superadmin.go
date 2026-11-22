@@ -62,3 +62,39 @@ func SetUserRole( store *db.Store , user_id uint64 , role string ) ( err error )
 		} )
 	return
 }
+
+// superAdminIDTx is SuperAdminID read inside the caller's transaction, for
+// the portal contract v2 checks (expiry, key minting). It only reads what
+// SuperAdminID recorded, which every owner-only route has done by the time it
+// runs (RequireOwner asks IsSuperAdmin first). Zero means none recorded yet.
+func superAdminIDTx( tx *db.Tx ) ( user_id uint64 , err error ) {
+	err = tx.Get( db.BucketMeta , superadminKey , &user_id )
+	if errors.Is( err , db.ErrNotFound ) { user_id , err = 0 , nil }
+	return
+}
+
+// refuseSuperAdminTx is ErrOwnerProtected for the superadmin's account.
+func refuseSuperAdminTx( tx *db.Tx , user_id uint64 ) ( err error ) {
+	super_id , err := superAdminIDTx( tx )
+	if err != nil { return }
+	if super_id != 0 && super_id == user_id { err = ErrOwnerProtected }
+	return
+}
+
+// maySuperActOnTx is mayActOnTx with Rook's superadmin as the owner: nobody
+// acts on the superadmin's account, and only the superadmin acts on another
+// admin's. actor_id zero is the shell.
+func maySuperActOnTx( tx *db.Tx , actor_id uint64 , target *User ) ( err error ) {
+	if actor_id == 0 || actor_id == target.ID { return }
+	super_id , err := superAdminIDTx( tx )
+	if err != nil { return }
+	if super_id != 0 && target.ID == super_id {
+		err = ErrOwnerProtected
+		return
+	}
+	if target.IsAdmin() && actor_id != super_id {
+		err = ErrOwnerRequired
+	}
+	return
+}
+
