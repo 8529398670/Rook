@@ -89,6 +89,7 @@ const Settings = {
     // Each panel owns its own file and its own init(); this is the one line
     // that knows the API keys screen exists.
     await Keys.init( this.me );
+    await Portal.init( this.me );
     if ( this.me.can_invite ) Links.initSignupLinks( this.me );
 
     // The Players card and the app-wide game settings are the owner's
@@ -342,10 +343,13 @@ const Settings = {
         } },
       } );
       roleSelect.value = user.role;
-      roleSelect.disabled = user.superadmin === true;
+      // A service account (ProjectPortal's) is an admin, always, like the
+      // superadmin: the server refuses to change it.
+      roleSelect.disabled = user.superadmin === true || user.kind === "service";
       const roleCell = [ roleSelect ];
       // Only the owner sees which account is the owner.
       if ( user.superadmin && Settings.me.owner ) roleCell.push( Dom.el( "span" , { class: "chip owner-chip" , text: I18n.get( "admin.superadmin_tag" ) , attrs: { title: I18n.get( "admin.superadmin_help" ) } } ) );
+      if ( user.kind === "service" ) roleCell.push( Dom.el( "span" , { class: "chip owner-chip" , text: I18n.get( "admin.service_badge" ) , attrs: { title: I18n.get( "admin.service_help" ) } } ) );
 
       // Built with createElement + textContent, never an HTML string: a
       // display name is user-controlled input.

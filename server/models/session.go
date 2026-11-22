@@ -104,6 +104,12 @@ func CreateSession( store *db.Store , user_id uint64 , ttl time.Duration ) ( cre
 			tx_err = ErrAccountDisabled
 			return
 		}
+		// A service account (ProjectPortal's, portal.go) has API keys only,
+		// and is never signed into.
+		if owner.IsService() {
+			tx_err = ErrServiceAccount
+			return
+		}
 		session_id , new_credential , new_session := newSession( user_id , ttl )
 		if tx_err = tx.Put( db.BucketSessions , []byte( session_id ) , new_session ); tx_err != nil { return }
 		credential , session = new_credential , new_session

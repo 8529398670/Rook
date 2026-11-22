@@ -6,6 +6,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
 	models "rook/server/models"
 	security "rook/server/security"
 )
@@ -74,7 +75,7 @@ func ( handlers *Handlers ) signupLink( c fiber.Ctx , body *signupRequest ) ( li
 	link , load_err := models.LoadSignupLink( handlers.Store , body.Credential )
 	if load_err != nil {
 		link = nil
-		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "signup_link_invalid" } )
+		err = apidoc.Refuse( c , fiber.StatusNotFound , "signup_link_invalid" , "" )
 	}
 	return
 }
@@ -128,12 +129,12 @@ func ( handlers *Handlers ) SignupClaim( c fiber.Ctx , in *signupClaimIn ) ( err
 	if link == nil { return }
 	user , get_err := models.GetUser( handlers.Store , body.UserID )
 	if get_err != nil || link.Owns( body.UserID ) == false || user.Disabled() || user.IsAdmin() {
-		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "no_such_account" } )
+		err = apidoc.Refuse( c , fiber.StatusNotFound , "no_such_account" , "" )
 		return
 	}
 	if handlers.Config.SigninPinEnabled && user.HasPin() {
 		if pins.locked( user.ID ) {
-			err = c.Status( fiber.StatusTooManyRequests ).JSON( fiber.Map{ "error": "pin_locked" } )
+			err = apidoc.Refuse( c , fiber.StatusTooManyRequests , "pin_locked" , "" )
 			return
 		}
 		ok := user.CheckPin( body.Pin )
@@ -141,7 +142,7 @@ func ( handlers *Handlers ) SignupClaim( c fiber.Ctx , in *signupClaimIn ) ( err
 		if ok == false {
 			code := "pin_wrong"
 			if body.Pin == "" { code = "pin_needed" }
-			err = c.Status( fiber.StatusForbidden ).JSON( fiber.Map{ "error": code } )
+			err = apidoc.Refuse( c , fiber.StatusForbidden , code , "" )
 			return
 		}
 	}
@@ -166,7 +167,7 @@ func ( handlers *Handlers ) SignupCreate( c fiber.Ctx , in *signupCreateIn ) ( e
 		return
 	}
 	if link.Remaining() <= 0 {
-		err = c.Status( fiber.StatusConflict ).JSON( fiber.Map{ "error": "signup_link_full" } )
+		err = apidoc.Refuse( c , fiber.StatusConflict , "signup_link_full" , "" )
 		return
 	}
 	user , create_err := models.CreateUser( handlers.Store , body.DisplayName , models.RoleUser )
@@ -178,7 +179,7 @@ func ( handlers *Handlers ) SignupCreate( c fiber.Ctx , in *signupCreateIn ) ( e
 		// Someone else took the last place a moment ago. Disable the account
 		// just made rather than leave a person no link counts for.
 		models.SetUserDisabled( handlers.Store , user.ID , true )
-		err = c.Status( fiber.StatusConflict ).JSON( fiber.Map{ "error": "signup_link_full" } )
+		err = apidoc.Refuse( c , fiber.StatusConflict , "signup_link_full" , "" )
 		return
 	}
 	if handlers.startSession( c , user.ID , "signed up through a sign-up link" ) != nil {

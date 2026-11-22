@@ -157,12 +157,12 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.DeleteAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.Guard.RequireSession , handlers.RequireOwner )
 	apidoc.MountStream( app , "POST" , "/api/admin/keys/{key_id}/revoke" , apidoc.Op{
 		Summary: "Revoke any API key",
-		Description: "Stops the key at once, and every key it made, down the chain. Needs a browser session or a key with may_mint_keys (any other key gets 403 key_minting_off), which may not revoke the owner's keys.",
+		Description: "Stops the key at once, and every key it made, down the chain. Needs a browser session or a key with may_mint_keys (any other key gets 403 key_minting_off), which may not revoke the owner's keys. Follows the owner ladder: nobody revokes the owner's keys this way, and only the owner revokes another admin's.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
-	} , handlers.RevokeAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.RevokeAnyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "GET" , "/api/admin/settings" , apidoc.Op{
 		Summary: "Get settings",
 		Tag: "Admin",
@@ -257,12 +257,12 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.SetUserExpiry , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "GET" , "/api/admin/users/{user_id}/keys" , apidoc.Op{
 		Summary: "List a user's API keys",
-		Description: "{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off).",
+		Description: "{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off). Follows the owner ladder: nobody lists the owner's keys this way, and only the owner lists another admin's.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
-	} , handlers.ListUserAPIKeys , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.ListUserAPIKeys , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/keys" , apidoc.Op{
 		Summary: "Make a key for a user",
 		Description: "name 1-80, role admin, user or viewer (capped at the account's role), expires_in_days 1-365 (required). Answers with the key row and its credential, shown once. A key calling needs may_mint_keys (403 key_minting_off). Never for the owner's account.",
@@ -271,7 +271,7 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "api_keys",
 		Status: 201,
 		Errors: []int{ 400 , 401 , 403 , 404 },
-	} , handlers.MintKeyForUser , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.MintKeyForUser , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/reissue-login" , apidoc.Op{
 		Summary: "Reissue login",
 		Description: "A fresh one-time login link for an account, for someone who lost their device or their link. Answers with user_id and login_path.",
@@ -443,9 +443,17 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
 	} , handlers.CreateMyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
+	apidoc.Mount( app , "POST" , "/api/keys/self/rotate" , apidoc.Op{
+		Summary: "Rotate the calling key",
+		Description: "Gives the calling key a new secret and answers its new credential, shown only now. The old secret stops working at once. The key's id, name, role, grants, lineage and expiry stay as they are, so the keys and links it made keep working; rotating never extends the expiry. A viewer key may call it.",
+		Tag: "API keys",
+		Access: apidoc.KeyOnly,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.rotateSelf , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireAPIKey )
 	apidoc.MountStream( app , "POST" , "/api/keys/{key_id}/mint-keys" , apidoc.Op{
 		Summary: "Let my API key make keys",
-		Description: "may_mint_keys true lets this admin key of the owner's make keys for other accounts (POST /api/admin/users/{user_id}/keys); false stops it. Owner only, on the owner's own admin keys.",
+		Description: "may_mint_keys true lets this admin key of the owner's make keys for other accounts (POST /api/admin/users/{user_id}/keys); false stops it. Owner only, on the owner's own admin keys or a service account's.",
 		Tag: "API keys",
 		Access: apidoc.SessionOnly,
 		Feature: "api_keys",
@@ -458,6 +466,14 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Feature: "api_keys",
 		Errors: []int{ 400 , 401 , 403 , 404 },
 	} , handlers.RevokeMyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
+	apidoc.Mount( app , "POST" , "/api/keys/{key_id}/rotate" , apidoc.Op{
+		Summary: "Rotate one of your keys",
+		Description: "The owner only: gives one of the owner's own keys a new secret and answers its new credential, shown only now. The old secret stops working at once; nothing else about the key changes.",
+		Tag: "API keys",
+		Access: apidoc.SessionOnly,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 401 , 403 , 404 },
+	} , handlers.rotateMyAPIKey , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireLogin , handlers.Guard.RequireSession )
 	apidoc.MountStream( app , "POST" , "/api/keys/{key_id}/sign-in" , apidoc.Op{
 		Summary: "Let my API key make sign-in links",
 		Description: "may_sign_in true lets this key of yours ask POST /api/account/login-link for a one-time link that works for at most 15 minutes; false stops it and voids any unused link it made.",
@@ -574,6 +590,34 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		ReplyType: "text/event-stream",
 		Errors: []int{ 400 , 404 },
 	} , handlers.streamLogs , handlers.featureGuards()[ "logs" ] , handlers.Guard.RequireOwner )
+	apidoc.Mount( app , "GET" , "/api/owner/portal" , apidoc.Op{
+		Summary: "ProjectPortal's accounts",
+		Description: "The service accounts ProjectPortal works through, each with its live keys and when they expire.",
+		Tag: "Owner",
+		Access: apidoc.SessionOnly,
+		Role: apidoc.Owner,
+		Feature: "api_keys",
+		Errors: []int{ 404 },
+	} , handlers.getPortal , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireOwner )
+	apidoc.MountStream( app , "POST" , "/api/owner/portal/connect" , apidoc.Op{
+		Summary: "Connect ProjectPortal",
+		Description: "Makes the service account named name (ProjectPortal when left out) if there is none, and one admin key for it, lasting days (1-365), that may make keys for other accounts and never makes sign-in links. Answers with the key and its credential, shown only now: paste it into ProjectPortal as this app's admin key.",
+		Tag: "Owner",
+		Access: apidoc.SessionOnly,
+		Role: apidoc.Owner,
+		Feature: "api_keys",
+		Status: 201,
+		Errors: []int{ 400 , 403 , 404 },
+	} , handlers.connectPortal , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireOwner )
+	apidoc.Mount( app , "POST" , "/api/owner/portal/disconnect" , apidoc.Op{
+		Summary: "Disconnect ProjectPortal",
+		Description: "Revokes every key of the service account user_id, and with them every key and link those keys made. The account stays, with no way in, until Connect gives it a key again.",
+		Tag: "Owner",
+		Access: apidoc.SessionOnly,
+		Role: apidoc.Owner,
+		Feature: "api_keys",
+		Errors: []int{ 400 , 403 , 404 },
+	} , handlers.disconnectPortal , handlers.featureGuards()[ "api_keys" ] , handlers.Guard.RequireOwner )
 	apidoc.MountStream( app , "GET" , "/api/players/{user_id}/presence" , apidoc.Op{
 		Summary: "Player presence",
 		Tag: "Global chat",

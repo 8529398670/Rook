@@ -12,6 +12,14 @@ import (
 	encryption "rook/server/encryption"
 )
 
+// An account's kind. A person signs in; a service account (ProjectPortal's
+// own, see portal.go) only ever has API keys. Rows written before kinds
+// existed have none, and read as a person (User.KindOrPerson).
+const (
+	KindPerson  = "person"
+	KindService = "service"
+)
+
 const (
 	RoleAdmin  = "admin"
 	RoleUser   = "user"
@@ -77,6 +85,8 @@ type User struct {
 	// after both opponents have passed. Off -- the zero value -- is the
 	// default: the bot passes, since the hand is the team's already.
 	PartnerBotOutbids bool `json:"partner_bot_outbids,omitempty"`
+	// Kind is KindPerson or KindService; empty is a person.
+	Kind string `json:"kind,omitempty"`
 	// Themes is this person's own list on the Appearance screen; nil follows
 	// the app's defaults. ThemeID is the one they use. See themes.go.
 	// ThemesBuiltIns is which built-in themes that list has seen (themes.go).
@@ -99,6 +109,19 @@ func ( user *User ) Disabled() ( result bool ) {
 // Expired is true once ExpiresAt has passed.
 func ( user *User ) Expired() ( result bool ) {
 	result = user.ExpiresAt != nil && time.Now().UTC().After( *user.ExpiresAt )
+	return
+}
+
+// KindOrPerson is the account's kind, a person when none was written.
+func ( user *User ) KindOrPerson() ( kind string ) {
+	kind = user.Kind
+	if kind == "" { kind = KindPerson }
+	return
+}
+
+// IsService is true for a service account: keys only, never signed into.
+func ( user *User ) IsService() ( result bool ) {
+	result = user.Kind == KindService
 	return
 }
 

@@ -1,6 +1,8 @@
 package routes
 
 import (
+	time "time"
+
 	fiber "github.com/gofiber/fiber/v3"
 
 	apidoc "rook/server/apidoc"
@@ -11,8 +13,22 @@ import (
 	tables "rook/server/tables"
 )
 
+// meKey is what /api/me says about the calling key (portal contract v3,
+// key_grants), so an outside tool knows before it clicks whether the key can
+// make keys, and when it stops working.
+type meKey struct {
+	ID          string    `json:"id"`
+	Name        string    `json:"name"`
+	Role        string    `json:"role"`
+	MayMintKeys bool      `json:"may_mint_keys"`
+	MaySignIn   bool      `json:"may_sign_in"`
+	ExpiresAt   time.Time `json:"expires_at,omitzero"`
+}
+
 type renameRequest struct {
-	DisplayName string `json:"display_name,omitempty"`
+	// The bounds let the request decoder name the field on a 400 (portal
+	// contract v3); RenameAccount still checks the trimmed name.
+	DisplayName string `json:"display_name,omitempty" jsonschema:"minLength=1,maxLength=80" error:"display name must be 1-80 characters"`
 	CSRFToken   string `json:"csrf_token,omitempty"`
 }
 
@@ -63,6 +79,12 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 		// models/superadmin.go), and only when acting with admin rights, so
 		// a user-scoped key of the owner's is not the owner.
 		"owner":            actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
+		// is_owner is owner under the template's older name (portal
+		// contract v2 and v3 both carry it).
+		"is_owner":         actor.IsAdmin() && models.IsSuperAdmin( handlers.Store , user.ID ),
+		// kind: person, or service for an account with API keys only that is
+		// never signed into (ProjectPortal's own, models/portal.go).
+		"kind":             user.KindOrPerson(),
 		"can_undo":         user.CanUndo,
 		"can_reshuffle":    user.CanReshuffle,
 		"bot_level":        botLevelOf( user ),
@@ -102,7 +124,15 @@ func ( handlers *Handlers ) GetMe( c fiber.Ctx , in *apidoc.None ) ( err error )
 	if actor.APIKey != nil {
 		payload[ "api_key_id" ] = actor.APIKey.ID
 		payload[ "api_key_name" ] = actor.APIKey.Name
+		// key: what this key may do (portal contract v3, key_grants).
+		key := meKey{ ID: actor.APIKey.ID , Name: actor.APIKey.Name , Role: actor.APIKey.Role , MayMintKeys: actor.APIKey.MayMintKeys , MaySignIn: actor.APIKey.MaySignIn }
+		if actor.APIKey.ExpiresAt != nil { key.ExpiresAt = actor.APIKey.ExpiresAt.UTC() }
+		payload[ "key" ] = key
 	}
+	// Which webserver skill, and which of its commits, this build came from
+	// (.skill-origin.yaml, stamped at build time). Left out when unknown.
+	if handlers.Skill != "" { payload[ "skill" ] = handlers.Skill }
+	if handlers.SkillCommit != "" { payload[ "skill_commit" ] = handlers.SkillCommit }
 	err = c.JSON( payload )
 	return
 }
@@ -225,9 +255,10 @@ func ( handlers *Handlers ) DeleteMyAccount( c fiber.Ctx , in *apidoc.None ) ( e
 }
 
 // portalContract is the version of ProjectPortal's contract this app
-// speaks: what it may call from outside, field for field (its CROSS_PROJECT.md,
-// "Portal contract v2"). The webserver-upgrade skill's status reads it.
-const portalContract = 2
+// speaks: what it may call from outside, field for field (the "Portal
+// contract" section of the go-webserver skill's SKILL.md, which ProjectPortal's
+// CROSS_PROJECT.md points at). The webserver-upgrade skill's status reads it.
+const portalContract = 3
 
 // capabilities are the optional parts of that contract this app has on right
 // now. The portal turns each one on only when it is listed here. Rook has no
@@ -240,5 +271,9 @@ func ( handlers *Handlers ) capabilities() ( result []string ) {
 	result = append( result , "account_expiry" )
 	if keys { result = append( result , "key_minting" ) }
 	if keys { result = append( result , "key_sign_in" ) }
+	if keys { result = append( result , "service_accounts" ) }
+	if keys { result = append( result , "key_grants" ) }
+	result = append( result , "error_codes" )
+	if keys { result = append( result , "key_rotation" ) }
 	return
 }

@@ -29,13 +29,14 @@ func SuperAdminID( store *db.Store ) ( user_id uint64 , err error ) {
 	err = nil
 
 	// Not recorded yet, or the recorded account is gone (deleted from the
-	// shell): pick the oldest active admin.
+	// shell): pick the oldest active admin. Never a service account
+	// (ProjectPortal's, portal.go): it is an admin, and never the owner.
 	user_id = 0
 	err = store.ForEach( db.BucketUsers ,
 		func() any { return &User{} } ,
 		func( key []byte , item any ) bool {
 			user := item.( *User )
-			if user.IsAdmin() && user.Disabled() == false && ( user_id == 0 || user.ID < user_id ) {
+			if user.IsAdmin() && user.Disabled() == false && user.IsService() == false && ( user_id == 0 || user.ID < user_id ) {
 				user_id = user.ID
 			}
 			return true
@@ -53,11 +54,18 @@ func IsSuperAdmin( store *db.Store , user_id uint64 ) ( result bool ) {
 	return
 }
 
+// SetUserRole changes an account's role. A service account is an admin,
+// always (portal.go): changing it is ErrServiceAccount.
 func SetUserRole( store *db.Store , user_id uint64 , role string ) ( err error ) {
 	err = store.UpdateValue( db.BucketUsers , encryption.Uint64ToBytes( user_id ) ,
 		func() any { return &User{} } ,
 		func( item any ) ( mutate_err error ) {
-			item.( *User ).Role = role
+			user := item.( *User )
+			if user.IsService() && user.Role != role {
+				mutate_err = ErrServiceAccount
+				return
+			}
+			user.Role = role
 			return
 		} )
 	return

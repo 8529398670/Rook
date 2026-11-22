@@ -993,6 +993,36 @@
           </label>
         </div>
 
+        <!-- ProjectPortal's own account (js/portal.js): the owner's only. -->
+        <div class="card" id="portal-card" hidden>
+          <h2 data-i18n="portal.heading"></h2>
+          <p class="muted" data-i18n="portal.description"></p>
+          <form id="portal-connect-form" autocomplete="off">
+            <div class="field">
+              <label for="portal-name" data-i18n="portal.name_label"></label>
+              <input id="portal-name" name="name" maxlength="80" value="ProjectPortal" required />
+            </div>
+            <div class="field">
+              <label for="portal-days" data-i18n="portal.days_label"></label>
+              <input id="portal-days" name="days" type="number" min="1" max="365" value="365" inputmode="numeric" required />
+            </div>
+            <button type="submit" data-i18n="portal.connect_button"></button>
+          </form>
+
+          <div id="portal-key-box" class="notice notice-link" hidden>
+            <button type="button" class="icon-button box-close" data-box-close="portal-name" data-i18n-attr="aria-label:common.close,title:common.close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg></button>
+            <p data-i18n="api_keys.secret_notice"></p>
+            <code id="portal-key-value"></code>
+            <button id="copy-portal-key-button" type="button" class="secondary" data-i18n="api_keys.copy_button"></button>
+            <span id="portal-key-copied" class="muted" data-i18n="api_keys.copied_notice" hidden></span>
+            <p data-i18n="portal.paste_hint"></p>
+          </div>
+
+          <h3 data-i18n="portal.status_heading"></h3>
+          <ul id="portal-status" class="session-list"></ul>
+          <button id="portal-disconnect-button" type="button" class="secondary" data-i18n="portal.disconnect_button" hidden></button>
+        </div>
+
         <div class="card" id="admin-keys-panel" hidden>
           <h2 data-i18n="admin_keys.heading"></h2>
           <p class="muted" data-i18n="admin_keys.description"></p>
@@ -1517,6 +1547,7 @@
   <script src="/js/backgrounds.js"></script>
   <script src="/js/settings.js"></script>
   <script src="/js/profile.js"></script>
+  <script src="/js/portal.js"></script>
   <script src="/js/sessions.js"></script>
   <script src="/js/links.js"></script>
   <script src="/js/join.js"></script>

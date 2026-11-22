@@ -26,6 +26,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
 	assets "rook/server/assets"
 	bootstrap "rook/server/bootstrap"
 	config "rook/server/config"
@@ -54,6 +55,10 @@ var (
 	version   = "dev"
 	commit    = "unknown"
 	buildDate = "unknown"
+	// The skill and its commit this app was scaffolded from, read from
+	// .skill-origin.yaml by the same scripts. Empty without that file.
+	skill       = ""
+	skillCommit = ""
 )
 
 func main() {
@@ -157,6 +162,7 @@ func run() ( err error ) {
 	guard := security.New( store , cfg )
 	handlers := routes.New( store , cfg , guard , lang , static_server , hub )
 	handlers.Version = version
+	handlers.Skill , handlers.SkillCommit = skill , skillCommit
 	// Tell open pages about a change to the frontend (server.live_reload).
 	// See server/livereload.
 	if cfg.LiveReloads( version , bundle.StaticDir ) {
@@ -198,7 +204,8 @@ func run() ( err error ) {
 			if code >= 500 {
 				log.Printf( "[error] %s %s: %v" , c.Method() , c.Path() , handler_err )
 			}
-			response_err = c.Status( code ).JSON( fiber.Map{ "error": statusText( code ) } )
+			// Every 4xx carries a machine-readable code (portal contract v3).
+			response_err = c.Status( code ).JSON( apidoc.ErrorBody( code , statusText( code ) , "" ) )
 			return
 		},
 	} )

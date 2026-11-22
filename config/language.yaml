@@ -882,6 +882,7 @@ logs:
   table_ip: "IP"
   anonymous: "signed out"
   via_key: "(API key)"
+  via_named_key: "· key {name}"
 
 # "Where you're signed in" (js/sessions.js), a card in the Account section.
 sessions:
@@ -1249,6 +1250,7 @@ admin:
   status_expired: "expired"
   # {date} is when the account stops working.
   expires_note: "Account expires {date}"
+  service_badge: "Service"
   reissue_button: "New link"
   disable_button: "Disable"
   enable_button: "Enable"
@@ -1270,6 +1272,9 @@ admin:
   demoted: "{name} is now a player."
   superadmin_tag: "owner"
   superadmin_help: "The account this server was set up with. It always stays an admin and can't be disabled or deleted."
+  # Beside a service account (ProjectPortal's own): API keys only, never signed into.
+  service_badge: "Service"
+  service_help: "ProjectPortal's own account: it has API keys only and is never signed into. Only you can change it."
 
 api_keys:
   heading: "API keys"
@@ -1314,6 +1319,23 @@ api_keys:
   revoke_confirm: "Revoke this key? Anything using it stops working immediately."
   delete_button: "Delete"
   delete_confirm: "Delete this key for good? Anything using it stops working immediately, and it disappears from the list."
+
+# The owner's ProjectPortal card in Settings, beside All API keys
+# (static/js/portal.js). {date} is when a key expires.
+portal:
+  heading: "ProjectPortal"
+  description: "Connect ProjectPortal through an account of its own, never yours. Its key may make keys for the accounts it runs, and never signs anyone in. Only you can change that account or cut it off."
+  name_label: "Account name"
+  days_label: "Key lifetime (days)"
+  connect_button: "Connect"
+  paste_hint: "Paste it into ProjectPortal: Catalog → this app → Admin key"
+  status_heading: "Its keys"
+  none: "Not connected."
+  expires: "Expires {date}"
+  never_expires: "Never expires"
+  disconnect_button: "Disconnect"
+  # Empty this string to stop asking for confirmation.
+  disconnect_confirm: "Disconnect ProjectPortal? Its keys stop working now, and so does every key and login link they made."
 
 admin_keys:
   heading: "All API keys"

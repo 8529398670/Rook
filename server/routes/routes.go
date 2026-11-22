@@ -49,6 +49,11 @@ type Handlers struct {
 	// Version is the running build, set by main.go. Every API reply says it
 	// (X-App-Version) so an open page can notice an upgrade.
 	Version string
+	// Skill and SkillCommit are the webserver skill and its commit this app
+	// was scaffolded from (.skill-origin.yaml, stamped at build time), for
+	// /api/me. Empty when the build had no such file.
+	Skill       string
+	SkillCommit string
 	// LiveReload is set by main.go when server.live_reload says open pages
 	// hear about frontend changes. Nil, the route does not exist.
 	LiveReload *livereload.Watcher
@@ -163,7 +168,7 @@ func ( handlers *Handlers ) Register( app *fiber.App ) {
 
 	// Any other /api/ path is a JSON 404, not a static page.
 	app.Get( "/api/*" , func( c fiber.Ctx ) ( err error ) {
-		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "not found" } )
+		err = apidoc.Refuse( c , fiber.StatusNotFound , "not found" , "" )
 		return
 	} )
 
@@ -195,17 +200,17 @@ func ( handlers *Handlers ) cfg() ( cfg *config.Config ) {
 // badRequest / notFound keep error bodies uniform, so the frontend has one
 // shape to handle and no handler accidentally leaks internal detail.
 func badRequest( c fiber.Ctx , message string ) ( err error ) {
-	err = c.Status( fiber.StatusBadRequest ).JSON( fiber.Map{ "error": message } )
+	err = apidoc.Refuse( c , fiber.StatusBadRequest , message , "" )
 	return
 }
 
 func notFound( c fiber.Ctx , message string ) ( err error ) {
-	err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": message } )
+	err = apidoc.Refuse( c , fiber.StatusNotFound , message , "" )
 	return
 }
 
 func forbidden( c fiber.Ctx , message string ) ( err error ) {
-	err = c.Status( fiber.StatusForbidden ).JSON( fiber.Map{ "error": message } )
+	err = apidoc.Refuse( c , fiber.StatusForbidden , message , "" )
 	return
 }
 
@@ -222,7 +227,7 @@ func serverError( c fiber.Ctx , causes ...error ) ( err error ) {
 }
 
 func conflict( c fiber.Ctx , message string , extra fiber.Map ) ( err error ) {
-	body := fiber.Map{ "error": message }
+	body := apidoc.ErrorBody( fiber.StatusConflict , message , "" )
 	for name , value := range extra {
 		body[ name ] = value
 	}
@@ -241,6 +246,18 @@ type refusal struct {
 	// extra is more for the caller beside the message, such as the current
 	// value a 409 was about.
 	extra fiber.Map
+	// code is the machine-readable reason (apidoc.ErrorCodes). Empty takes
+	// the one the status says (apidoc.StatusCode); set only where the status
+	// cannot tell, with coded.
+	code string
+}
+
+// coded says which of the contract's reasons this refusal is, where its
+// status alone does not: the owner ladder, key minting, a service account.
+func ( refused *refusal ) coded( code string ) ( result *refusal ) {
+	refused.code = code
+	result = refused
+	return
 }
 
 func ( refused *refusal ) Error() ( text string ) {
@@ -264,7 +281,7 @@ func ( refused *refusal ) send( c fiber.Ctx ) ( err error ) {
 		err = serverError( c , refused.cause )
 		return
 	}
-	body := fiber.Map{ "error": refused.message }
+	body := apidoc.ErrorBody( refused.status , refused.message , refused.code )
 	for name , value := range refused.extra {
 		body[ name ] = value
 	}
@@ -277,6 +294,13 @@ func ( refused *refusal ) send( c fiber.Ctx ) ( err error ) {
 func refuse( status int , message string , extra ...fiber.Map ) ( refused *refusal ) {
 	refused = &refusal{ status: status , message: message }
 	if len( extra ) > 0 { refused.extra = extra[ 0 ] }
+	return
+}
+
+// serviceAccountRefusal is the answer to a way in for a service account
+// (models.KindService): it has API keys only, and is never signed into.
+func serviceAccountRefusal() ( refused *refusal ) {
+	refused = refuse( fiber.StatusForbidden , models.ErrServiceAccount.Error() ).coded( apidoc.CodeServiceAccount )
 	return
 }
 
@@ -306,9 +330,11 @@ func actOnRefusal( err error , what string ) ( refused *refusal ) {
 	case errors.Is( err , db.ErrNotFound ):
 		refused = refuse( fiber.StatusNotFound , "no such user" )
 	case errors.Is( err , models.ErrOwnerProtected ):
-		refused = refuse( fiber.StatusForbidden , "nobody can " + what + " the owner account" )
+		refused = refuse( fiber.StatusForbidden , "nobody can " + what + " the owner account" ).coded( apidoc.CodeOwnerProtected )
 	case errors.Is( err , models.ErrOwnerRequired ):
-		refused = refuse( fiber.StatusForbidden , "only the owner can " + what + " an admin account" )
+		refused = refuse( fiber.StatusForbidden , "only the owner can " + what + " an admin account" ).coded( apidoc.CodeOwnerRequired )
+	case errors.Is( err , models.ErrServiceAccount ):
+		refused = serviceAccountRefusal()
 	default:
 		refused = internalFailure( err )
 	}

@@ -251,7 +251,11 @@ func ( handlers *Handlers ) SetUserCanReshuffle( c fiber.Ctx , in *setUserCanRes
 // of everyone's API keys are theirs alone, not every admin's.
 func ( handlers *Handlers ) RequireOwner( c fiber.Ctx ) ( err error ) {
 	if handlers.isOwner( c ) == false {
-		err = forbidden( c , "forbidden" )
+		// The contract's code says which rule refused (portal contract v3):
+		// not an admin at all, or an admin who is not the owner.
+		code := apidoc.CodeOwnerRequired
+		if actor := security.ActorFrom( c ); actor == nil || actor.IsAdmin() == false { code = apidoc.CodeNotAdmin }
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "forbidden" , code )
 		return
 	}
 	err = c.Next()
@@ -264,12 +268,14 @@ func ( handlers *Handlers ) RequireOwner( c fiber.Ctx ) ( err error ) {
 // its own rather than the owner's. The ladder is maySuperActOnTx: nobody
 // acts on the owner's account, and only the owner acts on another admin's.
 // A route without a {user_id} (list, create) needs only the admin role.
-// What stays the owner's alone -- game settings, everyone's API keys, the
-// logs -- keeps RequireOwner.
+// One account's API keys (list, mint) are account routes too (portal
+// contract v3), and revoking a key holds its account to the same ladder
+// (RevokeAnyAPIKey). What stays the owner's alone -- game settings, the list
+// of everyone's API keys, the logs -- keeps RequireOwner.
 func ( handlers *Handlers ) RequireAccountAdmin( c fiber.Ctx ) ( err error ) {
 	actor := security.ActorFrom( c )
 	if actor == nil || actor.IsAdmin() == false {
-		err = forbidden( c , "forbidden" )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "forbidden" , apidoc.CodeNotAdmin )
 		return
 	}
 	raw := c.Params( "user_id" )
@@ -288,9 +294,9 @@ func ( handlers *Handlers ) RequireAccountAdmin( c fiber.Ctx ) ( err error ) {
 	case errors.Is( act_err , db.ErrNotFound ):
 		err = notFound( c , "no such user" )
 	case errors.Is( act_err , models.ErrOwnerProtected ):
-		err = forbidden( c , "only the owner can change the owner's account" )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "only the owner can change the owner's account" , apidoc.CodeOwnerProtected )
 	case errors.Is( act_err , models.ErrOwnerRequired ):
-		err = forbidden( c , "only the owner can do this to an admin account" )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "only the owner can do this to an admin account" , apidoc.CodeOwnerRequired )
 	default:
 		err = serverError( c , act_err )
 	}
@@ -314,7 +320,7 @@ func ( handlers *Handlers ) RequireRewind( c fiber.Ctx ) ( err error ) {
 	allowed := actor != nil && ( actor.IsAdmin() ||
 		( actor.User.CanUndo && handlers.Hub.IsSeated( c.Params( "table_id" ) , actor.User.ID ) ) )
 	if allowed == false {
-		err = forbidden( c , "forbidden" )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "forbidden" , apidoc.CodeNotAdmin )
 		return
 	}
 	err = c.Next()

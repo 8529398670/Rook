@@ -8,7 +8,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
-
+	apidoc "rook/server/apidoc"
 	models "rook/server/models"
 	security "rook/server/security"
 )
@@ -20,7 +20,10 @@ type createUserRequest struct {
 	// contract v2, account_expiry), omitted for never. expires_in_minutes,
 	// in loginLinkRequest, stays the login link's own expiry.
 	AccountExpiresAt *time.Time `json:"account_expires_at,omitempty"`
-	CSRFToken        string     `json:"csrf_token,omitempty"`
+	// Kind is person, the default. service is refused (403 service_account):
+	// a service account is made by Connect on the owner's ProjectPortal card.
+	Kind      string `json:"kind,omitempty" jsonschema:"enum=person,enum=service,default=person"`
+	CSRFToken string `json:"csrf_token,omitempty"`
 }
 
 type csrfOnlyRequest struct {
@@ -90,6 +93,9 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err err
 			"color":        user.Color,
 			"superadmin":   user.ID == super_id,
 			"owner":        user.ID == super_id,
+			// kind: person, or service for an account with API keys only
+			// (ProjectPortal's own, models/portal.go).
+			"kind":         user.KindOrPerson(),
 		} )
 	}
 	total := len( rows )
@@ -118,6 +124,10 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err err
 // )
 func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err error ) {
 	body := in.createUserRequest
+	if body.Kind == models.KindService {
+		err = serviceAccountRefusal()
+		return
+	}
 	if models.ValidDisplayName( body.DisplayName ) == false {
 		err = badRequest( c , "display name must be 1-80 characters" )
 		return
@@ -188,6 +198,10 @@ func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx , in *reissueLoginIn ) ( e
 	if ok == false { return }
 
 	credential , token_err := models.IssueLoginTokenByKey( handlers.Store , user_id , ttl , actor.KeyID() )
+	if errors.Is( token_err , models.ErrServiceAccount ) {
+		err = serviceAccountRefusal()
+		return
+	}
 	if token_err != nil {
 		err = serverError( c )
 		return
@@ -325,10 +339,10 @@ func ( handlers *Handlers ) SetUserExpiry( c fiber.Ctx , in *setUserExpiryIn ) (
 		err = badRequest( c , set_err.Error() )
 		return
 	case errors.Is( set_err , models.ErrOwnerProtected ):
-		err = forbidden( c , "the owner's account cannot expire" )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , "the owner's account cannot expire" , apidoc.CodeOwnerProtected )
 		return
 	case errors.Is( set_err , models.ErrOwnerRequired ):
-		err = forbidden( c , set_err.Error() )
+		err = apidoc.Refuse( c , fiber.StatusForbidden , set_err.Error() , apidoc.CodeOwnerRequired )
 		return
 	case set_err != nil:
 		err = serverError( c , set_err )
@@ -346,7 +360,8 @@ type setRoleRequest struct {
 // AdminSetRole promotes someone to admin or makes them a plain user again.
 // Any admin may do it to a player or to themselves; only the owner changes
 // another admin's (RequireAccountAdmin), and the superadmin (see
-// models/superadmin.go) always stays an admin. Nothing else
+// models/superadmin.go) always stays an admin, as does a service account
+// (ProjectPortal's, models/portal.go: 403 service_account). Nothing else
 // needs telling: every request reads the role fresh, and API keys are capped
 // at their owner's role on each use.
 //
@@ -367,8 +382,12 @@ func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx , in *adminSetRoleIn ) ( e
 		err = badRequest( c , "superadmin" )
 		return
 	}
-	if models.SetUserRole( handlers.Store , user.ID , body.Role ) != nil {
-		err = serverError( c )
+	if role_err := models.SetUserRole( handlers.Store , user.ID , body.Role ); role_err != nil {
+		if errors.Is( role_err , models.ErrServiceAccount ) {
+			err = serviceAccountRefusal()
+			return
+		}
+		err = serverError( c , role_err )
 		return
 	}
 	err = c.JSON( fiber.Map{ "ok": true } )

@@ -69,7 +69,14 @@ func IssueLoginTokenByKey( store *db.Store , user_id uint64 , ttl time.Duration 
 		MintedByKey: minted_by_key,
 	}
 	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
-		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , &User{} ); tx_err != nil { return }
+		target := &User{}
+		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , target ); tx_err != nil { return }
+		// A service account (ProjectPortal's, portal.go) has API keys only,
+		// and is never signed into.
+		if target.IsService() {
+			tx_err = ErrServiceAccount
+			return
+		}
 		if _ , tx_err = deletePendingLoginTokens( tx , user_id ); tx_err != nil { return }
 		tx_err = tx.Put( db.BucketLoginTokens , []byte( token_id ) , token )
 		return
@@ -118,7 +125,7 @@ func RedeemLoginToken( store *db.Store , credential string , session_ttl time.Du
 			return
 		}
 		owner := &User{}
-		if tx.Get( db.BucketUsers , encryption.Uint64ToBytes( current.UserID ) , owner ) != nil || owner.Disabled() {
+		if tx.Get( db.BucketUsers , encryption.Uint64ToBytes( current.UserID ) , owner ) != nil || owner.Disabled() || owner.IsService() {
 			tx_err = ErrLoginTokenInvalid
 			return
 		}

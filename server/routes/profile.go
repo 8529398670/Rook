@@ -4,7 +4,6 @@ import (
 	fiber "github.com/gofiber/fiber/v3"
 
 	apidoc "rook/server/apidoc"
-
 	game "rook/server/game"
 	models "rook/server/models"
 	security "rook/server/security"
@@ -156,7 +155,7 @@ func ( handlers *Handlers ) SetPartnerBotOutbids( c fiber.Ctx , in *setPartnerBo
 func ( handlers *Handlers ) SetPin( c fiber.Ctx , in *setPinIn ) ( err error ) {
 	body := in.pinRequest
 	if handlers.Config.SigninPinEnabled == false {
-		err = c.Status( fiber.StatusNotFound ).JSON( fiber.Map{ "error": "not_found" } )
+		err = apidoc.Refuse( c , fiber.StatusNotFound , "not_found" , "" )
 		return
 	}
 	user := security.UserFrom( c )

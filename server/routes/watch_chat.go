@@ -6,6 +6,7 @@ import (
 
 	fiber "github.com/gofiber/fiber/v3"
 
+	apidoc "rook/server/apidoc"
 	security "rook/server/security"
 )
 
@@ -80,7 +81,7 @@ func ( handlers *Handlers ) WatchChat( c fiber.Ctx , in *watchChatIn ) ( err err
 		return
 	}
 	if guestChats.allow( c.IP() ) == false {
-		err = c.Status( fiber.StatusTooManyRequests ).JSON( fiber.Map{ "error": "chat_too_fast" } )
+		err = apidoc.Refuse( c , fiber.StatusTooManyRequests , "chat_too_fast" , "" )
 		return
 	}
 	err = handlers.tableResult( c , id , handlers.Hub.GuestChat( id , body.Name , body.Text ) )

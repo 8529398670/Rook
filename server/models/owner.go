@@ -46,6 +46,9 @@ var (
 	// ErrNotAdmin is the refusal for making a non-admin, or a disabled
 	// admin, the owner.
 	ErrNotAdmin = errors.New( "the owner must be an enabled admin" )
+	// ErrServiceAccount refuses a way in, or the owner's seat, to a service
+	// account (KindService): it has API keys only, and is never signed into.
+	ErrServiceAccount = errors.New( "a service account has API keys only, and is never signed into" )
 
 	// ErrDeleteSelf is the refusal for deleting your own account, which
 	// would sign you out with no record left to sign back in to.
@@ -153,7 +156,7 @@ func EnsureOwner( store *db.Store ) ( owner_id uint64 , err error ) {
 			func() any { return &User{} } ,
 			func( key []byte , item any ) bool {
 				user := item.( *User )
-				if user.IsAdmin() && user.Disabled() == false {
+				if user.IsAdmin() && user.Disabled() == false && user.IsService() == false {
 					owner_id = user.ID
 					return false // key order is id order, so the first match is the lowest
 				}
@@ -175,6 +178,10 @@ func TransferOwner( store *db.Store , user_id uint64 ) ( err error ) {
 	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
 		target := &User{}
 		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , target ); tx_err != nil { return }
+		if target.IsService() {
+			tx_err = ErrServiceAccount
+			return
+		}
 		if target.IsAdmin() == false || target.Disabled() {
 			tx_err = ErrNotAdmin
 			return

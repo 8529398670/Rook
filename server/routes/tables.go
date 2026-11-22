@@ -7,7 +7,6 @@ import (
 	fiber "github.com/gofiber/fiber/v3"
 
 	apidoc "rook/server/apidoc"
-
 	botnames "rook/server/botnames"
 	game "rook/server/game"
 	models "rook/server/models"
@@ -125,7 +124,8 @@ func ( handlers *Handlers ) tableResult( c fiber.Ctx , id string , action_err er
 
 // tableError reports a refusal as {"error": "<code>"} -- a code, not a
 // sentence, which the frontend looks up under errors.<code> in
-// language.yaml. Anything that is not a refusal is a real failure.
+// language.yaml -- plus the portal contract's own "code" for its status
+// (apidoc.ErrorBody). Anything that is not a refusal is a real failure.
 func ( handlers *Handlers ) tableError( c fiber.Ctx , action_err error ) ( err error ) {
 	code , ok := tables.IsUserError( action_err )
 	if ok == false {
@@ -141,7 +141,7 @@ func ( handlers *Handlers ) tableError( c fiber.Ctx , action_err error ) ( err e
 	case string( tables.ErrTooManyTables ):
 		status = fiber.StatusServiceUnavailable
 	}
-	err = c.Status( status ).JSON( fiber.Map{ "error": code } )
+	err = apidoc.Refuse( c , status , code , "" )
 	return
 }
 

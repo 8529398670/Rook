@@ -19,6 +19,7 @@ import (
 	limiter "github.com/gofiber/fiber/v3/middleware/limiter"
 	recoverer "github.com/gofiber/fiber/v3/middleware/recover"
 
+	apidoc "rook/server/apidoc"
 	config "rook/server/config"
 	logs "rook/server/logs"
 )
@@ -97,7 +98,7 @@ func RateLimit( cfg *config.Config , logger *logs.Logger ) ( handler fiber.Handl
 		},
 		LimitReached: func( c fiber.Ctx ) ( err error ) {
 			refusals.note( c , logger , "general" , rateKey( c.IP() ) , cfg.RateLimitWindow )
-			err = c.Status( fiber.StatusTooManyRequests ).JSON( fiber.Map{ "error": "too many requests" } )
+			err = apidoc.Refuse( c , fiber.StatusTooManyRequests , "too many requests" , "" )
 			return
 		},
 	} )
