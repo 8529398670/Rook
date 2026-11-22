@@ -1250,7 +1250,6 @@ admin:
   status_expired: "expired"
   # {date} is when the account stops working.
   expires_note: "Account expires {date}"
-  service_badge: "Service"
   reissue_button: "New link"
   disable_button: "Disable"
   enable_button: "Enable"
