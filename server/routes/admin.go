@@ -50,7 +50,7 @@ const listUsersMax = 500
 // the following page, null on the last) and total, the shape the project
 // portal reads. q keeps the accounts whose name has it in, ignoring case.
 //
-// @route("GET /api/admin/users", summary="List users", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("GET /api/admin/users", summary="List users", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 //     description="Accounts, a page at a time, including disabled ones. q narrows by name; limit is "
 //         "1-500 (default 500). next is the offset of the following page, or null on the last one.",
 // )
@@ -111,7 +111,7 @@ func ( handlers *Handlers ) ListUsers( c fiber.Ctx , in *listUsersIn ) ( err err
 // join). The link records the key, so revoking the key voids it while it is
 // unused (models.VoidLinksMintedByKeyTx).
 //
-// @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner], status=201,
+// @route("POST /api/admin/users", summary="Create user", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin], status=201,
 //     description="Make a new account and its first one-time login link, to hand to the person. role is "
 //         "admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops "
 //         "working; omit it for never. Answers with user_id and login_path.",
@@ -162,7 +162,7 @@ func ( handlers *Handlers ) CreateUser( c fiber.Ctx , in *createUserIn ) ( err e
 // An admin key may call it too (the project portal does, to open Rook for
 // someone); the link records the key, as in CreateUser.
 //
-// @route("POST /api/admin/users/{user_id}/reissue-login", summary="Reissue login", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/reissue-login", summary="Reissue login", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 //     description="A fresh one-time login link for an account, for someone who lost their device or their "
 //         "link. Answers with user_id and login_path.",
 // )
@@ -198,7 +198,7 @@ func ( handlers *Handlers ) ReissueLogin( c fiber.Ctx , in *reissueLoginIn ) ( e
 	return
 }
 
-// @route("POST /api/admin/users/{user_id}/disabled", summary="Set user disabled", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/disabled", summary="Set user disabled", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx , in *setUserDisabledIn ) ( err error ) {
 	body := in.setDisabledRequest
@@ -240,7 +240,7 @@ func ( handlers *Handlers ) SetUserDisabled( c fiber.Ctx , in *setUserDisabledIn
 // owner back in. See models.RevokeAllCredentials for why this is separate
 // from both disabling and reissuing.
 //
-// @route("POST /api/admin/users/{user_id}/revoke-access", summary="Revoke access", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/revoke-access", summary="Revoke access", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) RevokeAccess( c fiber.Ctx , in *revokeAccessIn ) ( err error ) {
 	var body csrfOnlyRequest
@@ -269,7 +269,7 @@ func ( handlers *Handlers ) RevokeAccess( c fiber.Ctx , in *revokeAccessIn ) ( e
 // a table's empty seat (see InviteToSeat). Admins can always invite, so the
 // flag only means anything on a plain user.
 //
-// @route("POST /api/admin/users/{user_id}/can-invite", summary="Set user can invite", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/can-invite", summary="Set user can invite", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) SetUserCanInvite( c fiber.Ctx , in *setUserCanInviteIn ) ( err error ) {
 	body := in.setCanInviteRequest
@@ -307,7 +307,7 @@ type setUserExpiryIn struct {
 // refused at every request (User.Disabled) rather than switched off later,
 // and moving the expiry later lets it back in.
 //
-// @route("POST /api/admin/users/{user_id}/expiry", summary="Set when an account expires", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/expiry", summary="Set when an account expires", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 //     description="expires_at is when the account stops working (RFC 3339), or null for never. Once it "
 //         "passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in "
 //         "the future. The owner's account never expires.",
@@ -344,12 +344,13 @@ type setRoleRequest struct {
 }
 
 // AdminSetRole promotes someone to admin or makes them a plain user again.
-// Any admin may do it to anyone, themselves included, except that the
-// superadmin (see models/superadmin.go) always stays an admin. Nothing else
+// Any admin may do it to a player or to themselves; only the owner changes
+// another admin's (RequireAccountAdmin), and the superadmin (see
+// models/superadmin.go) always stays an admin. Nothing else
 // needs telling: every request reads the role fresh, and API keys are capped
 // at their owner's role on each use.
 //
-// @route("POST /api/admin/users/{user_id}/role", summary="Admin set role", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/role", summary="Admin set role", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) AdminSetRole( c fiber.Ctx , in *adminSetRoleIn ) ( err error ) {
 	var body setRoleRequest
@@ -408,7 +409,7 @@ func ( handlers *Handlers ) adminTarget( c fiber.Ctx , body any , csrf func() st
 // AdminRenameUser changes someone's name for them; their seats show it at
 // once.
 //
-// @route("POST /api/admin/users/{user_id}/rename", summary="Admin rename user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/rename", summary="Admin rename user", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx , in *adminRenameUserIn ) ( err error ) {
 	var body adminRenameRequest
@@ -432,7 +433,7 @@ func ( handlers *Handlers ) AdminRenameUser( c fiber.Ctx , in *adminRenameUserIn
 
 // AdminSetAvatar picks someone's icon and color for them.
 //
-// @route("POST /api/admin/users/{user_id}/avatar", summary="Admin set avatar", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/avatar", summary="Admin set avatar", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx , in *adminSetAvatarIn ) ( err error ) {
 	var body avatarRequest
@@ -454,7 +455,7 @@ func ( handlers *Handlers ) AdminSetAvatar( c fiber.Ctx , in *adminSetAvatarIn )
 // every way to sign in as it, and its seats at open tables. Games already
 // in the history keep the name it played under.
 //
-// @route("POST /api/admin/users/{user_id}/delete", summary="Delete user", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/delete", summary="Delete user", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) DeleteUser( c fiber.Ctx , in *deleteUserIn ) ( err error ) {
 	var body csrfOnlyRequest

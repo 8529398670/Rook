@@ -280,6 +280,7 @@ The tests use fixed seeds so failures can be reproduced. That code never runs in
 
 **Roles and permissions**
 - The **owner** is the account the server was set up with. It always stays an admin and manages players and app-wide settings.
+- Through the API (`/api/admin/users...`), any admin may run players' accounts: make them, send login links, change roles, disable, revoke, delete. That is how ProjectPortal works, through an admin account of its own. Nobody but the owner touches the owner's account or another admin's, and game settings, everyone's API keys and the logs stay the owner's alone.
 - Admins can see every hand while watching (everyone watching can too, if that is switched on for the table or the app), and step through any game's history.
 - Per-player switches: **Can invite**, **Hints**, and **Undo** (step back and forth through moves at their own tables).
 
@@ -377,7 +378,7 @@ The browser uses the same JSON API that scripts can. Every request that changes 
 | `/api/tables/:id/events` | a live Server-Sent Events stream of the table |
 | `/api/games` | finished games and their records |
 | `/api/watch/:code` | read-only watching through a watch link |
-| `/api/admin/...` | the owner's player and settings management |
+| `/api/admin/...` | player management (any admin, owner and other admins protected) and the owner's settings and keys |
 | `/api/keys` | your API keys |
 
 The actions under `/api/tables/:id/...` are:

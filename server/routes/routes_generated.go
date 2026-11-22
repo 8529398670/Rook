@@ -197,7 +197,7 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.ListUsers , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.ListUsers , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users" , apidoc.Op{
 		Summary: "Create user",
 		Description: "Make a new account and its first one-time login link, to hand to the person. role is admin, user or viewer. account_expires_at (RFC 3339, optional) is when the account stops working; omit it for never. Answers with user_id and login_path.",
@@ -205,56 +205,56 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Role: apidoc.Admin,
 		Status: 201,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.CreateUser , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.CreateUser , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/avatar" , apidoc.Op{
 		Summary: "Admin set avatar",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.AdminSetAvatar , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.AdminSetAvatar , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/can-hint" , apidoc.Op{
 		Summary: "Set user can hint",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserCanHint , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserCanHint , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/can-invite" , apidoc.Op{
 		Summary: "Set user can invite",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserCanInvite , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserCanInvite , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/can-reshuffle" , apidoc.Op{
 		Summary: "Set user can reshuffle",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserCanReshuffle , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserCanReshuffle , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/can-undo" , apidoc.Op{
 		Summary: "Set user can undo",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserCanUndo , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserCanUndo , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/delete" , apidoc.Op{
 		Summary: "Delete user",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.DeleteUser , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.DeleteUser , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/disabled" , apidoc.Op{
 		Summary: "Set user disabled",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserDisabled , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserDisabled , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/expiry" , apidoc.Op{
 		Summary: "Set when an account expires",
 		Description: "expires_at is when the account stops working (RFC 3339), or null for never. Once it passes the account counts as disabled: sign-in, its sessions and its keys stop. It must be in the future. The owner's account never expires.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.SetUserExpiry , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.SetUserExpiry , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "GET" , "/api/admin/users/{user_id}/keys" , apidoc.Op{
 		Summary: "List a user's API keys",
 		Description: "{keys: [key rows]}; each row has minted_by_key (the key that made it, or empty). A key calling needs may_mint_keys (403 key_minting_off).",
@@ -278,25 +278,25 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.ReissueLogin , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.ReissueLogin , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/rename" , apidoc.Op{
 		Summary: "Admin rename user",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.AdminRenameUser , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.AdminRenameUser , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/revoke-access" , apidoc.Op{
 		Summary: "Revoke access",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.RevokeAccess , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.RevokeAccess , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.MountStream( app , "POST" , "/api/admin/users/{user_id}/role" , apidoc.Op{
 		Summary: "Admin set role",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Errors: []int{ 400 , 401 , 403 },
-	} , handlers.AdminSetRole , handlers.Guard.RequireAdmin , handlers.RequireOwner )
+	} , handlers.AdminSetRole , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.Mount( app , "GET" , "/api/admin/users/{user_id}/sessions" , apidoc.Op{
 		Summary: "An account's signed-in devices",
 		Description: "Where an account is signed in: every session, with when it started and was last seen. Addresses are shown to the owner only, and only the owner sees the owner's.",

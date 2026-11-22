@@ -1,6 +1,7 @@
 package routes
 
 import (
+	errors "errors"
 	strconv "strconv"
 
 	fiber "github.com/gofiber/fiber/v3"
@@ -8,6 +9,7 @@ import (
 	apidoc "rook/server/apidoc"
 
 	botnames "rook/server/botnames"
+	db "rook/server/db"
 	models "rook/server/models"
 	security "rook/server/security"
 )
@@ -184,7 +186,7 @@ func ( handlers *Handlers ) SaveSettings( c fiber.Ctx , in *saveSettingsIn ) ( e
 	return
 }
 
-// @route("POST /api/admin/users/{user_id}/can-hint", summary="Set user can hint", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/can-hint", summary="Set user can hint", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx , in *setUserCanHintIn ) ( err error ) {
 	body := in.setCanHintRequest
@@ -205,7 +207,7 @@ func ( handlers *Handlers ) SetUserCanHint( c fiber.Ctx , in *setUserCanHintIn )
 // games they sit in. Their open tables are refreshed so the controls appear
 // or go at once.
 //
-// @route("POST /api/admin/users/{user_id}/can-undo", summary="Set user can undo", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/can-undo", summary="Set user can undo", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx , in *setUserCanUndoIn ) ( err error ) {
 	body := in.setCanUndoRequest
@@ -226,7 +228,7 @@ func ( handlers *Handlers ) SetUserCanUndo( c fiber.Ctx , in *setUserCanUndoIn )
 // SetUserCanReshuffle switches a player's power to deal a hand again before
 // they bid. Their open tables are refreshed so the button appears or goes.
 //
-// @route("POST /api/admin/users/{user_id}/can-reshuffle", summary="Set user can reshuffle", tag="Admin", role=ADMIN, use=[handlers.RequireOwner],
+// @route("POST /api/admin/users/{user_id}/can-reshuffle", summary="Set user can reshuffle", tag="Admin", role=ADMIN, use=[handlers.RequireAccountAdmin],
 // )
 func ( handlers *Handlers ) SetUserCanReshuffle( c fiber.Ctx , in *setUserCanReshuffleIn ) ( err error ) {
 	body := in.setCanReshuffleRequest
@@ -253,6 +255,45 @@ func ( handlers *Handlers ) RequireOwner( c fiber.Ctx ) ( err error ) {
 		return
 	}
 	err = c.Next()
+	return
+}
+
+// RequireAccountAdmin guards the routes that run other people's accounts
+// (/api/admin/users...). Any admin may use them, as in the other apps the
+// project portal runs, so the portal can work through an admin account of
+// its own rather than the owner's. The ladder is maySuperActOnTx: nobody
+// acts on the owner's account, and only the owner acts on another admin's.
+// A route without a {user_id} (list, create) needs only the admin role.
+// What stays the owner's alone -- game settings, everyone's API keys, the
+// logs -- keeps RequireOwner.
+func ( handlers *Handlers ) RequireAccountAdmin( c fiber.Ctx ) ( err error ) {
+	actor := security.ActorFrom( c )
+	if actor == nil || actor.IsAdmin() == false {
+		err = forbidden( c , "forbidden" )
+		return
+	}
+	raw := c.Params( "user_id" )
+	if raw == "" {
+		err = c.Next()
+		return
+	}
+	user_id , parse_err := strconv.ParseUint( raw , 10 , 64 )
+	if parse_err != nil {
+		err = badRequest( c , "invalid user id" )
+		return
+	}
+	switch act_err := models.MaySuperActOn( handlers.Store , actor.User.ID , user_id ); {
+	case act_err == nil:
+		err = c.Next()
+	case errors.Is( act_err , db.ErrNotFound ):
+		err = notFound( c , "no such user" )
+	case errors.Is( act_err , models.ErrOwnerProtected ):
+		err = forbidden( c , "only the owner can change the owner's account" )
+	case errors.Is( act_err , models.ErrOwnerRequired ):
+		err = forbidden( c , "only the owner can do this to an admin account" )
+	default:
+		err = serverError( c , act_err )
+	}
 	return
 }
 

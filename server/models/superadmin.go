@@ -98,3 +98,17 @@ func maySuperActOnTx( tx *db.Tx , actor_id uint64 , target *User ) ( err error )
 	return
 }
 
+// MaySuperActOn is maySuperActOnTx on its own read, for a route that must
+// refuse before it does anything else (routes.RequireAccountAdmin). A
+// missing account is db.ErrNotFound.
+func MaySuperActOn( store *db.Store , actor_id uint64 , user_id uint64 ) ( err error ) {
+	if actor_id == 0 || actor_id == user_id { return }
+	err = store.Write( func( tx *db.Tx ) ( tx_err error ) {
+		target := &User{}
+		if tx_err = tx.Get( db.BucketUsers , encryption.Uint64ToBytes( user_id ) , target ); tx_err != nil { return }
+		tx_err = maySuperActOnTx( tx , actor_id , target )
+		return
+	} )
+	return
+}
+
