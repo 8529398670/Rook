@@ -1372,7 +1372,7 @@ Admin set role
 
 An account's signed-in devices
 
-Where an account is signed in: every session, with when it started and was last seen. Addresses are shown to the owner only, and only the owner sees the owner's.
+Where an account is signed in: every session, with when it started and was last seen. Addresses are shown to the owner and service accounts only. Nobody sees the owner's, and only the owner sees another admin's.
 
 |  |  |
 |---|---|

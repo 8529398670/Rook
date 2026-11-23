@@ -299,7 +299,7 @@ func ( handlers *Handlers ) mountDeclared( app *fiber.App ) {
 	} , handlers.AdminSetRole , handlers.Guard.RequireAdmin , handlers.RequireAccountAdmin )
 	apidoc.Mount( app , "GET" , "/api/admin/users/{user_id}/sessions" , apidoc.Op{
 		Summary: "An account's signed-in devices",
-		Description: "Where an account is signed in: every session, with when it started and was last seen. Addresses are shown to the owner only, and only the owner sees the owner's.",
+		Description: "Where an account is signed in: every session, with when it started and was last seen. Addresses are shown to the owner and service accounts only. Nobody sees the owner's, and only the owner sees another admin's.",
 		Tag: "Admin",
 		Role: apidoc.Admin,
 		Feature: "sessions",

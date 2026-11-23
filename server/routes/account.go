@@ -275,5 +275,6 @@ func ( handlers *Handlers ) capabilities() ( result []string ) {
 	if keys { result = append( result , "key_grants" ) }
 	result = append( result , "error_codes" )
 	if keys { result = append( result , "key_rotation" ) }
+	result = append( result , "admin_sessions" )
 	return
 }
