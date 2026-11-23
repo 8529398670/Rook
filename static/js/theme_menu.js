@@ -1,10 +1,10 @@
 // The theme picker and Light/Dark switch in the table menu, so the theme can
 // be changed in the middle of a game and seen on the table at once.
 //
-// Both act on the theme in use, the same way the Display screen does
+// Both act on the theme in use, the same way the Appearance screen does
 // (themes_editor.js): picking one is Theme.pick, and Light/Dark is
 // Theme.setMode on that theme, saved with the rest of the list, so each mode
-// keeps its own colors and the Display screen shows the change too. Someone
+// keeps its own colors and the Appearance screen shows the change too. Someone
 // not signed in (watching a table) only changes this browser.
 const ThemeMenu = {
   modes: [ "light" , "dark" ],

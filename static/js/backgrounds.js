@@ -1,5 +1,5 @@
 // Table pictures: a photo someone puts on the game table in a theme (the
-// Table section of the Display screen, themes_editor.js). The server keeps
+// Table section of the Appearance screen, themes_editor.js). The server keeps
 // them (server/models/backgrounds.go); this shrinks a photo before it goes,
 // so a 12-megapixel phone picture fits the request size limit, and keeps the
 // list of pictures this person may use.

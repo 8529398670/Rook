@@ -1,4 +1,4 @@
-// The Display screen (#/display): the zoom sliders, then a list of themes
+// The Appearance screen (#/appearance): the zoom sliders, then a list of themes
 // beside the one being edited. Rook's version of the go-webserver template's editor, drawn with
 // Rook's own buttons, cards and segmented controls rather than Bootstrap's.
 //

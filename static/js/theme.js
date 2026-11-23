@@ -25,7 +25,7 @@
 // Which themes there are, and which one someone uses, is kept on their
 // account (server/models/themes.go): their own list, or until they change
 // something, the defaults an admin set, or until an admin does, the built-in
-// ones below. The Display screen (themes_editor.js) edits both lists.
+// ones below. The Appearance screen (themes_editor.js) edits both lists.
 //
 // The theme in use is also kept in this browser, whole, so the first paint --
 // and the pages before signing in -- are already in it. The account is the
@@ -471,7 +471,7 @@ const Theme = {
   },
 
   // Paints a theme on the page, or (with an element) on that element alone:
-  // the Display screen's preview.
+  // the Appearance screen's preview.
   apply( theme , element ) {
     const root = element || document.documentElement;
     if ( theme.mode === "dark" ) root.setAttribute( "data-theme" , "dark" );

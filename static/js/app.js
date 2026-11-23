@@ -6,8 +6,8 @@
 //   #/settings/<part>  one settings page: account, play, invites or
 //                      admin (bare #/settings is account)
 //   #/logs             the activity log (the owner's)
-//   #/display          the zoom sliders and the themes: pick, make and edit
-//                      them (themes_editor.js). #/appearance and
+//   #/appearance       the themes: pick, make and edit them
+//                      (themes_editor.js). #/display and
 //                      #/settings/display, from before, land here.
 //   #/games            the game history (#/games/<id> for one game)
 //   #/rules            the rules (#/strategy for the strategy tips, #/bots
@@ -166,9 +166,9 @@ const App = {
 
   route() {
     let hash = window.location.hash || "#/";
-    // Where the themes and the zoom sliders used to be: both are Display now.
-    if ( hash === "#/appearance" || hash === "#/settings/display" ) {
-      hash = "#/display";
+    // Where the themes used to be: they are Appearance now.
+    if ( hash === "#/display" || hash === "#/settings/display" ) {
+      hash = "#/appearance";
       window.history.replaceState( null , "" , hash );
     }
     const match = function ( prefix ) {
@@ -196,7 +196,7 @@ const App = {
       argument = match( "settings" );
     } else if ( hash === "#/logs" && this.me && this.me.owner ) {
       next = Logs;
-    } else if ( hash === "#/display" ) {
+    } else if ( hash === "#/appearance" ) {
       next = ThemeEditor;
     } else if ( [ "#/rules" , "#/strategy" , "#/bots" , "#/about" ].indexOf( hash ) >= 0 ) {
       next = Guide;

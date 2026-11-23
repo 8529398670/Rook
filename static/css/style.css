@@ -1253,15 +1253,16 @@ body.sidebar-open .app-sidebar {
      when it would cover the content does the page move, and only by as much
      as it must (padding P re-centres the column P/2 to the right, so P is
      twice the overlap). The header bar, with the menu button at its left,
-     always starts after the column. Logs is a full-width table, so it moves
+     always starts after the column. Logs (a full-width table) and Appearance
+     (the theme list beside the editor, full width from a tablet up) move
      over the whole way. */
   body {
     --sidebar-at: var(--sidebar-docked-width, 17rem);
     --sidebar-push: max(0px, calc(2 * (var(--sidebar-at) + 0.5rem) + 46rem - 100vw));
   }
-  body.sidebar-docked :is(.screen-lobby, .screen-guide, .screen-games, .screen-appearance, .screen-settings) { padding-left: var(--sidebar-push); }
-  body.sidebar-docked :is(.screen-lobby, .screen-guide, .screen-games, .screen-appearance, .screen-settings) > header { margin-left: calc(var(--sidebar-at) - var(--sidebar-push)); }
-  body.sidebar-docked .screen-logs { margin-left: var(--sidebar-at); }
+  body.sidebar-docked :is(.screen-lobby, .screen-guide, .screen-games, .screen-settings) { padding-left: var(--sidebar-push); }
+  body.sidebar-docked :is(.screen-lobby, .screen-guide, .screen-games, .screen-settings) > header { margin-left: calc(var(--sidebar-at) - var(--sidebar-push)); }
+  body.sidebar-docked :is(.screen-logs, .screen-appearance) { margin-left: var(--sidebar-at); }
   body.sidebar-docked[data-screen="screen-lobby"] .fab-bar { left: var(--sidebar-push); }
   /* The column has its own close button only on a phone; here the
      hamburger beside it does that. */

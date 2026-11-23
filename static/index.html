@@ -28,7 +28,7 @@
 
     One screen visible at a time, switched by the hash router in js/app.js:
     signed-out, lobby (#/), a table (#/t/<id>), settings (#/settings/<part>,
-    one page per section), display (#/display), and the rest it lists.
+    one page per section), appearance (#/appearance), and the rest it lists.
   -->
 
   <!-- ===================================================== signed out -->
@@ -141,7 +141,7 @@
       <h3 class="sidebar-heading" data-i18n="nav.settings"></h3>
       <a class="sidebar-link" href="#/settings/account" data-nav="#/settings/account"><span data-i18n="settings.section_account"></span></a>
       <a class="sidebar-link" href="#/settings/play" data-nav="#/settings/play"><span data-i18n="settings.section_play"></span></a>
-      <a class="sidebar-link" href="#/display" data-nav="#/display"><span data-i18n="nav.display"></span></a>
+      <a class="sidebar-link" href="#/appearance" data-nav="#/appearance"><span data-i18n="nav.appearance"></span></a>
       <a id="sidebar-invites" class="sidebar-link" href="#/settings/invites" data-nav="#/settings/invites" hidden><span data-i18n="settings.section_invites"></span></a>
       <div id="sidebar-admin" class="sidebar-group" hidden>
         <h3 class="sidebar-heading" data-i18n="nav.admin_heading"></h3>
@@ -374,7 +374,7 @@
   </section>
 
   <!-- ======================================================== display -->
-  <!-- Display (#/display): the themes (js/themes_editor.js, js/theme.js):
+  <!-- Appearance (#/appearance): the themes (js/themes_editor.js, js/theme.js):
        pick one, make your own, change any color, light or dark. Admins also
        edit the defaults everyone starts with. Card size lives in the table
        menu (#menu-zoom). -->
@@ -1252,7 +1252,7 @@
           <input type="checkbox" role="switch" data-card-motion-toggle />
         </label>
         <!-- The theme in use and its light/dark, switched live while
-             playing (js/theme_menu.js). The Display screen edits them. -->
+             playing (js/theme_menu.js). The Appearance screen edits them. -->
         <div class="menu-switch menu-theme">
           <label class="switch-row pause-row">
             <span>
